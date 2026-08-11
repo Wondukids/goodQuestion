@@ -38,8 +38,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  /* 정적 자산까지 통과시키면 로그인 세션 갱신 때문에 이미지·CSS 가 느려진다. */
+  /* 정적 자산까지 통과시키면 로그인 세션 갱신 때문에 이미지·CSS 가 느려진다.
+     폰트 확장자를 빠뜨리면 public/fonts 의 파일마다 위 getUser() 왕복이 붙는다
+     (측정: otf 33~69ms vs 제외된 png 1.8ms). 나중에 woff2 로 되돌리거나 웨이트를
+     추가해도 다시 새지 않도록 폰트 확장자를 모두 적어 둔다. */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|otf|ttf|woff|woff2)$).*)",
   ],
 };
