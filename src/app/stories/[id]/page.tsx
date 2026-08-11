@@ -128,13 +128,13 @@ export default async function StoryIntroPage(
           {story.note}
         </p>
 
-        {/* 누른 다음 화면(8)은 아직 시안만 있고 구현 전이다. */}
-        <button
-          type="button"
+        {/* 재생 화면(시안 8~17)은 별도 담당자 몫이라 아직 껍데기다. */}
+        <Link
+          href={`/stories/${story.id}/play`}
           className="absolute top-[924px] left-12 flex h-[68px] w-[587px] items-center justify-center rounded-lg bg-primary-strong text-[24px] leading-[1.5] font-extrabold text-white"
         >
           이야기 시작하기
-        </button>
+        </Link>
       </section>
     </main>
   );
