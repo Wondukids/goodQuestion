@@ -1,0 +1,1231 @@
+{
+  "meta": {
+    "title": "방귀쟁이 며느리",
+    "description": "전래동화 '방귀쟁이 며느리' 인터랙티브 동화 영상 데이터베이스 (음성 + 이미지 + 플레이형 대화 씬)",
+    "version": "1.0.0",
+    "createdAt": "2026-08-11",
+    "sceneCount": 18,
+    "sourceScript": "source/script.md",
+    "assetRoots": {
+      "image": "source/image",
+      "sound": "source/sound"
+    },
+    "sttDefaults": {
+      "language": "ko-KR",
+      "maxListenSec": 10,
+      "silenceTimeoutSec": 5,
+      "retryCount": 1,
+      "proceedOnSilence": true,
+      "saveRecording": true
+    }
+  },
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "내레이션",
+      "role": "voice",
+      "voice": "Despina"
+    },
+    {
+      "id": "bride",
+      "name": "며느리",
+      "role": "voice",
+      "voice": "Leda"
+    },
+    {
+      "id": "father",
+      "name": "시아버지",
+      "role": "voice",
+      "voice": "Schedar"
+    },
+    {
+      "id": "chief",
+      "name": "이장님",
+      "role": "voice",
+      "voice": "Sadachbia"
+    },
+    {
+      "id": "child",
+      "name": "아이(플레이어)",
+      "role": "stt-input",
+      "voice": null
+    }
+  ],
+  "scenes": [
+    {
+      "id": 1,
+      "chapter": "도입부",
+      "title": "도입",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "1_도입.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "옛날 어느 마을에 방귀를 아주 크게 뀌는 며느리가 살았습니다.",
+          "audio": "1_도입_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "며느리는 시집에 온 뒤로 늘 얌전하고 예의 바르게 보이고 싶었습니다.",
+          "audio": "1_도입_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "시댁 식구들이 자신을 이상하게 볼까 봐 걱정했기 때문입니다.",
+          "audio": "1_도입_Take3.wav"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "chapter": "전개1",
+      "title": "방귀 참는 며느리",
+      "type": "linear",
+      "screenTransition": true,
+      "image": "2_전개1.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "그래서 며느리는 방귀가 나오려고 할 때마다 꾹꾹 참았습니다.",
+          "audio": "2_전개1_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "하루도 참고, 이틀도 참고, 그렇게 오래 참다 보니 배는 점점 빵빵하게 부풀어 올랐고 얼굴은 노랗게 변했습니다.",
+          "audio": "2_전개1_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "몸도 마음도 너무 힘들었지만, 며느리는 차마 가족들에게 솔직하게 말하지 못했습니다.",
+          "audio": "2_전개1_Take3.wav"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "chapter": "대화1",
+      "title": "며느리의 걱정",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "3_대화1.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "며느리는 걱정이 많았습니다.",
+          "audio": "3_대화1_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "사실 방귀는 누구에게나 나오는 자연스러운 일이지만, 며느리에게는 그것이 큰 비밀처럼 느껴졌습니다.",
+          "audio": "3_대화1_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "특히 자신의 방귀는 한 번 나오면 지붕이 흔들릴 만큼 우렁찼기 때문에 더욱 부끄러웠습니다.",
+          "audio": "3_대화1_Take3.wav"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "chapter": "대화1",
+      "title": "아이와의 대화 - 며느리",
+      "type": "interactive",
+      "interactSpeaker": "bride",
+      "phases": [
+        {
+          "phase": "question",
+          "image": "4-1_대화1_질문(이미지 교체 필요).png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "bride",
+              "text": "ㅇㅇ아, 내 방귀가 너무 크다는 걸 알면 가족들이 나를 이상하게 생각하지 않을까?",
+              "audio": "4-1_대화1_질문_Take1.wav",
+              "namePlaceholder": "ㅇㅇ"
+            }
+          ]
+        },
+        {
+          "phase": "stt"
+        },
+        {
+          "phase": "answer",
+          "image": "4-2_대화1_질문(이미지 교체 필요).png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "bride",
+              "text": "그렇구나. 그래도 아직은 못 말하겠어, 조금만 더 참아 볼게.",
+              "audio": "4-2_대화1_답변_Take1.wav"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "chapter": "전개2",
+      "title": "며느리의 고백",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "5_전개2(이미지 교체 필요).png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "그러던 어느 날, 며느리는 더 이상 참을 수 없었습니다.",
+          "audio": "5_전개2_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "배가 너무 아프고 숨 쉬기도 힘들었습니다.",
+          "audio": "5_전개2_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "며느리는 조심스럽게 가족들에게 말했습니다.",
+          "audio": "5_전개2_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "bride",
+          "text": "저... 사실은 방귀를 너무 오래 참아서 배가 아파요. 조금만 뀌어도 될까요?",
+          "audio": "5_전개2_Take4.wav"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "chapter": "전개2",
+      "title": "방귀 폭발",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "6_전개2.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "며느리는 아주 살짝만 뀌려고 했습니다.",
+          "audio": "6_전개2_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "하지만 그동안 너무 오래 참았던 탓에 방귀는 생각보다 훨씬 크게 터져 나왔습니다.",
+          "audio": "6_전개2_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "마당의 먼지가 휘리릭 날아가고, 기왓장이 달그락거리고, 시아버지의 갓까지 휙 날아가 버렸습니다.",
+          "audio": "6_전개2_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "시아버지는 깜짝 놀라 화를 냈습니다.",
+          "audio": "6_전개2_Take4.wav"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "chapter": "대화2",
+      "title": "아이와의 대화 - 시아버지",
+      "type": "interactive",
+      "interactSpeaker": "father",
+      "phases": [
+        {
+          "phase": "question",
+          "image": "7-1_대화2_질문(이미지 교체 필요).png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "father",
+              "text": "아이고, 이게 무슨 일이냐! 우리 집안이 다 흔들리는구나! 이렇게 창피한 며느리랑 함께 못 살겠다! 그렇지 않니?",
+              "audio": "7-1_대화2_Take1.wav"
+            }
+          ]
+        },
+        {
+          "phase": "stt"
+        },
+        {
+          "phase": "answer",
+          "image": "7-2_대화2_답변(이미지 교체 필요).png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "father",
+              "text": "흥, 그래도 도저히 이런 며느리와는 함께 살 수 없으니 친정으로 데려다줘야겠다.",
+              "audio": "7-2_대화2_답변_Take1.wav.wav"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "chapter": "대화2",
+      "title": "친정 가는 길",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "8_대화.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "며느리는 고개를 푹 숙였습니다.",
+          "audio": "8_대화_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "일부러 그런 것이 아니었지만, 모두가 놀란 모습을 보니 마음이 더 작아졌습니다.",
+          "audio": "8_대화_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "시아버지는 며느리의 방귀가 너무 별나다며, 이런 며느리와는 함께 살 수 없다고 말했습니다.",
+          "audio": "8_대화_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "며느리는 슬펐습니다.",
+          "audio": "8_대화_Take4.wav"
+        },
+        {
+          "order": 5,
+          "speaker": "narrator",
+          "text": "자신이 가족에게 피해만 주는 사람처럼 느껴졌기 때문입니다.",
+          "audio": "8_대화_Take5.wav"
+        },
+        {
+          "order": 6,
+          "speaker": "narrator",
+          "text": "하지만 며느리의 방귀가 정말 쓸모없는 것인지는 아직 아무도 알지 못했습니다.",
+          "audio": "8_대화_Take6.wav"
+        },
+        {
+          "order": 7,
+          "speaker": "narrator",
+          "text": "결국 시아버지는 방귀 뀌는 며느리를 데리고 친정에 데려다주러 길을 나섰습니다.",
+          "audio": "8_대화_Take7.wav"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "chapter": "전개3",
+      "title": "높은 배나무",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "9_전개3.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "그런데 한참 걷다 보니 길가에 아주 높은 배나무가 한 그루 서 있었습니다.",
+          "audio": "9_전개3_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "나무 꼭대기에는 노랗고 탐스러운 배들이 주렁주렁 매달려 있었습니다.",
+          "audio": "9_전개3_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "시아버지는 배를 보자 군침이 돌았습니다.",
+          "audio": "9_전개3_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "father",
+          "text": "참 맛있어 보이는 배로구나, 그런데 너무 높아서 딸 수가 없겠네.",
+          "audio": "9_전개3_Take4.wav"
+        },
+        {
+          "order": 5,
+          "speaker": "narrator",
+          "text": "마을 사람들도 그 배를 먹고 싶어 했지만, 나무가 너무 높아 아무도 딸 수 없었습니다.",
+          "audio": "9_전개3_Take5.wav"
+        },
+        {
+          "order": 6,
+          "speaker": "narrator",
+          "text": "긴 장대를 가져와도 닿지 않았고, 나무에 올라가려 해도 가지가 너무 높았습니다.",
+          "audio": "9_전개3_Take6.wav"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "chapter": "대화3",
+      "title": "아이와의 대화 - 이장님 (미니게임)",
+      "type": "interactive",
+      "interactSpeaker": "chief",
+      "phases": [
+        {
+          "phase": "question",
+          "image": "10-1_대화3_질문.png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "chief",
+              "text": "이 배나무는 해마다 탐스러운 배가 열리지만, 너무 높아서 아무도 딸 수가 없었단다.",
+              "audio": "10-1_대화3_질문_Take1.wav"
+            }
+          ]
+        },
+        {
+          "phase": "stt"
+        },
+        {
+          "phase": "minigame",
+          "minigame": {
+            "gameId": null,
+            "description": "배나무 미니게임 (내용 미정 - 대사본에 '미니게임'으로만 표기됨)",
+            "skipEnabled": true
+          }
+        },
+        {
+          "phase": "answer",
+          "image": "10-2_대화3_답변.png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "chief",
+              "text": "아이고, 방귀 뀌는 며느리 덕분에 온 마을이 배 잔치를 할 수 있겠구려, 고맙소!",
+              "audio": "10-2_대화3_답변_Take1.wav"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "chapter": "대화3",
+      "title": "며느리의 깨달음",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "11-대화3.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "그때 며느리는 문득 생각했습니다.",
+          "audio": "11-대화3_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "bride",
+          "text": "내 방귀가 지붕도 흔들 만큼 힘이 세다면, 저 높은 배를 떨어뜨릴 수도 있지 않을까?",
+          "audio": "11-대화3_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "며느리는 조심스럽게 시아버지에게 말했습니다.",
+          "audio": "11-대화3_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "bride",
+          "text": "아버님, 제가 한번 해 볼게요. 대신 사람들이 다치지 않도록 모두 조금 떨어져 주세요.",
+          "audio": "11-대화3_Take4.wav"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "chapter": "대화3",
+      "title": "사람들을 설득하는 며느리",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "12-대화3.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "마을 사람들은 처음에는 어리둥절했습니다.",
+          "audio": "12-대화3_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "하지만 며느리는 나무를 향해 자리를 잡고, 배가 떨어질 곳을 살폈습니다.",
+          "audio": "12-대화3_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "사람들이 없는 쪽으로 몸을 돌리고, 배나무 위쪽을 향해 힘을 모았습니다.",
+          "audio": "12-대화3_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "그리고 크게 외쳤습니다.",
+          "audio": "12-대화3_Take4.wav"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "chapter": "대화3",
+      "title": "방귀 나갑니다!",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "13_대화3.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "bride",
+          "text": "방귀 나갑니다!",
+          "audio": "13_대화3_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "곧이어 천둥 같은 방귀 소리가 울려 퍼졌습니다.",
+          "audio": "13_대화3_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "바람이 세차게 불더니 높은 나무에 매달려 있던 배들이 우수수 떨어졌습니다.",
+          "audio": "13_대화3_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "사람들은 깜짝 놀라면서도 곧 기뻐했습니다.",
+          "audio": "13_대화3_Take4.wav"
+        },
+        {
+          "order": 5,
+          "speaker": "narrator",
+          "text": "아무도 따지 못했던 배가 마당 가득 떨어졌기 때문입니다.",
+          "audio": "13_대화3_Take5.wav"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "chapter": "대화3",
+      "title": "배 잔치",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "14-대화3(이미지 교체 필요).png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "시아버지도 떨어진 배를 하나 먹어보았습니다.",
+          "audio": "14-대화3_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "배는 달고 시원했습니다.",
+          "audio": "14-대화3_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "마을 사람들도 배를 나누어 먹으며 즐거워했습니다.",
+          "audio": "14-대화3_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "모두가 배불리 먹고 나자, 시아버지는 며느리를 다시 바라보았습니다.",
+          "audio": "14-대화3_Take4.wav"
+        },
+        {
+          "order": 5,
+          "speaker": "narrator",
+          "text": "처음에는 시끄럽고 별나다고만 생각했던 며느리의 방귀가, 알고 보니 모두를 도울 수 있는 특별한 힘이었던 것입니다.",
+          "audio": "14-대화3_Take5.wav"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "chapter": "전개4",
+      "title": "시아버지의 사과",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "15-전개4.png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "시아버지는 며느리에게 미안한 마음이 들었습니다.",
+          "audio": "15-전개4_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "father",
+          "text": "내가 네 모습을 제대로 보지 못했구나. 남들과 다르다고 해서 부끄러운 것이 아닌데, 내가 너무 성급하게 생각했다.",
+          "audio": "15-전개4_Take2.wav"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "chapter": "대화4",
+      "title": "아이와의 대화 - 며느리",
+      "type": "interactive",
+      "interactSpeaker": "bride",
+      "phases": [
+        {
+          "phase": "question",
+          "image": "16-1-대화4_질문.png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "bride",
+              "text": "ㅇㅇ이 덕분에 내 방귀가 누군가에게 도움이 될 수 있다는 걸 처음 알았어.",
+              "audio": "16-1_대화4_질문_Take1.wav",
+              "namePlaceholder": "ㅇㅇ"
+            },
+            {
+              "order": 2,
+              "speaker": "bride",
+              "text": "이제는 방귀 소리가 큰 걸 부끄러워하지 않아도 될까?",
+              "audio": "16-1_대화4_질문_Take2.wav"
+            }
+          ]
+        },
+        {
+          "phase": "stt"
+        },
+        {
+          "phase": "answer",
+          "image": "16-2-대화4_답변.png",
+          "lines": [
+            {
+              "order": 1,
+              "speaker": "bride",
+              "text": "이제는 부끄러워하며 숨기지 않고, 조심해서 좋은 일에 써 볼게.",
+              "audio": "16-2_대화4_답변_Take1.wav"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "chapter": "대화4",
+      "title": "편안해진 며느리",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "17_대화4(이미지 교체 필요).png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "며느리는 그 말을 듣고 마음이 조금씩 편안해졌습니다.",
+          "audio": "17_대화4_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "자신이 숨기고 싶어 했던 특징이 누군가에게 도움이 될 수도 있다는 것을 알게 되었기 때문입니다.",
+          "audio": "17_대화4_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "그 뒤로 며느리는 더 이상 방귀를 무조건 참지 않았습니다.",
+          "audio": "17_대화4_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "물론 아무 때나 함부로 뀌지는 않았습니다.",
+          "audio": "17_대화4_Take4.wav"
+        },
+        {
+          "order": 5,
+          "speaker": "narrator",
+          "text": "대신 몸이 힘들 때는 솔직하게 말하고",
+          "audio": "17_대화4_Take5.wav"
+        },
+        {
+          "order": 6,
+          "speaker": "narrator",
+          "text": "사람들이 놀라지 않도록 미리 알려 주었습니다.",
+          "audio": "17_대화4_Take6.wav"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "chapter": "대화4",
+      "title": "마을 사람들과 함께",
+      "type": "linear",
+      "screenTransition": false,
+      "image": "18_대화4(이미지 교체 필요).png",
+      "lines": [
+        {
+          "order": 1,
+          "speaker": "narrator",
+          "text": "마을 사람들도 며느리를 놀리지 않았습니다.",
+          "audio": "18_대화4_Take1.wav"
+        },
+        {
+          "order": 2,
+          "speaker": "narrator",
+          "text": "오히려 높은 나무의 열매를 딸 때나, 큰 바람이 필요할 때 며느리에게 도움을 부탁했습니다.",
+          "audio": "18_대화4_Take2.wav"
+        },
+        {
+          "order": 3,
+          "speaker": "narrator",
+          "text": "며느리는 자신의 방귀를 부끄러운 비밀이 아니라,",
+          "audio": "18_대화4_Take3.wav"
+        },
+        {
+          "order": 4,
+          "speaker": "narrator",
+          "text": "잘 쓰면 모두에게 도움이 되는 특별한 힘으로 여기게 되었습니다.",
+          "audio": "18_대화4_Take4.wav"
+        }
+      ]
+    }
+  ],
+  "assets": {
+    "images": {
+      "1_도입.png": {
+        "path": "source/image/1_도입.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 1
+      },
+      "10-1_대화3_질문.png": {
+        "path": "source/image/10-1_대화3_질문.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 10
+      },
+      "10-2_대화3_답변.png": {
+        "path": "source/image/10-2_대화3_답변.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 10
+      },
+      "11-대화3.png": {
+        "path": "source/image/11-대화3.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 11
+      },
+      "12-대화3.png": {
+        "path": "source/image/12-대화3.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 12
+      },
+      "13_대화3.png": {
+        "path": "source/image/13_대화3.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 13
+      },
+      "14-대화3(이미지 교체 필요).png": {
+        "path": "source/image/14-대화3(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 14
+      },
+      "15-전개4.png": {
+        "path": "source/image/15-전개4.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 15
+      },
+      "16-1-대화4_질문.png": {
+        "path": "source/image/16-1-대화4_질문.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 16
+      },
+      "16-2-대화4_답변.png": {
+        "path": "source/image/16-2-대화4_답변.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 16
+      },
+      "17_대화4(이미지 교체 필요).png": {
+        "path": "source/image/17_대화4(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 17
+      },
+      "18_대화4(이미지 교체 필요).png": {
+        "path": "source/image/18_대화4(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 18
+      },
+      "2_전개1.png": {
+        "path": "source/image/2_전개1.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 2
+      },
+      "3_대화1.png": {
+        "path": "source/image/3_대화1.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 3
+      },
+      "4-1_대화1_질문(이미지 교체 필요).png": {
+        "path": "source/image/4-1_대화1_질문(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 4
+      },
+      "4-2_대화1_질문(이미지 교체 필요).png": {
+        "path": "source/image/4-2_대화1_질문(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 4
+      },
+      "5_전개2(이미지 교체 필요).png": {
+        "path": "source/image/5_전개2(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 5
+      },
+      "6_전개2.png": {
+        "path": "source/image/6_전개2.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 6
+      },
+      "7-1_대화2_질문(이미지 교체 필요).png": {
+        "path": "source/image/7-1_대화2_질문(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 7
+      },
+      "7-2_대화2_답변(이미지 교체 필요).png": {
+        "path": "source/image/7-2_대화2_답변(이미지 교체 필요).png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": true,
+        "usedByScene": 7
+      },
+      "8_대화.png": {
+        "path": "source/image/8_대화.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 8
+      },
+      "9_전개3.png": {
+        "path": "source/image/9_전개3.png",
+        "width": 1672,
+        "height": 941,
+        "needsReplacement": false,
+        "usedByScene": 9
+      }
+    },
+    "audio": {
+      "1_도입_Take1.wav": {
+        "path": "source/sound/1_도입_Take1.wav",
+        "durationSec": 7.0,
+        "usedByScene": 1
+      },
+      "1_도입_Take2.wav": {
+        "path": "source/sound/1_도입_Take2.wav",
+        "durationSec": 7.38,
+        "usedByScene": 1
+      },
+      "1_도입_Take3.wav": {
+        "path": "source/sound/1_도입_Take3.wav",
+        "durationSec": 6.44,
+        "usedByScene": 1
+      },
+      "10-1_대화3_질문_Take1.wav": {
+        "path": "source/sound/10-1_대화3_질문_Take1.wav",
+        "durationSec": 10.11,
+        "usedByScene": 10
+      },
+      "10-2_대화3_답변_Take1.wav": {
+        "path": "source/sound/10-2_대화3_답변_Take1.wav",
+        "durationSec": 8.92,
+        "usedByScene": 10
+      },
+      "11-대화3_Take1.wav": {
+        "path": "source/sound/11-대화3_Take1.wav",
+        "durationSec": 4.63,
+        "usedByScene": 11
+      },
+      "11-대화3_Take2.wav": {
+        "path": "source/sound/11-대화3_Take2.wav",
+        "durationSec": 8.53,
+        "usedByScene": 11
+      },
+      "11-대화3_Take3.wav": {
+        "path": "source/sound/11-대화3_Take3.wav",
+        "durationSec": 5.33,
+        "usedByScene": 11
+      },
+      "11-대화3_Take4.wav": {
+        "path": "source/sound/11-대화3_Take4.wav",
+        "durationSec": 7.25,
+        "usedByScene": 11
+      },
+      "12-대화3_Take1.wav": {
+        "path": "source/sound/12-대화3_Take1.wav",
+        "durationSec": 5.12,
+        "usedByScene": 12
+      },
+      "12-대화3_Take2.wav": {
+        "path": "source/sound/12-대화3_Take2.wav",
+        "durationSec": 7.59,
+        "usedByScene": 12
+      },
+      "12-대화3_Take3.wav": {
+        "path": "source/sound/12-대화3_Take3.wav",
+        "durationSec": 7.55,
+        "usedByScene": 12
+      },
+      "12-대화3_Take4.wav": {
+        "path": "source/sound/12-대화3_Take4.wav",
+        "durationSec": 3.71,
+        "usedByScene": 12
+      },
+      "13_대화3_Take1.wav": {
+        "path": "source/sound/13_대화3_Take1.wav",
+        "durationSec": 3.24,
+        "usedByScene": 13
+      },
+      "13_대화3_Take2.wav": {
+        "path": "source/sound/13_대화3_Take2.wav",
+        "durationSec": 5.65,
+        "usedByScene": 13
+      },
+      "13_대화3_Take3.wav": {
+        "path": "source/sound/13_대화3_Take3.wav",
+        "durationSec": 8.11,
+        "usedByScene": 13
+      },
+      "13_대화3_Take4.wav": {
+        "path": "source/sound/13_대화3_Take4.wav",
+        "durationSec": 6.02,
+        "usedByScene": 13
+      },
+      "13_대화3_Take5.wav": {
+        "path": "source/sound/13_대화3_Take5.wav",
+        "durationSec": 6.1,
+        "usedByScene": 13
+      },
+      "14-대화3_Take1.wav": {
+        "path": "source/sound/14-대화3_Take1.wav",
+        "durationSec": 5.1,
+        "usedByScene": 14
+      },
+      "14-대화3_Take2.wav": {
+        "path": "source/sound/14-대화3_Take2.wav",
+        "durationSec": 4.37,
+        "usedByScene": 14
+      },
+      "14-대화3_Take3.wav": {
+        "path": "source/sound/14-대화3_Take3.wav",
+        "durationSec": 6.29,
+        "usedByScene": 14
+      },
+      "14-대화3_Take4.wav": {
+        "path": "source/sound/14-대화3_Take4.wav",
+        "durationSec": 6.83,
+        "usedByScene": 14
+      },
+      "14-대화3_Take5.wav": {
+        "path": "source/sound/14-대화3_Take5.wav",
+        "durationSec": 11.54,
+        "usedByScene": 14
+      },
+      "15-전개4_Take1.wav": {
+        "path": "source/sound/15-전개4_Take1.wav",
+        "durationSec": 6.12,
+        "usedByScene": 15
+      },
+      "15-전개4_Take2.wav": {
+        "path": "source/sound/15-전개4_Take2.wav",
+        "durationSec": 11.84,
+        "usedByScene": 15
+      },
+      "16-1_대화4_질문_Take1.wav": {
+        "path": "source/sound/16-1_대화4_질문_Take1.wav",
+        "durationSec": 6.68,
+        "usedByScene": 16
+      },
+      "16-1_대화4_질문_Take2.wav": {
+        "path": "source/sound/16-1_대화4_질문_Take2.wav",
+        "durationSec": 5.53,
+        "usedByScene": 16
+      },
+      "16-2_대화4_답변_Take1.wav": {
+        "path": "source/sound/16-2_대화4_답변_Take1.wav",
+        "durationSec": 6.46,
+        "usedByScene": 16
+      },
+      "17_대화4_Take1.wav": {
+        "path": "source/sound/17_대화4_Take1.wav",
+        "durationSec": 6.08,
+        "usedByScene": 17
+      },
+      "17_대화4_Take2.wav": {
+        "path": "source/sound/17_대화4_Take2.wav",
+        "durationSec": 8.6,
+        "usedByScene": 17
+      },
+      "17_대화4_Take3.wav": {
+        "path": "source/sound/17_대화4_Take3.wav",
+        "durationSec": 6.36,
+        "usedByScene": 17
+      },
+      "17_대화4_Take4.wav": {
+        "path": "source/sound/17_대화4_Take4.wav",
+        "durationSec": 5.8,
+        "usedByScene": 17
+      },
+      "17_대화4_Take5.wav": {
+        "path": "source/sound/17_대화4_Take5.wav",
+        "durationSec": 5.14,
+        "usedByScene": 17
+      },
+      "17_대화4_Take6.wav": {
+        "path": "source/sound/17_대화4_Take6.wav",
+        "durationSec": 5.27,
+        "usedByScene": 17
+      },
+      "18_대화4_Take1.wav": {
+        "path": "source/sound/18_대화4_Take1.wav",
+        "durationSec": 5.01,
+        "usedByScene": 18
+      },
+      "18_대화4_Take2.wav": {
+        "path": "source/sound/18_대화4_Take2.wav",
+        "durationSec": 9.49,
+        "usedByScene": 18
+      },
+      "18_대화4_Take3.wav": {
+        "path": "source/sound/18_대화4_Take3.wav",
+        "durationSec": 5.59,
+        "usedByScene": 18
+      },
+      "18_대화4_Take4.wav": {
+        "path": "source/sound/18_대화4_Take4.wav",
+        "durationSec": 7.42,
+        "usedByScene": 18
+      },
+      "2_전개1_Take1.wav": {
+        "path": "source/sound/2_전개1_Take1.wav",
+        "durationSec": 6.83,
+        "usedByScene": 2
+      },
+      "2_전개1_Take2.wav": {
+        "path": "source/sound/2_전개1_Take2.wav",
+        "durationSec": 12.57,
+        "usedByScene": 2
+      },
+      "2_전개1_Take3.wav": {
+        "path": "source/sound/2_전개1_Take3.wav",
+        "durationSec": 9.45,
+        "usedByScene": 2
+      },
+      "3_대화1_Take1.wav": {
+        "path": "source/sound/3_대화1_Take1.wav",
+        "durationSec": 3.88,
+        "usedByScene": 3
+      },
+      "3_대화1_Take2.wav": {
+        "path": "source/sound/3_대화1_Take2.wav",
+        "durationSec": 10.69,
+        "usedByScene": 3
+      },
+      "3_대화1_Take3.wav": {
+        "path": "source/sound/3_대화1_Take3.wav",
+        "durationSec": 9.69,
+        "usedByScene": 3
+      },
+      "4-1_대화1_질문_Take1.wav": {
+        "path": "source/sound/4-1_대화1_질문_Take1.wav",
+        "durationSec": 8.23,
+        "usedByScene": 4
+      },
+      "4-2_대화1_답변_Take1.wav": {
+        "path": "source/sound/4-2_대화1_답변_Take1.wav",
+        "durationSec": 8.11,
+        "usedByScene": 4
+      },
+      "5_전개2_Take1.wav": {
+        "path": "source/sound/5_전개2_Take1.wav",
+        "durationSec": 5.76,
+        "usedByScene": 5
+      },
+      "5_전개2_Take2.wav": {
+        "path": "source/sound/5_전개2_Take2.wav",
+        "durationSec": 4.93,
+        "usedByScene": 5
+      },
+      "5_전개2_Take3.wav": {
+        "path": "source/sound/5_전개2_Take3.wav",
+        "durationSec": 5.42,
+        "usedByScene": 5
+      },
+      "5_전개2_Take4.wav": {
+        "path": "source/sound/5_전개2_Take4.wav",
+        "durationSec": 9.09,
+        "usedByScene": 5
+      },
+      "6_전개2_Take1.wav": {
+        "path": "source/sound/6_전개2_Take1.wav",
+        "durationSec": 4.67,
+        "usedByScene": 6
+      },
+      "6_전개2_Take2.wav": {
+        "path": "source/sound/6_전개2_Take2.wav",
+        "durationSec": 9.43,
+        "usedByScene": 6
+      },
+      "6_전개2_Take3.wav": {
+        "path": "source/sound/6_전개2_Take3.wav",
+        "durationSec": 10.09,
+        "usedByScene": 6
+      },
+      "6_전개2_Take4.wav": {
+        "path": "source/sound/6_전개2_Take4.wav",
+        "durationSec": 4.39,
+        "usedByScene": 6
+      },
+      "7-1_대화2_Take1.wav": {
+        "path": "source/sound/7-1_대화2_Take1.wav",
+        "durationSec": 8.66,
+        "usedByScene": 7
+      },
+      "7-2_대화2_답변_Take1.wav.wav": {
+        "path": "source/sound/7-2_대화2_답변_Take1.wav.wav",
+        "durationSec": 7.51,
+        "usedByScene": 7
+      },
+      "8_대화_Take1.wav": {
+        "path": "source/sound/8_대화_Take1.wav",
+        "durationSec": 4.07,
+        "usedByScene": 8
+      },
+      "8_대화_Take2.wav": {
+        "path": "source/sound/8_대화_Take2.wav",
+        "durationSec": 7.47,
+        "usedByScene": 8
+      },
+      "8_대화_Take3.wav": {
+        "path": "source/sound/8_대화_Take3.wav",
+        "durationSec": 9.07,
+        "usedByScene": 8
+      },
+      "8_대화_Take4.wav": {
+        "path": "source/sound/8_대화_Take4.wav",
+        "durationSec": 3.07,
+        "usedByScene": 8
+      },
+      "8_대화_Take5.wav": {
+        "path": "source/sound/8_대화_Take5.wav",
+        "durationSec": 5.95,
+        "usedByScene": 8
+      },
+      "8_대화_Take6.wav": {
+        "path": "source/sound/8_대화_Take6.wav",
+        "durationSec": 8.13,
+        "usedByScene": 8
+      },
+      "8_대화_Take7.wav": {
+        "path": "source/sound/8_대화_Take7.wav",
+        "durationSec": 8.13,
+        "usedByScene": 8
+      },
+      "9_전개3_Take1.wav": {
+        "path": "source/sound/9_전개3_Take1.wav",
+        "durationSec": 8.11,
+        "usedByScene": 9
+      },
+      "9_전개3_Take2.wav": {
+        "path": "source/sound/9_전개3_Take2.wav",
+        "durationSec": 7.68,
+        "usedByScene": 9
+      },
+      "9_전개3_Take3.wav": {
+        "path": "source/sound/9_전개3_Take3.wav",
+        "durationSec": 4.63,
+        "usedByScene": 9
+      },
+      "9_전개3_Take4.wav": {
+        "path": "source/sound/9_전개3_Take4.wav",
+        "durationSec": 8.23,
+        "usedByScene": 9
+      },
+      "9_전개3_Take5.wav": {
+        "path": "source/sound/9_전개3_Take5.wav",
+        "durationSec": 8.73,
+        "usedByScene": 9
+      },
+      "9_전개3_Take6.wav": {
+        "path": "source/sound/9_전개3_Take6.wav",
+        "durationSec": 8.68,
+        "usedByScene": 9
+      }
+    }
+  },
+  "issues": [
+    "7-2_대화2_답변_Take1.wav.wav — 확장자가 중복(.wav.wav)된 파일. DB는 실제 파일명 기준으로 참조 중이며, 파일명 수정 시 DB도 함께 수정 필요.",
+    "씬 4의 답변 이미지 파일명이 '4-2_대화1_질문(이미지 교체 필요).png'로 '질문'이라 표기되어 있으나 실제로는 답변 단계 이미지임. 이미지 교체 시 파일명 정정 권장.",
+    "대사본에서 씬 5의 오디오가 '5_전개1_TakeN'으로 표기되어 있으나 실제 파일은 '5_전개2_TakeN'임. DB는 실제 파일 기준.",
+    "대사본에서 씬 2의 대사 3개가 모두 Take1로 표기되어 있으나 실제 파일은 Take1~3이 존재하여 순서대로 매핑함.",
+    "이미지 파일명에 '(이미지 교체 필요)'가 포함된 8개 파일은 assets.images의 needsReplacement=true로 표시됨. 교체 후 파일명에서 해당 문구 제거 및 DB 갱신 필요.",
+    "16-1/16-2 이미지는 하이픈('16-1-대화4'), 오디오는 언더스코어('16-1_대화4')로 네이밍이 불일치함. 동작에는 문제 없으나 통일 권장.",
+    "대사 원문의 오탈자를 자막용 텍스트에서 교정함: '함게'→'함께'(씬7 질문), '훨신'→'훨씬'(씬6). 음성과 대조 확인 필요.",
+    "씬 10의 미니게임은 대사본에 '미니게임'으로만 표기되어 있어 gameId가 null임. 게임 내용 확정 후 채워 넣을 것."
+  ]
+}
