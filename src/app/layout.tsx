@@ -2,16 +2,24 @@ import type { Metadata, Viewport } from "next";
 import { Jua, Nanum_Gothic } from "next/font/google";
 import "./globals.css";
 
+/* preload 를 반드시 꺼 둔다.
+   구글은 한글 폰트를 unicode-range 로 100 개 넘게 쪼개 서빙하는데, subsets 옵션은
+   이름 있는 서브셋만 거르고 이 번호 서브셋들은 걸러 내지 못한다. preload 기본값(true)
+   이면 next/font 가 그 전부에 <link rel="preload" as="font"> 를 찍어 버려서
+   페이지마다 186 개 · 1.9MB 를 최우선순위로 받아 오느라 첫 렌더가 밀렸다.
+   끄면 브라우저가 CSS 의 unicode-range 를 보고 실제로 쓰인 글자의 조각만 가져온다. */
 const nanumGothic = Nanum_Gothic({
   variable: "--font-nanum-gothic",
   weight: ["400", "700", "800"],
   subsets: ["latin"],
+  preload: false,
 });
 
 const jua = Jua({
   variable: "--font-jua",
   weight: "400",
   subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {

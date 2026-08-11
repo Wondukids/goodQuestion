@@ -37,3 +37,6 @@ yarn-error.log*
 
 # internal product docs
 무제 폴더/
+
+# 생성형 이미지 스크래치 — 코드에서 참조하지 않음
+images/

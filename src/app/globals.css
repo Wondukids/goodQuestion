@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
-/* 나눔스퀘어라운드 — Figma 본문/제목 서체. public/fonts 에 셀프호스팅. */
+/* 나눔스퀘어라운드 — Figma 본문/제목 서체. 배포본 OTF 를 public/fonts 에 셀프호스팅.
+   한글 12,304 자를 모두 담고 있어 아이 이름 같은 사용자 입력도 폰트가 깨지지 않는다.
+   L(300) 은 시안에서 쓰지 않아 넣지 않았다. */
 @font-face {
   font-family: "NanumSquareRound";
-  src: url("/fonts/NanumSquareRoundR.woff2") format("woff2");
+  src: url("/fonts/NanumSquareRoundR.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -11,7 +13,7 @@
 
 @font-face {
   font-family: "NanumSquareRound";
-  src: url("/fonts/NanumSquareRoundB.woff2") format("woff2");
+  src: url("/fonts/NanumSquareRoundB.otf") format("opentype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -19,7 +21,7 @@
 
 @font-face {
   font-family: "NanumSquareRound";
-  src: url("/fonts/NanumSquareRoundEB.woff2") format("woff2");
+  src: url("/fonts/NanumSquareRoundEB.otf") format("opentype");
   font-weight: 800;
   font-style: normal;
   font-display: swap;
