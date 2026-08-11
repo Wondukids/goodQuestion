@@ -113,7 +113,7 @@ export function ContinueStoryCard({ story }: { story: ContinueStory }) {
           href={`/stories/${story.id}`}
           className="flex w-full items-center justify-center rounded-lg bg-primary px-10 py-4 text-[18px] font-extrabold text-white"
         >
-          이어서 보기
+          시작
         </Link>
       </div>
     </div>

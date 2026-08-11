@@ -58,8 +58,20 @@
   --color-warm: #f6eedd;
   --color-line: #eadfcb;
 
+  /* 동화 시작(7) 시안의 팔레트. 로그인·홈 계열보다 채도가 낮고 먹색이 차가워서
+     기존 --color-ink(#3b2f24) · --color-primary(#6fbcdd) 를 덮지 않고 따로 둔다. */
+  --color-ink-strong: #242424; /* 제목·본문 */
+  --color-ink-mid: #707070; /* 칩 글자 */
+  --color-ink-faint: #a3a3a3; /* 안내 문구, 라벨 칩 바탕 */
+  --color-ink-deep: #0a0a0a; /* 이미지 위 글자 */
+  --color-surface-muted: #efefef; /* 칩·상황 카드 바탕 */
+  --color-primary-strong: #45a9d3; /* 시작 버튼, 역할 카드 강조 */
+  --color-primary-pale: #daedf6; /* 역할 카드 바탕 */
+  --color-point-strong: #fd6735; /* "지금 며느리는…" */
+
   /* 그림자 */
   --shadow-card: 0 8px 16px 0 rgb(74 62 49 / 0.1);
+  --shadow-role: 0 5px 12px 0 rgb(45 74 80 / 0.07);
   --shadow-story: 4px 8px 16px 0 rgb(74 62 49 / 0.1);
   --shadow-panel: -4px 6px 20px 8px rgb(0 0 0 / 0.04);
 }
