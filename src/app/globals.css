@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/* 나눔스퀘어라운드 — Figma 본문/제목 서체. public/fonts 에 셀프호스팅. */
+@font-face {
+  font-family: "NanumSquareRound";
+  src: url("/fonts/NanumSquareRoundR.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "NanumSquareRound";
+  src: url("/fonts/NanumSquareRoundB.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "NanumSquareRound";
+  src: url("/fonts/NanumSquareRoundEB.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-round: "NanumSquareRound", var(--font-nanum-gothic), sans-serif;
+  --font-gothic: var(--font-nanum-gothic), sans-serif;
+  --font-jua: var(--font-jua), sans-serif;
+
+  /* 텍스트 · 면 */
+  --color-ink: #3b2f24;
+  --color-ink-soft: #8a7a66;
+  --color-ink-muted: #766d66;
+  --color-surface: #ffffff;
+  --color-divider: #e2e2e2;
+  --color-chip: #f0f0f0;
+
+  /* 프라이머리 — 온보딩 · CTA 계열 (Tailwind 기본 sky 팔레트와 구분) */
+  --color-primary: #6fbcdd;
+  --color-primary-soft: #dcf1f4;
+  --color-primary-line: #c1e2f0;
+  --color-primary-avatar: #74bede;
+
+  /* 배경 */
+  --color-auth-bg: #ebf5fa;
+  --color-app-bg: #fbfdfe;
+  --color-story-bg: #fcfcfc;
+
+  /* 이야기 팔레트 (Figma 변수) */
+  --color-brand-50: #ffe5dc;
+  --color-brand-700: #fd9674;
+  --color-brand-900: #fd7c51;
+  --color-warm: #f6eedd;
+  --color-line: #eadfcb;
+
+  /* 그림자 */
+  --shadow-card: 0 8px 16px 0 rgb(74 62 49 / 0.1);
+  --shadow-story: 4px 8px 16px 0 rgb(74 62 49 / 0.1);
+  --shadow-panel: -4px 6px 20px 8px rgb(0 0 0 / 0.04);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-round);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  /* Figma 는 거의 모든 텍스트가 line-height: normal.
+     Tailwind preflight 의 1.5 를 그대로 두면 요소마다 6~7px 씩 커진다.
+     예외(이야기 소개문 1.6)는 해당 컴포넌트에서 직접 지정한다. */
+  line-height: normal;
+}

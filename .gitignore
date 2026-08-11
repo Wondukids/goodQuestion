@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# production
+build/
+dist/
+
+# env
+.env
+.env.*
+!.env.example
+
+# os
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# editor
+.vscode/
+.idea/
+
+# design source (96MB, exceeds GitHub file limit)
+*.fig
+
+# internal product docs
+무제 폴더/
