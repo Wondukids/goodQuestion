@@ -25,6 +25,12 @@ export default function FartBridePlay() {
   const step = finished ? null : SEQUENCE[stepIndex];
   const next = () => setStepIndex((index) => index + 1);
 
+  /* 대화 씬은 이야기 흐름이 끊기지 않도록 진입·이탈 모두 넘김 없이 바로 전환.
+     책 넘김은 대화를 끼지 않고 영상으로 넘어갈 때만 — 현재 구성(영상·대화 교대)
+     에서는 시작·다시 보기로 첫 파트에 들어갈 때다. */
+  const prevStep = stepIndex > 0 ? SEQUENCE[stepIndex - 1] : null;
+  const turning = step?.kind === "video" && prevStep?.kind !== "interactive";
+
   return (
     <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
       {!started && (
@@ -69,14 +75,18 @@ export default function FartBridePlay() {
 
       {started && step && (
         <div className="h-full w-full bg-black [perspective:2000px]">
-          {/* key 로 스텝마다 래퍼를 새로 마운트해 책 넘김이 매번 재생된다 */}
-          <div key={step.id} className="page-turn relative h-full w-full">
+          <div
+            key={step.id}
+            className={`relative h-full w-full ${turning ? "page-turn" : ""}`}
+          >
             {step.kind === "video" ? (
               <PartVideo step={step} onEnded={next} />
             ) : (
               <InteractiveScene step={step} onComplete={next} />
             )}
-            <div className="page-turn-shade pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+            {turning && (
+              <div className="page-turn-shade pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+            )}
           </div>
 
           {/* 상단 바 — 뒤로가기, 진행 점, 건너뛰기(테스트용) */}
