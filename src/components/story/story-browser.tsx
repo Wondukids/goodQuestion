@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { StoryBrowseCard } from "@/components/story/story-card";
-import { STORY_TOPICS, type BrowseStory, type StoryTopic } from "@/lib/mock-data";
+import { STORY_TOPICS, type Story, type StoryTopic } from "@/lib/story-types";
 
-export function StoryBrowser({ stories }: { stories: BrowseStory[] }) {
+export function StoryBrowser({ stories }: { stories: Story[] }) {
   const [topic, setTopic] = useState<StoryTopic>("전체");
 
   const visible =
@@ -15,7 +15,7 @@ export function StoryBrowser({ stories }: { stories: BrowseStory[] }) {
       <div
         role="tablist"
         aria-label="주제별 보기"
-        className="flex h-[74px] items-start gap-3 overflow-hidden px-[60px] py-4"
+        className="flex h-[74px] items-start gap-3 overflow-x-auto px-[60px] py-4"
       >
         {STORY_TOPICS.map((item) => {
           const selected = item === topic;

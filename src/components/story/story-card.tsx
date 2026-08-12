@@ -1,6 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { BrowseStory, ContinueStory, Story } from "@/lib/mock-data";
+import type { ContinueStory, Story } from "@/lib/story-types";
+
+/* 세션이 붙기 전이라 진행 상황("장면 2/4") 칩은 아직 없다 — 주제·시간만 보여 준다. */
+function storyChips(story: Story) {
+  return [story.topic, story.minutes ? `${story.minutes}분` : ""].filter(
+    Boolean,
+  );
+}
+
+/** 썸네일 위 오른쪽 상단 배지 — 이어하기 카드의 "진행중" 과 같은 모양.
+    draft 도 시작 화면까지는 들어가고, 그 안의 시작 버튼이 "제작 중" 으로 잠긴다. */
+function DraftBadge({ story }: { story: Story }) {
+  if (story.status !== "draft") return null;
+  return (
+    <span className="absolute top-3 right-4 rounded-full bg-[#333]/80 px-3.5 py-3 text-[14px] font-bold text-white">
+      제작 중
+    </span>
+  );
+}
 
 function Chips({ chips }: { chips: string[] }) {
   return (
@@ -20,7 +38,7 @@ function Chips({ chips }: { chips: string[] }) {
 function Body({ story }: { story: Story }) {
   return (
     <div className="flex w-[263px] flex-col gap-5">
-      <Chips chips={story.chips} />
+      <Chips chips={storyChips(story)} />
       <div className="flex flex-col gap-3">
         <h3 className="text-[20px] font-extrabold text-ink">{story.title}</h3>
         <p className="text-[16px] leading-[1.6] text-black">{story.summary}</p>
@@ -43,6 +61,7 @@ export function StoryCard({ story }: { story: Story }) {
           sizes="295px"
           className="rounded-t-[20px] object-cover"
         />
+        <DraftBadge story={story} />
       </div>
       <div className="flex w-full flex-col items-start bg-surface px-4 pt-5 pb-7">
         <Body story={story} />
@@ -55,7 +74,7 @@ export function StoryCard({ story }: { story: Story }) {
  * 이야기 목록(6)의 카드 — 높이 327 고정, 썸네일 163.5 아래에 칩과 제목만 온다.
  * 홈의 StoryCard 와 달리 요약문이 없고 남는 아래 공간은 비워 둔다.
  */
-export function StoryBrowseCard({ story }: { story: BrowseStory }) {
+export function StoryBrowseCard({ story }: { story: Story }) {
   return (
     <Link href={`/stories/${story.id}`} className={`${CARD_CLASS} h-[327px]`}>
       <div className="relative h-[163.5px] w-full shrink-0">
@@ -66,9 +85,10 @@ export function StoryBrowseCard({ story }: { story: BrowseStory }) {
           sizes="295px"
           className="rounded-t-[20px] object-cover"
         />
+        <DraftBadge story={story} />
       </div>
       <div className="flex w-full flex-1 flex-col gap-5 bg-surface px-4 py-5">
-        <Chips chips={[story.scene, story.topic, `${story.minutes}분`]} />
+        <Chips chips={storyChips(story)} />
         <h3 className="text-[20px] font-extrabold text-ink">{story.title}</h3>
       </div>
     </Link>

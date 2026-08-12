@@ -46,10 +46,10 @@ export default async function ChildrenPage() {
           {children?.map((child) => (
             <ChildCard
               key={child.id}
+              id={child.id}
               name={child.name}
               age={thisYear - child.birth_year}
               characterId={child.character_id}
-              href="/home"
             />
           ))}
           <AddChildCard href="/onboarding/child" />

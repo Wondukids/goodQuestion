@@ -2,22 +2,33 @@
 
 import { useActionState, useId, useState } from "react";
 import { createChild } from "@/app/onboarding/child/actions";
-import { AgeStepper } from "@/components/onboarding/age-stepper";
+import { BirthYearStepper } from "@/components/onboarding/birth-year-stepper";
 import { CharacterPicker } from "@/components/onboarding/character-picker";
+import { ConsentCard } from "@/components/onboarding/consent-card";
+import { birthYearRange } from "@/lib/birth-year";
 import { CHARACTERS } from "@/lib/characters";
+import { CONSENT_VERSION } from "@/lib/consent";
+
+/* 범위 한가운데(만 7세 무렵)에서 시작한다. */
+const DEFAULT_BIRTH_YEAR = birthYearRange().max - 3;
 
 export function ChildRegisterForm() {
   const nameId = useId();
   const [characterId, setCharacterId] = useState(CHARACTERS[0].id);
   const [name, setName] = useState("");
-  const [age, setAge] = useState(7);
+  const [birthYear, setBirthYear] = useState(DEFAULT_BIRTH_YEAR);
+  const [agreed, setAgreed] = useState(false);
   const [state, formAction, pending] = useActionState(createChild, null);
+
+  /* 동의 → 아이 정보 입력 순서. 실제 저장은 마지막 "등록하기" 한 번에 함께 일어난다. */
+  if (!agreed) return <ConsentCard onAgree={() => setAgreed(true)} />;
 
   return (
     <form action={formAction} className="flex w-full flex-col items-center">
-      {/* 캐릭터와 나이는 버튼으로 고르는 값이라 폼에 실리도록 hidden 으로 함께 보낸다. */}
+      {/* 캐릭터와 출생연도는 버튼으로 고르는 값이라 폼에 실리도록 hidden 으로 함께 보낸다. */}
       <input type="hidden" name="characterId" value={characterId} />
-      <input type="hidden" name="age" value={age} />
+      <input type="hidden" name="birthYear" value={birthYear} />
+      <input type="hidden" name="consentVersion" value={CONSENT_VERSION} />
 
       <div className="flex w-full items-center justify-center gap-[58px]">
         <CharacterPicker value={characterId} onChange={setCharacterId} />
@@ -45,9 +56,9 @@ export function ChildRegisterForm() {
 
             <div className="flex w-full flex-col gap-3">
               <span className="text-[16px] font-extrabold text-ink">
-                아이 나이
+                아이 출생연도
               </span>
-              <AgeStepper value={age} onChange={setAge} />
+              <BirthYearStepper value={birthYear} onChange={setBirthYear} />
             </div>
           </div>
 
