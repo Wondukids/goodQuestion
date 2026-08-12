@@ -30,22 +30,25 @@ export function ChildCard({
   name,
   age,
   characterId,
-  href,
+  action,
 }: {
   name: string;
   age: number;
   characterId: string;
-  href: string;
+  /** 서버 액션 — 이 아이를 선택하고 홈으로 이동한다 */
+  action: (formData: FormData) => Promise<void>;
 }) {
   return (
     <CardShell>
-      <Link href={href} className={CARD_CLASS}>
-        <CharacterAvatar characterId={characterId} size={185} />
-        <span className="flex flex-col items-center gap-2">
-          <span className="text-[26px] font-extrabold text-ink">{name}</span>
-          <span className="text-[16px] font-bold text-ink-soft">{age}세</span>
-        </span>
-      </Link>
+      <form action={action}>
+        <button type="submit" className={`${CARD_CLASS} cursor-pointer`}>
+          <CharacterAvatar characterId={characterId} size={185} />
+          <span className="flex flex-col items-center gap-2">
+            <span className="text-[26px] font-extrabold text-ink">{name}</span>
+            <span className="text-[16px] font-bold text-ink-soft">{age}세</span>
+          </span>
+        </button>
+      </form>
     </CardShell>
   );
 }

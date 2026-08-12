@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { STT_DEFAULTS, type InteractiveStep } from "./data";
+import { STT_DEFAULTS, type InteractiveStep, type SpeechLine } from "./data";
+import { fillChildName, vocative } from "./name";
 
 /**
  * 인터랙티브 씬 하나: 질문(녹음 음성) → 아이 답변 녹음 → STT → TTS 반응
@@ -42,9 +43,12 @@ function buildReaction(transcript: string, voice: string) {
 
 export function InteractiveScene({
   step,
+  childName,
   onComplete,
 }: {
   step: InteractiveStep;
+  /** 선택된 아이 이름 — 있으면 질문할 때 이름을 부른다 */
+  childName: string | null;
   onComplete: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("question");
@@ -53,6 +57,82 @@ export function InteractiveScene({
   const [responseUrl, setResponseUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [remainingSec, setRemainingSec] = useState(STT_DEFAULTS.maxListenSec);
+
+  /* 이름이 들어간 대사 준비 — 채워지기 전에는 음성을 재생하지 않는다.
+     이름이 없으면 원본 녹음을 그대로 쓴다. */
+  const [preparedLines, setPreparedLines] = useState<{
+    question: SpeechLine[];
+    answer: SpeechLine[];
+  } | null>(
+    childName ? null : { question: step.question.lines, answer: step.answer.lines },
+  );
+
+  /* "ㅇㅇ" 자리 표시자가 있는 대사는 이름을 넣어 캐릭터 목소리로 TTS 하고,
+     질문에 자리 표시자가 없으면 짧은 호명("지훈아!")을 앞에 붙인다.
+     TTS 실패 시 원본 녹음으로 폴백 — 이름만 못 부를 뿐 진행은 된다. */
+  useEffect(() => {
+    if (!childName) return;
+    let cancelled = false;
+    const blobUrls: string[] = [];
+
+    const tts = async (text: string) => {
+      const res = await fetch("/api/fart-bride/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voice: step.speaker.voice,
+          stylePrompt: step.speaker.stylePrompt,
+        }),
+      });
+      if (!res.ok) throw new Error(`TTS 실패 (${res.status})`);
+      const url = URL.createObjectURL(await res.blob());
+      blobUrls.push(url);
+      return url;
+    };
+
+    const substitute = (lines: SpeechLine[]) =>
+      Promise.all(
+        lines.map(async (line) => {
+          if (!line.text.includes("ㅇㅇ")) return line;
+          const text = fillChildName(line.text, childName);
+          return { text, audio: await tts(text) };
+        }),
+      );
+
+    (async () => {
+      try {
+        const greetingText = `${childName}${vocative(childName)}!`;
+        const needsGreeting = !step.question.lines.some((line) =>
+          line.text.includes("ㅇㅇ"),
+        );
+        const [greetingAudio, question, answer] = await Promise.all([
+          needsGreeting ? tts(greetingText) : Promise.resolve(null),
+          substitute(step.question.lines),
+          substitute(step.answer.lines),
+        ]);
+        if (cancelled) return;
+        setPreparedLines({
+          question: greetingAudio
+            ? [{ text: greetingText, audio: greetingAudio }, ...question]
+            : question,
+          answer,
+        });
+      } catch {
+        if (!cancelled) {
+          setPreparedLines({
+            question: step.question.lines,
+            answer: step.answer.lines,
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const url of blobUrls) URL.revokeObjectURL(url);
+    };
+  }, [childName, step]);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -195,11 +275,16 @@ export function InteractiveScene({
 
   const isQuestion = phase !== "answer";
   const stage = isQuestion ? step.question : step.answer;
+  const activeLines = preparedLines
+    ? isQuestion
+      ? preparedLines.question
+      : preparedLines.answer
+    : null;
   const playingLines = phase === "question" || phase === "answer";
-  const currentLine = playingLines ? stage.lines[lineIndex] : null;
+  const currentLine = playingLines && activeLines ? activeLines[lineIndex] : null;
 
   function handleLineEnded() {
-    if (lineIndex + 1 < stage.lines.length) {
+    if (activeLines && lineIndex + 1 < activeLines.length) {
       setLineIndex(lineIndex + 1);
       return;
     }

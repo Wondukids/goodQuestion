@@ -17,7 +17,12 @@ import { VIDEO_SUBTITLES } from "./subtitles";
  * 첫 화면의 "이야기 시작" 버튼은 소리 있는 자동재생을 허용받기 위한
  * 사용자 제스처이기도 하다 — 빼면 브라우저가 영상 소리를 막는다.
  */
-export default function FartBridePlay() {
+export default function FartBridePlay({
+  childName,
+}: {
+  /** 선택된 아이 이름 — 대화 씬이 아이를 부를 때 쓴다 (라우트가 채워 준다) */
+  childName: string | null;
+}) {
   const [started, setStarted] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -82,7 +87,7 @@ export default function FartBridePlay() {
             {step.kind === "video" ? (
               <PartVideo step={step} onEnded={next} />
             ) : (
-              <InteractiveScene step={step} onComplete={next} />
+              <InteractiveScene step={step} childName={childName} onComplete={next} />
             )}
             {turning && (
               <div className="page-turn-shade pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
