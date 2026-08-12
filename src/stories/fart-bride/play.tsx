@@ -68,12 +68,16 @@ export default function FartBridePlay() {
       )}
 
       {started && step && (
-        <div className="h-full w-full bg-black">
-          {step.kind === "video" ? (
-            <PartVideo key={step.id} step={step} onEnded={next} />
-          ) : (
-            <InteractiveScene key={step.id} step={step} onComplete={next} />
-          )}
+        <div className="h-full w-full bg-black [perspective:2000px]">
+          {/* key 로 스텝마다 래퍼를 새로 마운트해 책 넘김이 매번 재생된다 */}
+          <div key={step.id} className="page-turn relative h-full w-full">
+            {step.kind === "video" ? (
+              <PartVideo step={step} onEnded={next} />
+            ) : (
+              <InteractiveScene step={step} onComplete={next} />
+            )}
+            <div className="page-turn-shade pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+          </div>
 
           {/* 상단 바 — 뒤로가기, 진행 점, 건너뛰기(테스트용) */}
           <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-6 pt-5 pb-10">
