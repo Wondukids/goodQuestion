@@ -2,6 +2,10 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SlideTransition } from "@/components/ui/slide-transition";
+import { transcribeAudio } from "@/stt/client";
+import { startRecording, type Recording } from "@/stt/record";
+import { requestSpeech } from "@/tts/client";
 import { STT_DEFAULTS, type InteractiveStep, type SpeechLine } from "./data";
 import { fillChildName, vocative } from "./name";
 
@@ -36,8 +40,8 @@ const REACTIONS: Record<string, (transcript: string) => string> = {
 };
 
 function buildReaction(transcript: string, voice: string) {
-  const build = REACTIONS[voice];
-  if (build) return build(transcript);
+  //const build = REACTIONS[voice];
+  //if (build) return build(transcript);
   return `"${transcript}"라고 말해 주었구나! 이야기해 줘서 정말 고마워.`;
 }
 
@@ -76,17 +80,12 @@ export function InteractiveScene({
     const blobUrls: string[] = [];
 
     const tts = async (text: string) => {
-      const res = await fetch("/api/fart-bride/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          voice: step.speaker.voice,
-          stylePrompt: step.speaker.stylePrompt,
-        }),
+      const speech = await requestSpeech({
+        text,
+        voice: step.speaker.voice,
+        stylePrompt: step.speaker.stylePrompt,
       });
-      if (!res.ok) throw new Error(`TTS 실패 (${res.status})`);
-      const url = URL.createObjectURL(await res.blob());
+      const url = URL.createObjectURL(speech);
       blobUrls.push(url);
       return url;
     };
@@ -134,23 +133,15 @@ export function InteractiveScene({
     };
   }, [childName, step]);
 
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recordingRef = useRef<Recording | null>(null);
   const retriesRef = useRef(0);
-
-  const stopStream = useCallback(() => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-  }, []);
 
   /* 언마운트 시 마이크·blob URL 정리 */
   useEffect(() => {
     return () => {
-      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-      stopStream();
+      recordingRef.current?.dispose();
     };
-  }, [stopStream]);
+  }, []);
   useEffect(() => {
     return () => {
       if (responseUrl) URL.revokeObjectURL(responseUrl);
@@ -166,18 +157,7 @@ export function InteractiveScene({
     async (blob: Blob, channelCount: number) => {
       setPhase("transcribing");
       try {
-        const res = await fetch("/api/fart-bride/stt", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "X-Audio-Channels": String(channelCount),
-          },
-          body: blob,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? `STT 실패 (${res.status})`);
-
-        const text: string = (data.transcript ?? "").trim();
+        const text = await transcribeAudio(blob, channelCount);
         if (!text) {
           /* 무음 — sttDefaults 대로 1회 재시도 후 그냥 진행 */
           if (retriesRef.current < STT_DEFAULTS.retryCount) {
@@ -193,31 +173,22 @@ export function InteractiveScene({
         setTranscript(text);
 
         /* TTS 반응 생성 */
-        const ttsRes = await fetch("/api/fart-bride/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: buildReaction(text, step.speaker.voice),
-            voice: step.speaker.voice,
-            stylePrompt: step.speaker.stylePrompt,
-          }),
+        const speech = await requestSpeech({
+          text: buildReaction(text, step.speaker.voice),
+          voice: step.speaker.voice,
+          stylePrompt: step.speaker.stylePrompt,
         });
-        if (!ttsRes.ok) {
-          const detail = await ttsRes.json().catch(() => null);
-          throw new Error(detail?.error ?? `TTS 실패 (${ttsRes.status})`);
-        }
-        const url = URL.createObjectURL(await ttsRes.blob());
-        setResponseUrl(url);
+        setResponseUrl(URL.createObjectURL(speech));
         setPhase("responding");
       } catch (error) {
         fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
       }
     },
-    [fail, step.speaker.voice],
+    [fail, step.speaker.voice, step.speaker.stylePrompt],
   );
 
   const stopRecording = useCallback(() => {
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    recordingRef.current?.stop();
   }, []);
 
   /* listening 진입 시 녹음 시작 + 최대 청취 시간 카운트다운 */
@@ -229,29 +200,13 @@ export function InteractiveScene({
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recording = await startRecording(sendToStt);
+        /* 녹음 준비 중에 씬을 떠났으면 결과 없이 바로 정리 */
         if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
+          recording.dispose();
           return;
         }
-        streamRef.current = stream;
-
-        const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm";
-        const recorder = new MediaRecorder(stream, { mimeType });
-        recorderRef.current = recorder;
-        chunksRef.current = [];
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) chunksRef.current.push(event.data);
-        };
-        const channelCount =
-          stream.getAudioTracks()[0]?.getSettings().channelCount ?? 1;
-        recorder.onstop = () => {
-          stopStream();
-          sendToStt(new Blob(chunksRef.current, { type: mimeType }), channelCount);
-        };
-        recorder.start();
+        recordingRef.current = recording;
       } catch {
         fail("마이크를 사용할 수 없습니다. 브라우저의 마이크 권한을 확인해 주세요.");
       }
@@ -271,7 +226,7 @@ export function InteractiveScene({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [phase, fail, sendToStt, stopRecording, stopStream]);
+  }, [phase, fail, sendToStt, stopRecording]);
 
   const isQuestion = phase !== "answer";
   const stage = isQuestion ? step.question : step.answer;
@@ -298,14 +253,21 @@ export function InteractiveScene({
 
   return (
     <div className="relative h-full w-full">
-      <Image
-        src={stage.image}
-        alt=""
-        fill
-        sizes="100vw"
-        priority
-        className="object-cover"
-      />
+      {/* 대화 씬은 책 넘김 없이 진입하는 흐름이라 배경도 은은한 페이드로만 바꾼다 */}
+      <SlideTransition
+        effect="fade"
+        transitionKey={isQuestion ? "question" : "answer"}
+        className="absolute inset-0"
+      >
+        <Image
+          src={stage.image}
+          alt=""
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover"
+        />
+      </SlideTransition>
 
       {currentLine && (
         <audio key={`${phase}-${lineIndex}`} src={currentLine.audio} autoPlay onEnded={handleLineEnded} />

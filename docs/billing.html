@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>외부 API 요금 가이드</title>
+<style>
+:root {
+  --bg: #fcfcfc;          /* story-bg */
+  --surface: #f6eedd;     /* warm */
+  --surface-soft: #faf5ea;
+  --ink: #3b2f24;
+  --ink-soft: #8a7a66;
+  --line: #eadfcb;
+  --accent: #45a9d3;      /* primary-strong */
+  --accent-ink: #2b7ea3;
+  --point: #fd6735;
+  --code-ink: #4a3c2d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1913;
+    --surface: #2a241b;
+    --surface-soft: #241f17;
+    --ink: #e9e1d3;
+    --ink-soft: #a99a84;
+    --line: #3c352a;
+    --accent: #7cc5e2;
+    --accent-ink: #8fd0e8;
+    --point: #ff8f66;
+    --code-ink: #d8cdbb;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
+  line-height: 1.75;
+  font-size: 16px;
+}
+.wrap { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+nav.docset {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding-bottom: 20px; margin-bottom: 36px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+nav.docset .set-label {
+  color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 700; margin-right: 8px; align-self: center; font-size: 12px;
+}
+nav.docset a {
+  color: var(--ink-soft); text-decoration: none; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line);
+}
+nav.docset a:hover { color: var(--accent-ink); border-color: var(--accent); }
+nav.docset a.current {
+  color: var(--bg); background: var(--accent); border-color: var(--accent);
+}
+h1 {
+  font-size: 30px; line-height: 1.3; text-wrap: balance;
+  margin: 0 0 12px; letter-spacing: -0.01em;
+}
+h1 + p { color: var(--ink-soft); margin-top: 0; }
+h2 {
+  font-size: 21px; line-height: 1.35; text-wrap: balance;
+  margin: 56px 0 16px; padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+h3 { font-size: 17px; margin: 32px 0 8px; }
+p { margin: 0 0 16px; }
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+ul, ol { margin: 0 0 16px; padding-left: 1.5em; }
+li { margin: 6px 0; }
+li > ul, li > ol { margin-bottom: 0; }
+strong { font-weight: 800; }
+code {
+  font-family: "D2Coding", Consolas, "Courier New", monospace;
+  font-size: 0.88em; color: var(--code-ink);
+  background: var(--surface); border-radius: 5px; padding: 2px 6px;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line);
+  border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+  margin: 0 0 16px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 800; white-space: nowrap; }
+td:first-child { white-space: nowrap; }
+td:first-child code { white-space: normal; word-break: break-all; }
+blockquote {
+  margin: 0 0 16px; padding: 4px 18px;
+  border-left: 3px solid var(--accent); color: var(--ink-soft);
+  background: var(--surface-soft); border-radius: 0 8px 8px 0;
+}
+hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+footer {
+  margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--ink-soft); font-size: 13px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="docset" aria-label="문서 세트">
+    <span class="set-label">goodQuestion 문서</span>
+    <a href="./fart-bride-guide.html">재생 구현 & STT·TTS</a>
+    <a href="./llm-guide.html">LLM 연동</a>
+    <a href="./billing.html" class="current">외부 API 요금</a>
+  </nav>
+  <main>
+<h1>외부 API 요금 가이드</h1>
+<p>동화 재생(STT·TTS)에 쓰는 외부 API 의 과금 구조, 예상 비용, 사용량 확인 방법.
+작성: 2026-08-11 기준. 단가는 변동될 수 있으니 결정 전에 각 공식 요금 페이지에서 재확인할 것.
+원화 환산은 1 USD ≈ 1,450원 가정(Cloud 콘솔 표시 환율).</p>
+<h2>1. 과금 주체 — 누구 계정으로 청구되나</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>기능</th>
+<th>API</th>
+<th>사용하는 키 (env 변수)</th>
+<th>청구 대상</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>아이 음성 인식</td>
+<td>Google Cloud Speech-to-Text</td>
+<td><code>GOOGLE_CLOUD_API_KEY</code></td>
+<td>팀 Cloud 프로젝트 (<code>353736237653</code>)</td>
+</tr>
+<tr>
+<td>캐릭터 반응 음성 (메인)</td>
+<td>Gemini API — 2.5 Flash TTS</td>
+<td><code>GEMINI_API_KEY</code></td>
+<td>키를 발급한 <strong>개인 계정</strong></td>
+</tr>
+<tr>
+<td>캐릭터 반응 음성 (폴백)</td>
+<td>Google Cloud TTS — Chirp3-HD</td>
+<td><code>GOOGLE_CLOUD_API_KEY</code></td>
+<td>팀 Cloud 프로젝트</td>
+</tr>
+<tr>
+<td>로그인·DB</td>
+<td>Supabase</td>
+<td><code>NEXT_PUBLIC_SUPABASE_*</code></td>
+<td>팀 Supabase 프로젝트</td>
+</tr>
+</tbody></table></div>
+<p>TTS 는 Gemini → (실패 시) Chirp3-HD 순서로 시도한다. 어느 쪽이 응답했는지는
+<code>/api/fart-bride/tts</code> 응답 헤더 <code>X-TTS-Model</code> 로 확인할 수 있다.</p>
+<h2>2. 서비스별 요금</h2>
+<h3>Google Cloud Speech-to-Text (실시간 인식, v1 <code>speech:recognize</code>)</h3>
+<ul>
+<li><strong>매월 60분 무료</strong>, 이후 약 $0.024/분 (≈ 35원/분)</li>
+<li><strong>15초 단위 올림</strong> 과금 — 3초를 녹음해도 15초로 계산된다</li>
+<li>요금표의 &quot;Dynamic Batch&quot;(더 싼 항목)는 일괄 처리 전용이라 실시간 대화에는 해당 없음</li>
+<li><strong>&quot;(Logged)&quot; 옵션은 켜지 말 것</strong> — 더 싸지만 녹음 데이터를 Google 모델 개선에 제공하는
+조건이다. 아이 음성을 다루므로 금지.</li>
+<li>공식 요금: <a href="https://cloud.google.com/speech-to-text/pricing">https://cloud.google.com/speech-to-text/pricing</a></li>
+</ul>
+<h3>Gemini API — 2.5 Flash TTS (캐릭터 반응, 메인)</h3>
+<ul>
+<li>AI Studio 키의 기본 상태는 <strong>무료 등급</strong> — 결제 계정을 연결하지 않았다면 청구 자체가
+발생하지 않고, 대신 분당/일일 호출 한도가 있다. 한도 초과 시 호출이 거부되고 앱은
+Chirp3-HD 폴백으로 자동 전환된다 (재생이 끊기지는 않음).</li>
+<li><strong>무료 등급에서는 요청 데이터가 Google 제품 개선에 활용될 수 있다.</strong> 이 앱이 Gemini 로
+보내는 것은 캐릭터 반응 문구(텍스트)뿐이고 아이 음성은 보내지 않는다. 이 전제가
+바뀌는 수정(예: 아이 답변 원문을 Gemini 로 전송)을 할 때는 유료 등급 전환을 검토할 것.</li>
+<li>유료 전환 시(키 소유자가 결제 연결): 텍스트 입력 + 오디오 출력 토큰 과금.
+반응 한 건(문장 1~2개, 오디오 수 초)은 수 원 수준.</li>
+<li>한도·요금: <a href="https://ai.google.dev/pricing">https://ai.google.dev/pricing</a></li>
+</ul>
+<h3>Google Cloud TTS — Chirp3-HD (폴백)</h3>
+<ul>
+<li>글자 수 과금, Chirp3-HD 급 보이스 약 $30/100만 자 (무료 할당 별도)</li>
+<li>반응 한 건이 60<del>80자 수준이라 유료 구간이어도 건당 2</del>3원 수준</li>
+<li>공식 요금: <a href="https://cloud.google.com/text-to-speech/pricing">https://cloud.google.com/text-to-speech/pricing</a></li>
+</ul>
+<h3>Supabase</h3>
+<ul>
+<li>현재 무료 플랜 범위(인증·DB 사용량 미미)로 충분. 대시보드 Usage 에서 확인.</li>
+</ul>
+<h2>3. 1회 플레이 예상 비용</h2>
+<p>1회 플레이 = 영상 5파트 + 인터랙티브 대화 4회 기준. &quot;다시 말하기&quot;를 쓰면 그만큼 비례 증가.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>항목</th>
+<th>계산</th>
+<th>비용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>STT</td>
+<td>대화 4회 × 15초(올림) = 1분</td>
+<td>무료 60분 내 0원, 초과 시 ≈ 35원</td>
+</tr>
+<tr>
+<td>TTS (Gemini 무료 등급)</td>
+<td>반응 4건</td>
+<td>0원 (한도 내)</td>
+</tr>
+<tr>
+<td>TTS (Chirp3 폴백 시)</td>
+<td>반응 4건 × ~70자 ≈ 280자</td>
+<td>무료 할당 내 0원, 유료 구간 ≈ 8~10원</td>
+</tr>
+<tr>
+<td>영상·이미지·정답 음성</td>
+<td>사전 제작 파일 재생</td>
+<td>0원</td>
+</tr>
+</tbody></table></div>
+<p>→ <strong>월 60회 플레이까지는 사실상 0원.</strong> 초과분부터 STT 가 플레이당 ≈ 35원으로 비용의
+대부분을 차지한다. 규모가 커지면 STT 최적화(녹음 길이 단축 등)가 첫 번째 절감 대상.</p>
+<h2>4. 사용량·청구 확인하는 곳</h2>
+<p><strong>팀 Cloud 프로젝트 (STT + TTS 폴백)</strong></p>
+<ul>
+<li>청구 리포트: <a href="https://console.cloud.google.com/billing">https://console.cloud.google.com/billing</a> → 보고서 (서비스별 필터: Speech-to-Text / Text-to-Speech)</li>
+<li>API 호출량: <a href="https://console.cloud.google.com/apis/dashboard">https://console.cloud.google.com/apis/dashboard</a> → 각 API → &quot;측정항목&quot;</li>
+<li>이번 달 STT 무료 60분을 얼마나 썼는지도 여기 호출량(초 단위)으로 가늠한다</li>
+</ul>
+<p><strong>개인 Gemini 키 (TTS 메인)</strong></p>
+<ul>
+<li>사용량·한도: <a href="https://aistudio.google.com">https://aistudio.google.com</a> → API Keys / Usage</li>
+<li>무료 등급이면 청구서 자체가 없다. 결제를 연결한 경우에만 위 Cloud 청구 리포트에
+(키 소유자 본인 프로젝트로) 잡힌다.</li>
+</ul>
+<p><strong>Supabase</strong></p>
+<ul>
+<li><a href="https://supabase.com/dashboard">https://supabase.com/dashboard</a> → 프로젝트 → Usage</li>
+</ul>
+<h2>5. 요금 사고 방지 체크리스트</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Cloud 콘솔 결제 → <strong>예산 및 알림</strong>에서 월 예산(예: ₩10,000) 알림 설정 (팀 프로젝트 소유자)</li>
+<li><input disabled="" type="checkbox"> API 키의 &quot;API 제한&quot;을 필요한 API 만 허용한 상태로 유지</li>
+<li><input disabled="" type="checkbox"> STT &quot;(Logged)&quot; 옵션 사용 금지 유지</li>
+<li><input disabled="" type="checkbox"> 실제 키 값은 <code>.env.local</code> 에만 둔다 — <code>.env.example</code> 은 키 이름만 (커밋되는 파일)</li>
+<li><input disabled="" type="checkbox"> <code>X-TTS-Model</code> 헤더가 계속 <code>chirp3-hd-fallback</code> 이면 Gemini 한도/오류 상태를 확인</li>
+</ul>
+
+  </main>
+  <footer>이 파일은 <code>docs/billing.md</code> 에서 생성된 사본입니다 — 내용 수정은 마크다운 쪽에서. 생성: 2026-08-12</footer>
+</div>
+</body>
+</html>

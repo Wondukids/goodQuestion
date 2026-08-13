@@ -9,6 +9,8 @@
  * 씬 10 의 미니게임 단계는 아직 미정이라 건너뛴다 (PART3·PART5 에 제작 예정).
  */
 
+import type { TtsVoice } from "@/tts/voices";
+
 const BASE = "/stories/fart-bride";
 
 export type SpeechLine = {
@@ -31,8 +33,8 @@ export type InteractiveStep = {
   sceneId: number;
   speaker: {
     label: string;
-    /** Google Gemini 2.5 Flash TTS 보이스 이름 */
-    voice: "Leda" | "Schedar" | "Sadachbia" | "Despina";
+    /** Google Gemini 2.5 Flash TTS 보이스 이름 (src/tts/voices.ts) */
+    voice: TtsVoice;
     /** Gemini-TTS 말투 연기 지시 (input.prompt) */
     stylePrompt: string;
   };

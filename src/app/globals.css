@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* 연출 라이브러리(fx-*) 스타일 — 컴포넌트는 src/frontendlib/ 에 있다 */
+@import "../frontendlib/effects.css";
 
 /* 나눔스퀘어라운드 — Figma 본문/제목 서체. 배포본 OTF 를 public/fonts 에 셀프호스팅.
    한글 12,304 자를 모두 담고 있어 아이 이름 같은 사용자 입력도 폰트가 깨지지 않는다.
@@ -106,6 +108,80 @@
 
 .page-turn-shade {
   animation: page-turn-shade 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+/* 파워포인트 풍 슬라이드 전환 — components/ui/slide-transition.tsx 전용.
+   key 교체로 새 슬라이드만 그리는 구조라 이전 슬라이드가 함께 움직이는
+   효과(밀어내기 등)는 들어오는 쪽 절반만 재현한다. 타이밍은 책장 넘김과 통일. */
+@keyframes slide-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-push {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes slide-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-flip {
+  from {
+    transform: rotateY(-90deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+.slide-fade {
+  animation: slide-fade 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+.slide-push {
+  animation: slide-push 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+.slide-wipe {
+  animation: slide-wipe 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+.slide-zoom {
+  animation: slide-zoom 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+.slide-flip {
+  transform-origin: center;
+  animation: slide-flip 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
 }
 
 html,

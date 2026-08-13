@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>프론트엔드 모듈 가이드 — 음성(STT·TTS)·연출 라이브러리·시퀀서</title>
+<style>
+:root {
+  --bg: #fcfcfc;          /* story-bg */
+  --surface: #f6eedd;     /* warm */
+  --surface-soft: #faf5ea;
+  --ink: #3b2f24;
+  --ink-soft: #8a7a66;
+  --line: #eadfcb;
+  --accent: #45a9d3;      /* primary-strong */
+  --accent-ink: #2b7ea3;
+  --point: #fd6735;
+  --code-ink: #4a3c2d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1913;
+    --surface: #2a241b;
+    --surface-soft: #241f17;
+    --ink: #e9e1d3;
+    --ink-soft: #a99a84;
+    --line: #3c352a;
+    --accent: #7cc5e2;
+    --accent-ink: #8fd0e8;
+    --point: #ff8f66;
+    --code-ink: #d8cdbb;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
+  line-height: 1.75;
+  font-size: 16px;
+}
+.wrap { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+nav.docset {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding-bottom: 20px; margin-bottom: 36px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+nav.docset .set-label {
+  color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 700; margin-right: 8px; align-self: center; font-size: 12px;
+}
+nav.docset a {
+  color: var(--ink-soft); text-decoration: none; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line);
+}
+nav.docset a:hover { color: var(--accent-ink); border-color: var(--accent); }
+nav.docset a.current {
+  color: var(--bg); background: var(--accent); border-color: var(--accent);
+}
+h1 {
+  font-size: 30px; line-height: 1.3; text-wrap: balance;
+  margin: 0 0 12px; letter-spacing: -0.01em;
+}
+h1 + p { color: var(--ink-soft); margin-top: 0; }
+h2 {
+  font-size: 21px; line-height: 1.35; text-wrap: balance;
+  margin: 56px 0 16px; padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+h3 { font-size: 17px; margin: 32px 0 8px; }
+p { margin: 0 0 16px; }
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+ul, ol { margin: 0 0 16px; padding-left: 1.5em; }
+li { margin: 6px 0; }
+li > ul, li > ol { margin-bottom: 0; }
+strong { font-weight: 800; }
+code {
+  font-family: "D2Coding", Consolas, "Courier New", monospace;
+  font-size: 0.88em; color: var(--code-ink);
+  background: var(--surface); border-radius: 5px; padding: 2px 6px;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line);
+  border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+  margin: 0 0 16px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 800; white-space: nowrap; }
+td:first-child { white-space: nowrap; }
+td:first-child code { white-space: normal; word-break: break-all; }
+blockquote {
+  margin: 0 0 16px; padding: 4px 18px;
+  border-left: 3px solid var(--accent); color: var(--ink-soft);
+  background: var(--surface-soft); border-radius: 0 8px 8px 0;
+}
+hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+footer {
+  margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--ink-soft); font-size: 13px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="docset" aria-label="문서 세트">
+    <span class="set-label">goodQuestion 문서</span>
+    <a href="./fart-bride-guide.html">재생 구현 &amp; STT·TTS</a>
+    <a href="./llm-guide.html">LLM 연동</a>
+    <a href="./billing.html">외부 API 요금</a>
+    <a href="./api-spec.html">API 명세</a>
+    <a href="./frontend-guide.html" class="current">프론트엔드 모듈</a>
+  </nav>
+  <main>
+<h1>프론트엔드 모듈 가이드 — 음성(STT·TTS)·연출 라이브러리·시퀀서</h1>
+<p><code>api_team</code> 브랜치에서 공통 모듈로 분리한 세 묶음 — 음성 함수(<code>src/stt</code>, <code>src/tts</code>),
+연출 라이브러리(<code>src/frontendlib</code>), 시퀀스 제어기(<code>sequencer.ts</code>) — 를 어떻게 쓰고
+어디를 고치면 되는지 정리한 문서. 작성: 2026-08-13, <code>api_team</code> 브랜치 기준.</p>
+<p>관련 문서: 재생 화면 전반은 <a href="./fart-bride-guide.html">fart-bride-guide.md</a>
+(그 문서의 폴더 지도 중 STT·TTS 위치는 이 리팩토링으로 바뀌었다 — 위치는 이 문서가
+최신), API 요청·응답 계약은 <a href="./api-spec.html">api-spec.md</a>, LLM 반응 생성 교체는
+<a href="./llm-guide.html">llm-guide.md</a>.</p>
+<h2>1. 무엇이 어디로 갔나</h2>
+<p>리팩토링 전에는 STT·TTS 로직이 라우트 핸들러와 <code>interactive-scene.tsx</code> 안에
+흩어져 있었다. 지금은 역할별 모듈로 나뉘고, 라우트와 씬에는 얇은 호출부만 남았다.
+<strong>API 경로와 요청·응답 형식은 그대로다</strong> — api-spec.md 는 수정 없이 유효하다.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>경로</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>src/stt/record.ts</code></td>
+<td>마이크 녹음 (<code>startRecording</code>) — MediaRecorder·스트림 수명 관리</td>
+</tr>
+<tr>
+<td><code>src/stt/client.ts</code></td>
+<td>브라우저 → STT 라우트 호출 (<code>transcribeAudio</code>)</td>
+</tr>
+<tr>
+<td><code>src/stt/server.ts</code></td>
+<td>Google Cloud STT 호출 (<code>recognizeSpeech</code>) — <strong>서버 전용</strong></td>
+</tr>
+<tr>
+<td><code>src/tts/voices.ts</code></td>
+<td>성우 매핑 단일 소스 (<code>TTS_VOICES</code>, <code>TtsVoice</code>, <code>resolveVoice</code>)</td>
+</tr>
+<tr>
+<td><code>src/tts/client.ts</code></td>
+<td>브라우저 → TTS 라우트 호출 (<code>requestSpeech</code>)</td>
+</tr>
+<tr>
+<td><code>src/tts/server.ts</code></td>
+<td>3단 폴백 합성 (<code>synthesizeSpeech</code>) — <strong>서버 전용</strong></td>
+</tr>
+<tr>
+<td><code>src/frontendlib/</code></td>
+<td>연출 라이브러리 — 슬라이드·팝업·확대/축소·방향 영상·카메라 셰이크</td>
+</tr>
+<tr>
+<td><code>src/stories/fart-bride/sequencer.ts</code></td>
+<td>재생 진행 제어 (<code>useStorySequencer</code>)</td>
+</tr>
+<tr>
+<td><code>src/app/api/fart-bride/{stt,tts}/route.ts</code></td>
+<td>요청 파싱·응답 변환만 하는 얇은 층</td>
+</tr>
+</tbody></table></div>
+<p>경계 규칙: <code>*/server.ts</code> 는 API 키(<code>process.env</code>)를 다루므로 <strong>라우트 핸들러에서만
+import</strong> 한다. 클라이언트 컴포넌트는 <code>*/client.ts</code>·<code>record.ts</code>·<code>voices.ts</code> 만 쓴다.</p>
+<h2>2. STT 모듈 (<code>src/stt</code>)</h2>
+<pre><code>[브라우저] startRecording ─(Blob)→ transcribeAudio ─HTTP→ [서버 라우트] recognizeSpeech → Google STT
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>함수</th>
+<th>위치</th>
+<th>하는 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>startRecording(onComplete)</code></td>
+<td><code>record.ts</code></td>
+<td>마이크 녹음 시작 → <code>Recording</code> 핸들 반환</td>
+</tr>
+<tr>
+<td><code>Recording.stop()</code></td>
+<td><code>record.ts</code></td>
+<td>녹음 종료 — <code>onComplete(blob, channelCount)</code> 가 불린다</td>
+</tr>
+<tr>
+<td><code>Recording.dispose()</code></td>
+<td><code>record.ts</code></td>
+<td>결과 없이 정리 (씬 이탈용) — <code>onComplete</code> 는 불리지 않는다</td>
+</tr>
+<tr>
+<td><code>transcribeAudio(blob, channelCount)</code></td>
+<td><code>client.ts</code></td>
+<td>STT 라우트 호출 → 텍스트. <strong>무음이면 <code>""</code></strong> (에러 아님)</td>
+</tr>
+<tr>
+<td><code>recognizeSpeech(audio, channelCount)</code></td>
+<td><code>server.ts</code></td>
+<td>Google STT 호출. 실패 시 <code>SttError { status, detail }</code> throw</td>
+</tr>
+</tbody></table></div>
+<p>사용 예 (대화 씬과 같은 패턴):</p>
+<pre><code class="language-tsx">import { transcribeAudio } from "@/stt/client";
+import { startRecording } from "@/stt/record";
+
+const recording = await startRecording(async (blob, channels) =&gt; {
+  const text = await transcribeAudio(blob, channels); // 무음이면 ""
+});
+// "다 말했어요" 버튼  → recording.stop()
+// 씬 이탈(언마운트)   → recording.dispose()  — 결과 콜백 없이 마이크만 정리
+</code></pre>
+<ul>
+<li>채널 수를 같이 넘기는 이유: 스테레오 마이크면 opus 헤더와 STT 설정이 어긋나
+400 이 난다. <code>startRecording</code> 이 트랙에서 읽어 <code>onComplete</code> 로 주니 그대로
+전달만 하면 된다.</li>
+<li>무음 재시도 정책(1회 재시도 후 답변으로 진행)은 모듈이 아니라 호출부(씬)
+책임이다 — <code>data.ts</code> 의 <code>STT_DEFAULTS</code> 참고.</li>
+</ul>
+<h2>3. TTS 모듈 (<code>src/tts</code>)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>함수</th>
+<th>위치</th>
+<th>하는 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>requestSpeech({ text, voice, stylePrompt? })</code></td>
+<td><code>client.ts</code></td>
+<td>TTS 라우트 호출 → 오디오 <code>Blob</code>. 실패 시 서버 메시지로 throw</td>
+</tr>
+<tr>
+<td><code>synthesizeSpeech(text, voice?, stylePrompt?)</code></td>
+<td><code>server.ts</code></td>
+<td>3단 폴백 합성 → <code>{ audio, contentType, model }</code>. 실패 시 <code>TtsError</code> throw</td>
+</tr>
+<tr>
+<td><code>resolveVoice(voice)</code></td>
+<td><code>voices.ts</code></td>
+<td>허용 밖 이름이 오면 내레이션(<code>Despina</code>)으로</td>
+</tr>
+</tbody></table></div>
+<p>사용 예:</p>
+<pre><code class="language-tsx">import { requestSpeech } from "@/tts/client";
+
+const speech = await requestSpeech({ text: "안녕!", voice: "Leda" });
+const url = URL.createObjectURL(speech); // &lt;audio src={url}&gt; 로 재생
+// 다 쓰면 URL.revokeObjectURL(url) — blob URL 정리는 호출부 책임
+</code></pre>
+<ul>
+<li>3단 폴백(Gemini API → Cloud Gemini-TTS → Chirp3-HD)과 <code>X-TTS-Model</code> 확인법은
+그대로다 — <a href="./fart-bride-guide.html">fart-bride-guide.md</a> 5절 참고.</li>
+<li>보이스 이름·타입은 <code>voices.ts</code> 가 단일 소스다. <code>data.ts</code> 의 <code>speaker.voice</code>
+타입(<code>TtsVoice</code>)도 여기서 온다. 성우를 추가하면 이 파일 하나만 고친다.</li>
+<li>클라이언트 헬퍼의 엔드포인트는 지금 <code>/api/fart-bride/{stt,tts}</code> 로 고정이다.
+다른 이야기에서 쓰게 되면 라우트를 공용으로 옮기거나 엔드포인트 인자를 추가할 것.</li>
+</ul>
+<h2>4. 연출 라이브러리 (<code>src/frontendlib</code>)</h2>
+<p>공통 규칙 세 가지:</p>
+<ul>
+<li><strong><code>playKey</code></strong> — 값이 바뀔 때마다 연출을 다시 재생한다 (첫 마운트 포함).
+<code>SlideTransition</code> 의 <code>transitionKey</code> 와 같은 방식.</li>
+<li>스타일은 <code>effects.css</code> 의 <code>fx-*</code> 키프레임에 있고 <code>app/globals.css</code> 가
+<code>@import</code> 로 불러온다. 시간·방향·강도는 컴포넌트가 <code>--fx-*</code> CSS 변수로 넘긴다.</li>
+<li>기본 타이밍은 책 넘김과 같은 <code>0.7s cubic-bezier(0.3, 0.1, 0.3, 1)</code>.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>컴포넌트</th>
+<th>연출</th>
+<th>주요 props</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SlideIn</code></td>
+<td>지정 방향에서 밀려 들어옴</td>
+<td><code>from</code>, <code>distance</code>, <code>durationMs</code>, <code>delayMs</code></td>
+</tr>
+<tr>
+<td><code>Popup</code></td>
+<td>어두운 배경 + 패널이 튀며 등장</td>
+<td><code>open</code>, <code>onClose</code>, <code>className</code>(패널 모양)</td>
+</tr>
+<tr>
+<td><code>ZoomIn</code></td>
+<td>시간에 따라 서서히 확대</td>
+<td><code>scaleTo</code>(기본 1.15), <code>durationMs</code>(기본 8초), <code>origin</code></td>
+</tr>
+<tr>
+<td><code>ZoomOut</code></td>
+<td>시간에 따라 서서히 축소</td>
+<td><code>scaleFrom</code>(기본 1.15), <code>durationMs</code>, <code>origin</code></td>
+</tr>
+<tr>
+<td><code>DirectionalVideo</code></td>
+<td>지정 방향에서 영상 등장</td>
+<td><code>from</code>, <code>effect</code>(<code>"slide"</code>/<code>"wipe"</code>) + <code>&lt;video&gt;</code> 속성 전부</td>
+</tr>
+<tr>
+<td><code>CameraShake</code></td>
+<td>감쇠하며 흔들림</td>
+<td><code>intensity</code>(px), <code>durationMs</code>, <code>loop</code></td>
+</tr>
+</tbody></table></div>
+<pre><code class="language-tsx">import { CameraShake, DirectionalVideo, Popup, SlideIn, ZoomIn } from "@/frontendlib";
+
+&lt;SlideIn from="left" durationMs={500}&gt;...&lt;/SlideIn&gt;
+&lt;Popup open={open} onClose={() =&gt; setOpen(false)} className="rounded-3xl bg-white p-8"&gt;...&lt;/Popup&gt;
+&lt;ZoomIn durationMs={10000} className="absolute inset-0"&gt;&lt;Image ... /&gt;&lt;/ZoomIn&gt;
+&lt;DirectionalVideo src="/stories/....mp4" from="down" effect="wipe" onEnded={next} /&gt;
+&lt;CameraShake playKey={boomCount} intensity={12}&gt;...&lt;/CameraShake&gt;
+</code></pre>
+<ul>
+<li><code>ZoomIn</code>/<code>ZoomOut</code> 은 래퍼가 <code>overflow-hidden</code> 으로 잘라 준다 — 씬 배경을
+씬 길이에 맞춰 천천히 당기는(Ken Burns) 용도로 쓰면 된다.</li>
+<li><code>Popup</code> 은 닫힘 연출 없이 즉시 사라진다 (<code>SlideTransition</code> 과 같은 정책).
+패널 배경·라운드·패딩은 호출부 <code>className</code> 으로 정한다.</li>
+<li>화면 전환(키 교체) 슬라이드는 기존 <code>components/ui/slide-transition.tsx</code> 를
+그대로 쓴다 — <code>SlideIn</code> 은 화면 안 요소 하나를 등장시키는 용도라 역할이 다르다.</li>
+<li>새 연출 추가: <code>effects.css</code> 에 <code>fx-&lt;이름&gt;</code> 키프레임+클래스, 컴포넌트 파일 하나,
+<code>index.ts</code> 에 export 한 줄이면 끝.</li>
+</ul>
+<h2>5. 시퀀서 (<code>src/stories/fart-bride/sequencer.ts</code>)</h2>
+<p>역할이 세 파일로 나뉜다:</p>
+<pre><code>data.ts (SEQUENCE)               → 순서 정의: 어떤 파트·씬이 어떤 차례인지
+sequencer.ts (useStorySequencer) → 진행 제어: 현재 위치·이동·책 넘김 판단
+play.tsx                         → 그리기: 상태 렌더 + 버튼에 컨트롤 연결
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>반환값</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>steps</code></td>
+<td>스텝 목록 — 진행 점 UI 에 그대로 사용</td>
+</tr>
+<tr>
+<td><code>stepIndex</code> / <code>step</code></td>
+<td>현재 위치(0부터) / 현재 스텝 (끝나면 <code>null</code>)</td>
+</tr>
+<tr>
+<td><code>started</code> / <code>finished</code></td>
+<td>"이야기 시작"을 눌렀는지 / 끝까지 봤는지</td>
+</tr>
+<tr>
+<td><code>turning</code></td>
+<td>이번 전환에 책 넘김 연출을 쓸지</td>
+</tr>
+<tr>
+<td><code>start()</code> / <code>next()</code> / <code>previous()</code></td>
+<td>시작 / 다음 / 이전</td>
+</tr>
+<tr>
+<td><code>goTo(2)</code> 또는 <code>goTo("scene7")</code></td>
+<td>번호·id 로 점프 (범위 밖이면 무시)</td>
+</tr>
+<tr>
+<td><code>restart()</code></td>
+<td>처음부터 다시 보기</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li>책 넘김 판단은 <strong>직전에 실제로 보고 있던 스텝</strong>(<code>cameFrom</code>) 기준이다 —
+<code>goTo</code> 로 점프해도 자연스럽다. 대화 씬을 거치는 전환은 넘기지 않고,
+시작·다시 보기로 들어갈 때는 넘긴다.</li>
+<li>개발 중 특정 씬만 확인하고 싶으면 임시 버튼에 <code>goTo("scene7")</code> 을 연결하면 된다.</li>
+<li>다른 이야기에서 재사용: <code>useStorySequencer(mySteps)</code> 처럼 스텝 배열을 넘기면
+된다 (기본값이 방귀 뀌는 며느리의 <code>SEQUENCE</code>).</li>
+</ul>
+<h2>6. 테스트 체크리스트</h2>
+<ol>
+<li><code>npm run dev</code> → 재생 화면 진입 ("이야기 시작" 버튼은 자동재생 허용 제스처 —
+빼면 안 된다).</li>
+<li>빠르게 확인할 것:<ul>
+<li>대화 씬: 녹음 → "다 말했어요" → 반응 재생이 이전과 똑같이 도는가
+(리팩토링 후에도 동작 불변이 정상)</li>
+<li>씬을 나가면 브라우저 마이크 표시가 꺼지는가 (<code>dispose</code> 경로)</li>
+<li>TTS 가 어느 모델로 나갔는지 (<code>X-TTS-Model</code> 응답 헤더, 네트워크 탭)</li>
+<li>진행 점·건너뛰기·다시 보기가 시퀀서 컨트롤로 동작하는가</li>
+</ul>
+</li>
+<li>검증 상태: 이 리팩토링 기준(2026-08-13) <code>tsc --noEmit</code>·ESLint·<code>next build</code>
+모두 통과.</li>
+</ol>
+
+  </main>
+  <footer>이 파일은 <code>docs/frontend-guide.md</code> 에서 생성된 사본입니다 — 내용 수정은 마크다운 쪽에서. 생성: 2026-08-13</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>LLM 연동 가이드 — 대화 씬 반응 생성</title>
+<style>
+:root {
+  --bg: #fcfcfc;          /* story-bg */
+  --surface: #f6eedd;     /* warm */
+  --surface-soft: #faf5ea;
+  --ink: #3b2f24;
+  --ink-soft: #8a7a66;
+  --line: #eadfcb;
+  --accent: #45a9d3;      /* primary-strong */
+  --accent-ink: #2b7ea3;
+  --point: #fd6735;
+  --code-ink: #4a3c2d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1913;
+    --surface: #2a241b;
+    --surface-soft: #241f17;
+    --ink: #e9e1d3;
+    --ink-soft: #a99a84;
+    --line: #3c352a;
+    --accent: #7cc5e2;
+    --accent-ink: #8fd0e8;
+    --point: #ff8f66;
+    --code-ink: #d8cdbb;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
+  line-height: 1.75;
+  font-size: 16px;
+}
+.wrap { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+nav.docset {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding-bottom: 20px; margin-bottom: 36px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+nav.docset .set-label {
+  color: var(--ink-soft); letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 700; margin-right: 8px; align-self: center; font-size: 12px;
+}
+nav.docset a {
+  color: var(--ink-soft); text-decoration: none; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line);
+}
+nav.docset a:hover { color: var(--accent-ink); border-color: var(--accent); }
+nav.docset a.current {
+  color: var(--bg); background: var(--accent); border-color: var(--accent);
+}
+h1 {
+  font-size: 30px; line-height: 1.3; text-wrap: balance;
+  margin: 0 0 12px; letter-spacing: -0.01em;
+}
+h1 + p { color: var(--ink-soft); margin-top: 0; }
+h2 {
+  font-size: 21px; line-height: 1.35; text-wrap: balance;
+  margin: 56px 0 16px; padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+h3 { font-size: 17px; margin: 32px 0 8px; }
+p { margin: 0 0 16px; }
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+ul, ol { margin: 0 0 16px; padding-left: 1.5em; }
+li { margin: 6px 0; }
+li > ul, li > ol { margin-bottom: 0; }
+strong { font-weight: 800; }
+code {
+  font-family: "D2Coding", Consolas, "Courier New", monospace;
+  font-size: 0.88em; color: var(--code-ink);
+  background: var(--surface); border-radius: 5px; padding: 2px 6px;
+}
+pre {
+  background: var(--surface-soft); border: 1px solid var(--line);
+  border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+  margin: 0 0 16px; line-height: 1.6;
+}
+pre code { background: none; padding: 0; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 800; white-space: nowrap; }
+td:first-child { white-space: nowrap; }
+td:first-child code { white-space: normal; word-break: break-all; }
+blockquote {
+  margin: 0 0 16px; padding: 4px 18px;
+  border-left: 3px solid var(--accent); color: var(--ink-soft);
+  background: var(--surface-soft); border-radius: 0 8px 8px 0;
+}
+hr { border: none; border-top: 1px solid var(--line); margin: 40px 0; }
+footer {
+  margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--ink-soft); font-size: 13px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="docset" aria-label="문서 세트">
+    <span class="set-label">goodQuestion 문서</span>
+    <a href="./fart-bride-guide.html">재생 구현 & STT·TTS</a>
+    <a href="./llm-guide.html" class="current">LLM 연동</a>
+    <a href="./billing.html">외부 API 요금</a>
+  </nav>
+  <main>
+<h1>LLM 연동 가이드 — 대화 씬 반응 생성</h1>
+<p>대화 씬(아이 답변에 캐릭터가 반응하는 부분)의 고정 문구를 LLM 생성 반응으로
+교체하는 작업 가이드. 어디를 건드리면 되는지, 무엇을 지켜야 하는지 정리했다.
+작성: 2026-08-12 기준, <code>api_team</code> 브랜치 (<code>8c51efa</code>) 라인 번호.</p>
+<h2>1. 지금은 어떻게 동작하나</h2>
+<p>재생 흐름은 영상 5파트 사이에 대화 4씬이 끼어드는 시퀀서다
+(<code>src/stories/fart-bride/data.ts</code> 의 <code>SEQUENCE</code>). 대화 씬 하나의 단계는:</p>
+<pre><code>question(질문 음성) → listening(녹음) → transcribing(STT) → responding(반응 재생)
+→ choice(다시 말하기 | 계속하기) → answer(정해진 답변) → 다음 파트
+</code></pre>
+<p>이 중 <strong>responding 에 들어갈 텍스트를 만드는 곳이 교체 대상</strong>이다. 지금은
+<code>interactive-scene.tsx</code> 의 <code>REACTIONS</code> 가 화자별 고정 문구를 만든다:</p>
+<pre><code>아이 답변 → POST /api/fart-bride/stt → transcript
+→ buildReaction(transcript, voice)   ← 여기가 고정 문구 (LLM 으로 교체)
+→ POST /api/fart-bride/tts → 캐릭터 목소리로 재생
+</code></pre>
+<p>아이 이름은 <code>selected_child</code> 쿠키 → 재생 라우트가 조회 → <code>childName</code> prop 으로
+씬까지 내려온다. 받침에 따른 조사 처리는 <code>name.ts</code> 에 있다.</p>
+<h2>2. 건드릴 파일</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>파일</th>
+<th>위치</th>
+<th>할 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>src/app/api/fart-bride/llm/route.ts</code></td>
+<td><strong>새로 만들기</strong></td>
+<td>LLM 호출 서버 라우트. 옆의 <code>stt/route.ts</code> · <code>tts/route.ts</code> 가 같은 패턴(POST 핸들러, 키는 env, 폴백)이니 참고</td>
+</tr>
+<tr>
+<td><code>src/stories/fart-bride/interactive-scene.tsx</code></td>
+<td>27~41행</td>
+<td><code>REACTIONS</code> · <code>buildReaction</code> 을 LLM 라우트 호출로 교체. 주석에 &quot;LLM 연결 지점&quot; 이라고 표시해 둔 자리다</td>
+</tr>
+<tr>
+<td><code>src/stories/fart-bride/interactive-scene.tsx</code></td>
+<td>200행 근처</td>
+<td><code>sendToStt</code> 안의 <code>text: buildReaction(...)</code> — 여기서 LLM 응답 텍스트를 받아 TTS 로 넘기게 된다</td>
+</tr>
+<tr>
+<td><code>src/stories/fart-bride/data.ts</code></td>
+<td>28~41행</td>
+<td><code>InteractiveStep</code> 타입에 씬 맥락 필드 추가(예: <code>llmContext</code>). <code>stylePrompt</code> 는 TTS 연기 지시용이니 섞지 말 것</td>
+</tr>
+<tr>
+<td><code>.env.local</code> / <code>.env.example</code></td>
+<td>—</td>
+<td>키는 <code>.env.local</code> 에만. <code>.env.example</code> 에는 키 이름만 (Stop 훅이 자동으로 채우니 커밋에 실제 값이 섞이지 않게만 주의)</td>
+</tr>
+</tbody></table></div>
+<h2>3. 라우트 입출력 제안</h2>
+<pre><code>POST /api/fart-bride/llm
+요청:  { transcript: string, sceneId: number, childName?: string }
+응답:  { reply: string }
+실패:  4xx/5xx + { error: string }
+</code></pre>
+<ul>
+<li><strong>씬 맥락(페르소나·상황)은 서버에서 <code>sceneId</code> 로 찾아라.</strong> 클라이언트가
+프롬프트 전문을 보내는 구조로 만들면 요청 조작으로 프롬프트를 바꿀 수 있다.</li>
+<li>클라이언트 쪽은 LLM 실패 시 <strong>기존 고정 문구로 폴백</strong>하는 걸 남겨 두는 게
+좋다 (TTS 도 같은 방식 — 재생이 끊기지 않는 게 최우선).</li>
+</ul>
+<h2>4. 프롬프트가 지켜야 할 것</h2>
+<ul>
+<li><strong>응답은 그대로 TTS 로 읽힌다.</strong> 1~2문장, 한국어만. 이모지·마크다운·괄호
+지문(<em>웃으며</em>) 이 섞이면 그대로 읽어 버린다.</li>
+<li><strong>캐릭터 말투 유지.</strong> 며느리(Leda)=다정한 해요체, 시아버지(Schedar)=근엄한
+하게체, 이장님(Sadachbia)=너털웃음 하오체. 기존 <code>REACTIONS</code> 문구가 톤
+레퍼런스다.</li>
+<li><strong>유아 대상 서비스다.</strong> 아이 답변이 무엇이든(무의미한 소리, 공격적인 말,
+오인식 포함) 따뜻하게 받아 줄 것. 평가·훈계·무서운 표현 금지.</li>
+<li><strong>이야기를 바꾸면 안 된다.</strong> LLM 반응 직후 정해진 답변(<code>answer.lines</code>)으로
+이어지므로, 반응이 결말을 약속하거나 스포일러하면 흐름이 어긋난다.</li>
+<li><strong>아이 이름을 부를 수 있다.</strong> <code>childName</code> 이 요청에 오면 활용. 조사는
+<code>name.ts</code> 의 <code>vocative()</code> 재사용 (순수 함수라 서버에서 import 가능).</li>
+<li><strong>transcript 는 발화 그대로 취급.</strong> 시스템 지시와 분리해서 넣고, 아이
+발화 안의 지시(&quot;욕해 봐&quot; 등)를 따르지 않게 할 것.</li>
+</ul>
+<h2>5. 지연 예산</h2>
+<p>아이가 말을 마친 뒤 반응이 들리기까지: STT(1<del>2초) + <strong>LLM(+α)</strong> + TTS(2</del>3초).
+지금도 5초 안팎이라 LLM 은 빠른 모델 + 짧은 출력(max tokens 제한)으로.
+스트리밍은 TTS 가 전문을 필요로 해서 이득이 없다. 호출량은 씬당 1회 +
+&quot;다시 말하기&quot; 반복만큼 — 한 번 재생에 4~10회 수준.</p>
+<h2>6. 개인정보 — 시작 전에 반드시 확인</h2>
+<p><code>docs/billing.md</code> 기준, 지금까지 외부로 나가는 텍스트는 우리가 만든 캐릭터
+문구뿐이고 <strong>아이 발화 원문은 어디에도 보내지 않았다.</strong> LLM 에 transcript 를
+보내는 순간 이 전제가 깨진다:</p>
+<ul>
+<li>Gemini <strong>무료 등급은 요청 데이터가 Google 제품 개선에 활용될 수 있다</strong> —
+아이 발화를 보내는 용도로는 쓰지 말 것. 유료 등급 전환 또는 데이터 미활용이
+보장되는 API 로.</li>
+<li><code>childName</code> 도 개인정보다. 프롬프트에 넣는 건 괜찮지만 로그로 남기지 말 것.</li>
+<li>어떤 키/등급을 쓰기로 했는지 <code>docs/billing.md</code> 에 섹션을 추가해 줄 것
+(과금 주체 표 포함).</li>
+</ul>
+<h2>7. 모델·키 선택</h2>
+<p>프로바이더 선택은 담당자 재량. 참고할 점:</p>
+<ul>
+<li><code>GEMINI_API_KEY</code> 가 이미 있어서(TTS 용) Gemini 텍스트 생성을 재사용하는 게
+세팅 마찰은 가장 적다 — 단 6번(무료 등급 데이터 활용) 해결이 전제.</li>
+<li>다른 프로바이더를 쓰면 키 이름을 <code>.env.example</code> 규칙대로 추가하고
+요금 정리를 <code>billing.md</code> 에.</li>
+<li>모델명·단가는 계속 바뀌니 문서 말고 공식 요금 페이지에서 확인.</li>
+</ul>
+<h2>8. 확장 여지 — &quot;다시 말하기&quot; 순환</h2>
+<p>현재 choice 단계의 &quot;다시 말하기&quot;는 녹음만 다시 할 뿐 <strong>대화 히스토리가 없다</strong>
+(매번 첫 반응처럼 동작). LLM 을 넣으면서 멀티턴으로 만들려면:</p>
+<ul>
+<li><code>InteractiveScene</code> 에 <code>{ role, text }[]</code> 히스토리 상태를 추가하고</li>
+<li>라우트 요청을 <code>messages</code> 배열로 바꾸면 된다.</li>
+</ul>
+<p>순환을 몇 번까지 허용할지(STT_DEFAULTS 처럼 상한), 히스토리를 씬이 끝나면
+버릴지는 기획과 함께 정할 것.</p>
+<h2>9. 테스트 방법</h2>
+<ol>
+<li><p><code>pnpm dev</code> (또는 <code>npm run dev</code>) → <code>/children</code> 에서 아이 카드 클릭
+(이름 쿠키가 심어진다) → 이야기 재생 → 씬 4 가 첫 대화.</p>
+</li>
+<li><p>상단 &quot;건너뛰기&quot; 버튼으로 씬을 빠르게 이동할 수 있다.</p>
+</li>
+<li><p>라우트 단독 테스트:</p>
+<pre><code class="language-bash">curl -X POST http://localhost:3000/api/fart-bride/llm \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;transcript&quot;:&quot;방귀 뀌어도 괜찮아!&quot;,&quot;sceneId&quot;:4,&quot;childName&quot;:&quot;지훈&quot;}&#39;
+</code></pre>
+</li>
+<li><p>무음/오인식 흐름도 확인할 것 — STT 가 빈 문자열이면 1회 재시도 후 답변
+단계로 그냥 넘어간다 (<code>STT_DEFAULTS</code>, <code>sendToStt</code> 참고). LLM 이 끼어도
+이 동작은 유지돼야 한다.</p>
+</li>
+</ol>
+
+  </main>
+  <footer>이 파일은 <code>docs/llm-guide.md</code> 에서 생성된 사본입니다 — 내용 수정은 마크다운 쪽에서. 생성: 2026-08-12</footer>
+</div>
+</body>
+</html>

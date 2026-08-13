@@ -1,0 +1,704 @@
+<title>좋은질문 API 명세서</title>
+
+<style>
+  :root {
+    --bg: #fbf8f3;
+    --surface: #ffffff;
+    --ink: #3b2f24;
+    --ink-soft: #8a7a66;
+    --ink-faint: #b0a494;
+    --line: #eadfcb;
+    --accent: #45a9d3;
+    --accent-soft: #dcf1f4;
+    --accent-ink: #2b7ca0;
+    --point: #fd7c51;
+    --point-soft: #ffe5dc;
+    --point-ink: #c14f28;
+    --code-bg: #f4efe4;
+    --ok: #3e8e5a;
+    --ok-soft: #e2f1e7;
+    --warn: #a8731c;
+    --warn-soft: #f7ecd6;
+    --err: #c0503c;
+    --err-soft: #f9e4df;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1e1913;
+      --surface: #27201677;
+      --ink: #ece3d4;
+      --ink-soft: #a99a87;
+      --ink-faint: #7d7060;
+      --line: #3a3125;
+      --accent: #6fbcdd;
+      --accent-soft: #21333d;
+      --accent-ink: #8fcde8;
+      --point: #fd9674;
+      --point-soft: #40281e;
+      --point-ink: #ffb094;
+      --code-bg: #2b2416;
+      --ok: #6fbf8d;
+      --ok-soft: #22352a;
+      --warn: #d9a04a;
+      --warn-soft: #3a2f1a;
+      --err: #e08070;
+      --err-soft: #3d241f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1e1913;
+    --surface: #27201677;
+    --ink: #ece3d4;
+    --ink-soft: #a99a87;
+    --ink-faint: #7d7060;
+    --line: #3a3125;
+    --accent: #6fbcdd;
+    --accent-soft: #21333d;
+    --accent-ink: #8fcde8;
+    --point: #fd9674;
+    --point-soft: #40281e;
+    --point-ink: #ffb094;
+    --code-bg: #2b2416;
+    --ok: #6fbf8d;
+    --ok-soft: #22352a;
+    --warn: #d9a04a;
+    --warn-soft: #3a2f1a;
+    --err: #e08070;
+    --err-soft: #3d241f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Apple SD Gothic Neo", Pretendard, "Malgun Gothic", system-ui, sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+
+  code, pre, .mono {
+    font-family: Consolas, "SF Mono", SFMono-Regular, Menlo, monospace;
+    font-size: 0.92em;
+  }
+  code {
+    background: var(--code-bg);
+    border-radius: 5px;
+    padding: 1px 6px;
+  }
+
+  /* ---------- 헤더 ---------- */
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent-ink);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+  }
+  .meta li {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px;
+  }
+  .lede {
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 18px 0 0;
+  }
+
+  header { padding-bottom: 36px; border-bottom: 2px solid var(--line); }
+
+  /* ---------- 섹션 ---------- */
+  section { margin-top: 56px; }
+  h2 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h2 .no {
+    color: var(--point);
+    margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  h3 {
+    font-size: 19px;
+    font-weight: 800;
+    margin: 40px 0 4px;
+    text-wrap: balance;
+  }
+  .sub {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    margin: 0 0 18px;
+  }
+  p { max-width: 68ch; }
+
+  /* ---------- 엔드포인트 카드 ---------- */
+  .endpoint {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 14px 0 18px;
+  }
+  .method {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    border-radius: 7px;
+    padding: 3px 10px;
+  }
+  .method.post { background: var(--point-soft); color: var(--point-ink); }
+  .method.get { background: var(--accent-soft); color: var(--accent-ink); }
+  .method.action { background: var(--ok-soft); color: var(--ok); }
+  .endpoint .path { font-weight: 700; font-size: 16px; background: none; padding: 0; }
+
+  /* ---------- 표 ---------- */
+  .tablewrap { overflow-x: auto; margin: 14px 0 22px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 14.5px;
+  }
+  th {
+    text-align: left;
+    font-size: 13px;
+    color: var(--ink-soft);
+    background: var(--code-bg);
+    font-weight: 800;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .chip {
+    display: inline-block;
+    font-family: Consolas, "SF Mono", monospace;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 1px 8px;
+    white-space: nowrap;
+  }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.err { background: var(--err-soft); color: var(--err); }
+
+  /* ---------- 다이어그램 ---------- */
+  figure {
+    margin: 20px 0 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 10px;
+    overflow-x: auto;
+  }
+  figcaption {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  pre.mermaid { margin: 0; display: flex; justify-content: center; }
+
+  /* ---------- 콜아웃 ---------- */
+  .note {
+    border-left: 3px solid var(--warn);
+    background: var(--warn-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 14.5px;
+    margin: 18px 0;
+    max-width: 70ch;
+  }
+  .note strong { color: var(--warn); }
+  .tip {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 14.5px;
+    margin: 18px 0;
+    max-width: 70ch;
+  }
+
+  a { color: var(--accent-ink); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">goodQuestion · api_team</p>
+    <h1>좋은질문 API 명세서</h1>
+    <ul class="meta">
+      <li>기준일 2026-08-13</li>
+      <li>Next.js App Router</li>
+      <li>라우트 핸들러 3</li>
+      <li>서버 액션 2</li>
+      <li>프록시 1</li>
+    </ul>
+    <p class="lede">
+      인터랙티브 동화 「방귀 뀌는 며느리」의 재생 흐름을 받치는 서버 표면 전체 —
+      HTTP API, 서버 액션, 인증 인프라, 데이터 모델을 UML 구조도와 함께 정리했다.
+    </p>
+  </header>
+
+  <section>
+    <h2>전체 구조</h2>
+    <p class="sub">브라우저 · Next.js 서버 · 외부 서비스 사이의 호출 경로</p>
+    <figure>
+      <figcaption>컴포넌트 다이어그램 — 대화 씬은 STT/TTS 라우트를, 계정·아이 관리 화면은 Supabase 를 향한다</figcaption>
+      <pre class="mermaid">
+flowchart LR
+  subgraph Browser["브라우저"]
+    Login["로그인 화면<br/>(구글 OAuth 시작)"]
+    ChildUI["아이 등록·선택 화면"]
+    Play["FartBridePlay<br/>재생 시퀀서"]
+    IS["InteractiveScene<br/>STT-TTS 대화 씬"]
+    Play --> IS
+  end
+  subgraph Next["Next.js 서버"]
+    Proxy["proxy.ts<br/>세션 갱신 (전 요청)"]
+    CB["GET /auth/callback"]
+    STT["POST /api/fart-bride/stt"]
+    TTS["POST /api/fart-bride/tts"]
+    SA1["createChild()"]
+    SA2["selectChild()"]
+    PlayPage["/stories/[id]/play<br/>childName 주입"]
+  end
+  subgraph Ext["외부 서비스"]
+    SB[("Supabase<br/>Auth + Postgres")]
+    GSTT["Google Cloud<br/>Speech-to-Text v1"]
+    GEM["Gemini API<br/>2.5 Flash TTS"]
+    CTTS["Google Cloud<br/>Text-to-Speech v1"]
+  end
+  Login --> CB --> SB
+  ChildUI --> SA1 --> SB
+  ChildUI --> SA2 --> SB
+  PlayPage --> SB
+  Proxy --> SB
+  IS -- "녹음 webm/opus" --> STT --> GSTT
+  IS -- "반응 텍스트" --> TTS
+  TTS -- "1차" --> GEM
+  TTS -- "2·3차 폴백" --> CTTS
+      </pre>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="no">1</span>HTTP API</h2>
+
+    <h3>1.1 아이 음성 → 텍스트</h3>
+    <div class="endpoint">
+      <span class="method post">POST</span>
+      <code class="path">/api/fart-bride/stt</code>
+    </div>
+    <p>
+      브라우저 MediaRecorder 녹음(webm/opus)을 그대로 받아
+      Google Cloud Speech-to-Text v1 로 인식한다. Google API 키는 서버 환경
+      변수에만 있어 클라이언트에 노출되지 않는다.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <tr><th>요청 항목</th><th>값</th></tr>
+        <tr><td>Content-Type</td><td><code>application/octet-stream</code></td></tr>
+        <tr><td>Body</td><td>webm/opus 오디오 바이트 (MediaRecorder 산출물 그대로)</td></tr>
+        <tr><td><code>X-Audio-Channels</code></td><td>마이크 채널 수. 없거나 숫자가 아니면 <code>1</code></td></tr>
+      </table>
+    </div>
+
+    <p>
+      채널 수 헤더가 필요한 이유: 스테레오 마이크에서 opus 헤더와 STT config 의
+      채널 수가 어긋나면 구글이 400 을 반환한다. 클라이언트가
+      <code>MediaStreamTrack.getSettings().channelCount</code> 를 읽어 보낸다.
+    </p>
+    <p>
+      STT 설정(서버 고정값): <code>encoding: WEBM_OPUS</code> ·
+      <code>languageCode: ko-KR</code> · <code>maxAlternatives: 1</code>
+      (아이 발화는 짧아 최상위 후보만 사용).
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <tr><th>상태</th><th>Body</th><th>의미</th></tr>
+        <tr><td class="num"><span class="chip ok">200</span></td><td><code>{ "transcript": string }</code></td>
+          <td>인식 결과. <strong>무음이면 <code>""</code></strong> — 에러가 아니라 클라이언트가 재시도를 판단한다</td></tr>
+        <tr><td class="num"><span class="chip warn">400</span></td><td><code>{ "error": string }</code></td><td>녹음 데이터가 비어 있음</td></tr>
+        <tr><td class="num"><span class="chip err">500</span></td><td><code>{ "error": string }</code></td><td><code>GOOGLE_CLOUD_API_KEY</code> 미설정</td></tr>
+        <tr><td class="num"><span class="chip err">502</span></td><td><code>{ "error", "detail" }</code></td><td>구글 STT 호출 실패 (detail 은 구글 원문)</td></tr>
+      </table>
+    </div>
+
+    <div class="tip">
+      무음 처리 규약(<code>STT_DEFAULTS</code>): 최대 청취 <strong>10초</strong>,
+      무음 재시도 <strong>1회</strong>, 그래도 무음이면 정해진 답변으로 진행
+      (<code>proceedOnSilence</code>).
+    </div>
+
+    <h3>1.2 텍스트 → 캐릭터 음성</h3>
+    <div class="endpoint">
+      <span class="method post">POST</span>
+      <code class="path">/api/fart-bride/tts</code>
+    </div>
+    <p>
+      캐릭터 보이스로 음성을 합성해 오디오 바이너리로 반환한다. 세 단계 폴백
+      체인이며, 어느 경로였는지는 응답 헤더 <code>X-TTS-Model</code> 로 알 수 있다.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <tr><th>필드</th><th>타입</th><th>필수</th><th>설명</th></tr>
+        <tr><td><code>text</code></td><td>string</td><td class="num">O</td><td>합성할 문장. 공백뿐이면 400</td></tr>
+        <tr><td><code>voice</code></td><td>string</td><td class="num">X</td>
+          <td><code>Despina</code> | <code>Leda</code> | <code>Schedar</code> | <code>Sadachbia</code>.
+              목록 밖 값은 <code>Despina</code> 로 대체</td></tr>
+        <tr><td><code>stylePrompt</code></td><td>string</td><td class="num">X</td>
+          <td>말투 연기 지시. <strong>Gemini 계열(1·2차)만 반영</strong>, Chirp3-HD 는 무시</td></tr>
+      </table>
+    </div>
+
+    <p>
+      보이스는 story_database.json 의 성우 매핑과 같다 —
+      내레이션=Despina, 며느리=Leda, 시아버지=Schedar, 이장님=Sadachbia.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <tr><th>순서</th><th>경로</th><th>조건</th><th>응답 포맷</th><th>X-TTS-Model</th></tr>
+        <tr>
+          <td class="num">1차</td>
+          <td>Gemini API <code>gemini-2.5-flash-preview-tts</code></td>
+          <td><code>GEMINI_API_KEY</code> 설정 시</td>
+          <td><code>audio/wav</code> (PCM→WAV)</td>
+          <td><code>gemini-api-2.5-flash-tts</code></td>
+        </tr>
+        <tr>
+          <td class="num">2차</td>
+          <td>Cloud TTS 의 Gemini-TTS</td>
+          <td>1차 실패·미설정 시 (Vertex 권한 필요)</td>
+          <td><code>audio/mpeg</code></td>
+          <td><code>gemini-2.5-flash-tts</code></td>
+        </tr>
+        <tr>
+          <td class="num">3차</td>
+          <td>Cloud TTS <code>ko-KR-Chirp3-HD-&lt;voice&gt;</code></td>
+          <td>2차 실패 시 — 항상 동작하는 안전망</td>
+          <td><code>audio/mpeg</code></td>
+          <td><code>chirp3-hd-fallback</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <tr><th>상태</th><th>Body</th><th>의미</th></tr>
+        <tr><td class="num"><span class="chip ok">200</span></td><td>오디오 바이너리</td><td>위 표의 포맷. 헤더로 경로 확인</td></tr>
+        <tr><td class="num"><span class="chip warn">400</span></td><td><code>{ "error": string }</code></td><td><code>text</code> 가 비어 있음</td></tr>
+        <tr><td class="num"><span class="chip err">500</span></td><td><code>{ "error": string }</code></td><td><code>GOOGLE_CLOUD_API_KEY</code> 미설정</td></tr>
+        <tr><td class="num"><span class="chip err">502</span></td><td><code>{ "error", "detail"? }</code></td><td>모든 경로 실패, 또는 응답에 오디오 없음</td></tr>
+      </table>
+    </div>
+
+    <h3>1.3 구글 OAuth 착지점</h3>
+    <div class="endpoint">
+      <span class="method get">GET</span>
+      <code class="path">/auth/callback</code>
+    </div>
+    <p>Supabase PKCE 코드를 세션 쿠키로 교환한 뒤 리다이렉트한다. 항상 리다이렉트로 끝난다.</p>
+
+    <div class="tablewrap">
+      <table>
+        <tr><th>쿼리</th><th>설명</th></tr>
+        <tr><td><code>code</code></td><td>Supabase 가 넘겨주는 PKCE 인증 코드</td></tr>
+        <tr><td><code>next</code></td>
+          <td>성공 후 이동 경로. <strong>같은 오리진의 절대경로만 허용</strong>
+              (<code>/</code> 시작, <code>//</code> 금지 — 오픈 리다이렉트 방지). 기본값 <code>/children</code></td></tr>
+        <tr><td><code>error</code>, <code>error_description</code></td><td>구글 동의 화면 취소 등 공급자 에러</td></tr>
+      </table>
+    </div>
+    <p>
+      성공 → <code>{origin}{next}</code> ·
+      실패(공급자 에러, code 없음, 교환 실패) → <code>/login?error=&lt;메시지&gt;</code>
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="no">2</span>서버 액션</h2>
+    <p class="sub">
+      REST 가 아니라 Next 폼 액션으로 호출된다. 화면에서 막은 값도 폼을 우회해
+      직접 POST 될 수 있으므로 서버에서 전부 재검증한다. 두 액션 모두 미로그인 시 <code>/login</code> 으로 redirect.
+    </p>
+
+    <h3>2.1 아이 등록</h3>
+    <div class="endpoint">
+      <span class="method action">ACTION</span>
+      <code class="path">createChild(prev, formData)</code>
+      <span class="sub mono">src/app/onboarding/child/actions.ts</span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <tr><th>FormData 필드</th><th>검증</th></tr>
+        <tr><td><code>name</code></td><td>필수, 100자 이하</td></tr>
+        <tr><td><code>age</code></td><td>정수 4~13 (연 나이)</td></tr>
+        <tr><td><code>characterId</code></td>
+          <td><code>rabbit</code> | <code>lion</code> | <code>fox</code> | <code>bear</code> |
+              <code>dog</code> | <code>tiger</code> — DB CHECK 제약과 동일 목록</td></tr>
+      </table>
+    </div>
+    <p>
+      성공: <code>children</code> 에
+      <code>{ parent_id, name, birth_year: 올해−age, character_id }</code> insert →
+      <code>/children</code> revalidate 후 redirect.
+      실패: <code>{ error: string }</code> 반환(폼 상태로 표시).
+    </p>
+
+    <h3>2.2 플레이할 아이 선택</h3>
+    <div class="endpoint">
+      <span class="method action">ACTION</span>
+      <code class="path">selectChild(childId)</code>
+      <span class="sub mono">src/app/children/actions.ts</span>
+    </div>
+    <p>
+      내 아이인지 확인(<code>parent_id = user.id</code>, RLS 이중 방어) 후
+      <code>selected_child</code> 쿠키(httpOnly, SameSite=Lax, 30일)에 아이 id 를
+      담고 <code>/home</code> 으로 redirect. 남의 아이 id 면 쿠키를 건드리지 않고 그냥 redirect.
+    </p>
+    <p>
+      이 쿠키는 재생 화면이 대화 씬에서 아이 이름을 부를 때 읽는다 — 쿠키가
+      없거나 남의 아이면 첫 아이, 그마저 없으면 이름 없이 진행.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="no">3</span>공통 인프라</h2>
+
+    <h3>3.1 proxy.ts (구 middleware)</h3>
+    <p>
+      정적 자산을 제외한 모든 요청에서 Supabase 세션을 갱신한다
+      (<code>auth.getUser()</code> 1회 왕복). 만료된 액세스 토큰의 갱신분을 응답
+      쿠키로 실어 보낼 수 있는 유일한 지점이며, 세션 쿠키가 실린 응답에는
+      no-store 계열 캐시 헤더를 붙인다. <strong>인증을 강제하지는 않는다</strong> —
+      차단 없이 통과시키고, 보호는 각 페이지·액션의 <code>getUser()</code> 검사와 RLS 가 담당한다.
+    </p>
+    <div class="note">
+      <strong>보안 참고</strong> — STT·TTS 라우트는 현재 로그인 검사가 없다.
+      키가 서버에만 있어 유출 위험은 없지만, 공개 배포 전에는 세션 검사나
+      rate limit 을 붙일 것.
+    </div>
+
+    <h3>3.2 쿠키</h3>
+    <div class="tablewrap">
+      <table>
+        <tr><th>쿠키</th><th>쓰는 곳</th><th>속성</th></tr>
+        <tr><td><code>sb-*</code> (Supabase 세션)</td><td><code>@supabase/ssr</code> 자동 관리, proxy 가 갱신</td><td>httpOnly</td></tr>
+        <tr><td><code>selected_child</code></td><td><code>selectChild()</code> 가 쓰고 재생 화면이 읽음</td><td>httpOnly, Lax, 30일</td></tr>
+      </table>
+    </div>
+
+    <h3>3.3 환경 변수</h3>
+    <div class="tablewrap">
+      <table>
+        <tr><th>변수</th><th>용도</th></tr>
+        <tr><td><code>GOOGLE_CLOUD_API_KEY</code></td><td>STT·TTS 필수 (서버 전용)</td></tr>
+        <tr><td><code>GEMINI_API_KEY</code></td><td>TTS 1차 경로(AI Studio 키). 없으면 2차부터 시도</td></tr>
+        <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>Supabase 프로젝트 URL</td></tr>
+        <tr><td><code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code></td><td>Supabase 공개 키</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="no">4</span>데이터 모델</h2>
+
+    <h3>4.1 DB — children (Supabase Postgres, RLS)</h3>
+    <figure>
+      <figcaption>ER 다이어그램 — 부모(auth.users) 1 : N 아이(children)</figcaption>
+      <pre class="mermaid">
+erDiagram
+  "auth.users" ||--o{ children : "parent_id"
+  children {
+    uuid id PK
+    uuid parent_id FK "auth.users.id"
+    text name "100자 이하"
+    int birth_year "올해 - 나이(4~13)"
+    text character_id "CHECK: rabbit|lion|fox|bear|dog|tiger"
+    timestamptz created_at
+  }
+      </pre>
+    </figure>
+
+    <h3>4.2 이야기 재생 타입 (src/stories/fart-bride/data.ts)</h3>
+    <figure>
+      <figcaption>클래스 다이어그램 — SEQUENCE 는 Step[] : part1 → scene4 → part2 → scene7 → part3 → scene10 → part4 → scene16 → part5</figcaption>
+      <pre class="mermaid">
+classDiagram
+  class Step {
+    &lt;&lt;union&gt;&gt;
+  }
+  class VideoStep {
+    kind = "video"
+    id: string
+    label: string
+    src: string
+  }
+  class InteractiveStep {
+    kind = "interactive"
+    id: string
+    sceneId: number
+  }
+  class Speaker {
+    label: string
+    voice: Leda|Schedar|Sadachbia|Despina
+    stylePrompt: string
+  }
+  class Stage {
+    image: string
+    lines: SpeechLine[]
+  }
+  class SpeechLine {
+    text: string
+    audio: string
+  }
+  class STT_DEFAULTS {
+    maxListenSec = 10
+    retryCount = 1
+    proceedOnSilence = true
+  }
+  Step <|-- VideoStep
+  Step <|-- InteractiveStep
+  InteractiveStep --> "1" Speaker : speaker
+  InteractiveStep --> "question / answer" Stage
+  Stage --> "*" SpeechLine
+      </pre>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="no">5</span>대화 씬 동작</h2>
+
+    <h3>5.1 시퀀스 — STT→TTS 1회 순환</h3>
+    <figure>
+      <figcaption>질문 → 녹음 → STT → 반응 TTS(폴백 체인) → 선택 → 정해진 답변</figcaption>
+      <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant C as InteractiveScene<br/>(브라우저)
+  participant STT as POST /api/fart-bride/stt
+  participant TTS as POST /api/fart-bride/tts
+  participant G as Google STT v1
+  participant GM as Gemini API TTS
+  participant CT as Cloud TTS v1
+
+  Note over C: 질문 음성 재생 → 마이크 녹음<br/>(webm/opus, 최대 10초)
+  C->>STT: 오디오 바이트 + X-Audio-Channels
+  STT->>G: speech:recognize (WEBM_OPUS, ko-KR)
+  G-->>STT: transcript
+  STT-->>C: { transcript }
+
+  alt transcript == "" (무음)
+    Note over C: 1회 재녹음 → 그래도 무음이면<br/>정해진 답변으로 바로 진행
+  else 인식 성공
+    C->>TTS: { text: 반응 문구, voice, stylePrompt }
+    alt GEMINI_API_KEY 있음
+      TTS->>GM: generateContent (AUDIO)
+      GM-->>TTS: PCM → WAV 변환
+    else 폴백
+      TTS->>CT: gemini-2.5-flash-tts, 실패 시 Chirp3-HD
+      CT-->>TTS: MP3
+    end
+    TTS-->>C: 오디오 (X-TTS-Model 헤더)
+    Note over C: 반응 재생 → [다시 말하기 | 계속하기]
+  end
+  Note over C: 정해진 답변 재생 → onComplete()
+      </pre>
+    </figure>
+    <p>
+      반응 문구는 현재 고정 템플릿(<code>buildReaction</code>)이다 — LLM 순환
+      구조가 정해지면 이 지점이 LLM 호출로 바뀐다.
+    </p>
+
+    <h3>5.2 상태 — InteractiveScene 의 Phase</h3>
+    <figure>
+      <figcaption>상태 다이어그램 — 무음·실패 시에도 이야기가 멈추지 않고 answer 로 수렴한다</figcaption>
+      <pre class="mermaid">
+stateDiagram-v2
+  [*] --> question
+  question --> listening : 질문 대사 재생 완료
+  listening --> transcribing : 다 말했어요 / 10초 경과
+  transcribing --> listening : 무음, 재시도 1회
+  transcribing --> answer : 무음, 재시도 소진
+  transcribing --> responding : 인식 성공, TTS 반응 수신
+  transcribing --> error : STT/TTS 실패
+  responding --> choice : 반응 재생 완료
+  choice --> listening : 다시 말하기
+  choice --> answer : 계속하기
+  error --> listening : 다시 시도
+  error --> answer : 건너뛰고 계속
+  answer --> [*] : onComplete() → 다음 파트
+      </pre>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="no">6</span>화면 라우트 (참고)</h2>
+    <div class="tablewrap">
+      <table>
+        <tr><th>경로</th><th>성격</th><th>비고</th></tr>
+        <tr><td><code>/</code></td><td>랜딩</td><td></td></tr>
+        <tr><td><code>/login</code></td><td>로그인</td><td>구글 OAuth 시작 (<code>signInWithOAuth</code>)</td></tr>
+        <tr><td><code>/auth/callback</code></td><td>라우트 핸들러</td><td>§1.3</td></tr>
+        <tr><td><code>/onboarding/child</code></td><td>아이 등록 폼</td><td><code>createChild</code> 액션</td></tr>
+        <tr><td><code>/children</code></td><td>아이 선택</td><td><code>selectChild</code> 액션</td></tr>
+        <tr><td><code>/home</code>, <code>/stories</code></td><td>메인 탭</td><td><code>(main)</code> 레이아웃</td></tr>
+        <tr><td><code>/stories/[id]</code></td><td>이야기 소개</td><td></td></tr>
+        <tr><td><code>/stories/[id]/play</code></td><td>재생 화면</td><td>id 로 스토리 컴포넌트 매핑, <code>childName</code> 주입</td></tr>
+      </table>
+    </div>
+  </section>
+</div>

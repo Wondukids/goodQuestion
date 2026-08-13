@@ -1,0 +1,118 @@
+/* frontendlib 연출 스타일 — app/globals.css 가 @import 로 불러온다.
+   src/frontendlib/*.tsx 컴포넌트가 fx-* 클래스에 --fx-* 변수로 파라미터를 넘긴다.
+   기본 타이밍은 책장 넘김·슬라이드 전환과 통일 (0.7s, cubic-bezier(0.3, 0.1, 0.3, 1)). */
+
+/* 슬라이드 — 방향 오프셋(--fx-tx/--fx-ty)에서 제자리로 들어온다 */
+@keyframes fx-slide-in {
+  from {
+    transform: translate(var(--fx-tx, 0px), var(--fx-ty, 0px));
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+.fx-slide-in {
+  animation: fx-slide-in var(--fx-duration, 0.7s)
+    var(--fx-ease, cubic-bezier(0.3, 0.1, 0.3, 1)) var(--fx-delay, 0s) both;
+  will-change: transform;
+}
+
+/* 팝업 — 배경은 어두워지고 패널은 살짝 튀며(1.04 오버슈트) 나타난다 */
+@keyframes fx-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fx-fade-in {
+  animation: fx-fade-in 0.25s ease-out both;
+}
+
+@keyframes fx-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fx-pop-in {
+  animation: fx-pop-in 0.4s ease-out both;
+  will-change: transform;
+}
+
+/* 시간에 따른 확대/축소 — 카메라가 천천히 다가가거나 물러나는 연출 */
+@keyframes fx-zoom {
+  from {
+    transform: scale(var(--fx-scale-from, 1));
+  }
+  to {
+    transform: scale(var(--fx-scale-to, 1.15));
+  }
+}
+
+.fx-zoom {
+  animation: fx-zoom var(--fx-duration, 8s) var(--fx-ease, linear) both;
+  transform-origin: var(--fx-origin, center);
+  will-change: transform;
+}
+
+/* 방향 와이프 — 지정한 방향 가장자리부터 닦아내듯 드러난다 */
+@keyframes fx-wipe-in {
+  from {
+    clip-path: var(--fx-clip, inset(0 100% 0 0));
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.fx-wipe-in {
+  animation: fx-wipe-in var(--fx-duration, 0.7s)
+    var(--fx-ease, cubic-bezier(0.3, 0.1, 0.3, 1)) both;
+}
+
+/* 카메라 셰이크 — --fx-shake 진폭으로 시작해 감쇠하며 흔들린다 */
+@keyframes fx-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  10% {
+    transform: translate(var(--fx-shake, 8px), calc(var(--fx-shake, 8px) * -0.6));
+  }
+  20% {
+    transform: translate(calc(var(--fx-shake, 8px) * -0.9), calc(var(--fx-shake, 8px) * 0.4));
+  }
+  30% {
+    transform: translate(calc(var(--fx-shake, 8px) * 0.7), calc(var(--fx-shake, 8px) * 0.6));
+  }
+  45% {
+    transform: translate(calc(var(--fx-shake, 8px) * -0.6), calc(var(--fx-shake, 8px) * -0.4));
+  }
+  60% {
+    transform: translate(calc(var(--fx-shake, 8px) * 0.4), calc(var(--fx-shake, 8px) * 0.3));
+  }
+  75% {
+    transform: translate(calc(var(--fx-shake, 8px) * -0.25), calc(var(--fx-shake, 8px) * -0.15));
+  }
+  90% {
+    transform: translate(calc(var(--fx-shake, 8px) * 0.1), calc(var(--fx-shake, 8px) * 0.1));
+  }
+}
+
+.fx-shake {
+  animation: fx-shake var(--fx-duration, 0.5s) linear var(--fx-repeat, 1) both;
+  will-change: transform;
+}

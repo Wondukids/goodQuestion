@@ -3,15 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { SEQUENCE, type VideoStep } from "./data";
+import { type VideoStep } from "./data";
 import { InteractiveScene } from "./interactive-scene";
+import { useStorySequencer } from "./sequencer";
 import { VIDEO_SUBTITLES } from "./subtitles";
 
 /**
  * 방귀 뀌는 며느리 — 재생 화면.
  *
- * 영상 5파트 사이에 인터랙티브 4씬(STT→TTS)이 끼어드는 시퀀서.
- * 순서 정의는 data.ts, 대화 씬 동작은 interactive-scene.tsx 에 있다.
+ * 영상 5파트 사이에 인터랙티브 4씬(STT→TTS)이 끼어드는 구조.
+ * 순서 정의는 data.ts, 진행 제어(시작·다음·점프·책 넘김 판단)는 sequencer.ts,
+ * 대화 씬 동작은 interactive-scene.tsx 에 있다 — 이 파일은 그리기만 한다.
  *
  * 시안 8~17 디자인은 추후 제공 예정이라 지금은 기능 테스트용 최소 UI 다.
  * 첫 화면의 "이야기 시작" 버튼은 소리 있는 자동재생을 허용받기 위한
@@ -23,18 +25,8 @@ export default function FartBridePlay({
   /** 선택된 아이 이름 — 대화 씬이 아이를 부를 때 쓴다 (라우트가 채워 준다) */
   childName: string | null;
 }) {
-  const [started, setStarted] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
-
-  const finished = stepIndex >= SEQUENCE.length;
-  const step = finished ? null : SEQUENCE[stepIndex];
-  const next = () => setStepIndex((index) => index + 1);
-
-  /* 대화 씬은 이야기 흐름이 끊기지 않도록 진입·이탈 모두 넘김 없이 바로 전환.
-     책 넘김은 대화를 끼지 않고 영상으로 넘어갈 때만 — 현재 구성(영상·대화 교대)
-     에서는 시작·다시 보기로 첫 파트에 들어갈 때다. */
-  const prevStep = stepIndex > 0 ? SEQUENCE[stepIndex - 1] : null;
-  const turning = step?.kind === "video" && prevStep?.kind !== "interactive";
+  const { steps, started, stepIndex, step, finished, turning, start, next, restart } =
+    useStorySequencer();
 
   return (
     <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
@@ -46,7 +38,7 @@ export default function FartBridePlay({
           </p>
           <button
             type="button"
-            onClick={() => setStarted(true)}
+            onClick={start}
             className="rounded-2xl bg-primary px-14 py-5 text-[26px] font-extrabold text-white"
           >
             이야기 시작
@@ -63,7 +55,7 @@ export default function FartBridePlay({
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={() => setStepIndex(0)}
+              onClick={restart}
               className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
             >
               다시 보기
@@ -107,7 +99,7 @@ export default function FartBridePlay({
             </Link>
 
             <div className="flex items-center gap-2">
-              {SEQUENCE.map((s, index) => (
+              {steps.map((s, index) => (
                 <span
                   key={s.id}
                   className={`rounded-full ${
