@@ -9,11 +9,14 @@
 //
 // ## ⭐ 제목이 아니라 코드로 가리킨다 — 파이썬과 갈리는 자리
 //
-// 파이썬은 `stories.code` 가 없어서 `_슬러그 = {"fart-bride": "방귀 뀌는 며느리"}` 표를
+// 파이썬은 `stories` 에 열쇠 칸이 없어서 `_슬러그 = {"fart-bride": "방귀 뀌는 며느리"}` 표를
 // 두고 **제목**으로 조회했다. `stories.title` 에는 UNIQUE 가 없어서 제목이 같은 이야기가
 // 둘이면 조용히 섞였고, 제목은 사람이 화면에서 고칠 수 있는 값이다.
-// 이제 `stories.code` · `story_scenes.code` 가 DB 에 실제로 있으므로(시드가 채웠다)
+// 이제 `stories.slug` · `story_scenes.code` 가 DB 에 실제로 있으므로(시드가 채웠다)
 // **임시 슬러그 표는 함께 사라진다** (`docs/설계/라우트계약.md` 1절 마지막 줄).
+// ⚠️ 이야기 쪽 열쇠 이름은 `code` 가 아니라 **`slug`** 다 (2026-08-13 결정 3 · 4차) —
+//    저쪽 DB 에 이미 있는 칸에 맞췄고, 값도 파이썬 `_슬러그` 와 같은 `fart-bride` 다.
+//    바깥 이름(`story_code` 경로 조각)은 그대로 둔다. 라우트 계약이 그 이름으로 서 있다.
 //
 // ⛔ 이 층은 Drizzle 스키마만 안다 (`docs/설계/코드구조.md` 1절). eslint 가 막아 뒀다.
 //    `domain/progress` 는 최하층이라 가져다 쓴다 — 파이썬 `콘텐츠.py` 도 `진행` 을 import 했다.
@@ -103,9 +106,9 @@ export interface SceneRow {
 /** `stories` 한 행. 스키마에서 그대로 뽑는다 — 칸을 두 곳에 적으면 갈린다. */
 export type StoryRow = typeof stories.$inferSelect
 
-/** 이야기 하나를 `code` 로 읽는다. 없으면 던진다. */
+/** 이야기 하나를 `slug` 로 읽는다. 없으면 던진다. */
 export async function readStory(conn: Conn, story_code: string): Promise<StoryRow> {
-  const 행들 = await conn.select().from(stories).where(eq(stories.code, story_code)).limit(1)
+  const 행들 = await conn.select().from(stories).where(eq(stories.slug, story_code)).limit(1)
   if (행들.length === 0) throw new SceneNotFound(`모르는 이야기다: ${story_code}`)
   return 행들[0]
 }
@@ -126,7 +129,7 @@ export async function scenesOfStory(conn: Conn, story_code: string): Promise<Sce
     .from(story_scenes)
     .innerJoin(stories, eq(stories.id, story_scenes.story_id))
     .leftJoin(characters, eq(characters.id, story_scenes.character_id))
-    .where(eq(stories.code, story_code))
+    .where(eq(stories.slug, story_code))
     .orderBy(asc(story_scenes.scene_order))
 }
 

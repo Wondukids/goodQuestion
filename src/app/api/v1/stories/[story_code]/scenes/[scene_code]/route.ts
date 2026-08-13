@@ -17,7 +17,8 @@ import { sceneView } from '@/lib/service/step'
 import { badRequest, failed, ok, zodMessage } from '../../../../../_lib/envelope'
 
 const 경로 = z.strictObject({
-  // `stories.code` (예 `s_banggui_daughter_in_law_001`)
+  // `stories.slug` (예 `fart-bride`). ⚠️ 경로 조각 이름은 `story_code` 그대로다 —
+  // 라우트 계약이 그 이름으로 서 있어 바깥 이름은 안 바꾼다 (2026-08-13 결정 3 · 4차).
   story_code: z.string().min(1),
   // `story_scenes.code` (예 `sc_banggui_03`)
   scene_code: z.string().min(1),

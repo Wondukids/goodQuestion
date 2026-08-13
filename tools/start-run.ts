@@ -4,7 +4,7 @@
  * ── 돌리는 법 ────────────────────────────────────────────────
  *   cd web
  *   npx tsx tools/start-run.ts
- *   npx tsx tools/start-run.ts --story s_banggui_daughter_in_law_001 --scope scene --scene 3
+ *   npx tsx tools/start-run.ts --story fart-bride --scope scene --scene 3
  *
  * ── ⛔ 왜 라우트가 아니라 스크립트인가 ───────────────────────
  *   **세션을 만드는 라우트는 넷 안에 없다** (`docs/설계/라우트계약.md` 7절).
@@ -55,7 +55,7 @@ function 인자_읽기(argv: readonly string[]): 옵션 {
   }
 
   return {
-    story_code: 값('story') ?? 's_banggui_daughter_in_law_001',
+    story_code: 값('story') ?? 'fart-bride',
     scope,
     scene_order: 장면 === null ? null : Number(장면),
     started_by: 값('by'),

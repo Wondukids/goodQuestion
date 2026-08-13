@@ -80,7 +80,8 @@ export async function readSessionWithStory(
   const 행들 = await conn
     .select({
       session: story_sessions,
-      story_code: stories.code,
+      // 바깥 이름은 `story_code` 그대로, 읽는 칸은 `stories.slug` 다 (결정 3 · 4차).
+      story_code: stories.slug,
       story_title: stories.title,
     })
     .from(story_sessions)
@@ -242,21 +243,23 @@ export async function sessionTranscript(
  *
  * `child_id` 는 `children` 테이블이 이 레포 범위 밖이라 걸 FK 가 없다. 값만 든다.
  *
- * **안 주면 새 UUID 를 만든다.** 관리 도구가 시험용 아이를 골랐으면 그 id 를 넘긴다 (결정 46).
- * ⚠️ 엔진은 그 값이 **어느 표에서 왔는지 모른다.** 여기서 관리 표를 조회하지 않는다 —
- *    조회하면 저장 계층이 관리 표를 아는 것이 되어 경계가 깨진다.
+ * 🔴 **반드시 받는다. 안 주면 지어내지 않는다** (결정 71 · 2026-08-13).
+ *    그전에는 `child_id ?? gen_random_uuid()` 라 **없는 아이를 회차마다 하나씩 지어냈다.**
+ *    우리 DB 엔 FK 가 없어 아무 문제가 없었지만, 저쪽(팀 레포)에는 `children` FK 가 있어
+ *    **얹는 순간 모든 회차 시작이 FK 위반으로 죽었을 자리다.**
+ *    타입이 필수라 이제 그 실수를 컴파일러가 막는다 — 잊고 안 넘기는 길이 없다.
  *
- * ⚠️ 새 UUID 는 **DB 가** 만든다(`gen_random_uuid()`). 코드에서 만들지 않는다 —
- *    안 주면 어디서 나온 값인지가 파이썬 판과 달라진다.
+ * ⚠️ 엔진은 그 값이 **어느 표에서 왔는지 모른다.** 여기서 관리 표도 설정도 읽지 않는다 —
+ *    읽으면 저장 계층이 그걸 아는 것이 되어 경계가 깨진다. 고르는 자리는 `service/run.ts` 다.
  */
 export async function createSession(
   conn: Conn,
-  { story_id, child_id }: { story_id: string; child_id?: string | null },
+  { story_id, child_id }: { story_id: string; child_id: string },
 ): Promise<string> {
   const 행들 = await conn
     .insert(story_sessions)
     .values({
-      child_id: child_id ?? sql`gen_random_uuid()`,
+      child_id,
       story_id,
       status: 'in_progress',
     })

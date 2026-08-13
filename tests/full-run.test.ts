@@ -52,7 +52,7 @@ import { advanceStep, runState, startRunStep, submitTurn } from '@/lib/service/r
 import { installFakeSdk } from './support/sdk-gate'
 
 /** 「방귀 뀌는 며느리」 — 전개 다섯(1·2·4·6·8) · 대화 넷(3·5·7·9). */
-const 이야기 = 's_banggui_daughter_in_law_001'
+const 이야기 = 'fart-bride'
 
 // ── DB 가 있나 (repo.test.ts · service.test.ts 와 같은 문지기) ─────────────
 

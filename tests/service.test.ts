@@ -258,7 +258,7 @@ async function 콘텐츠_넣기(tx: Conn): Promise<씨앗> {
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: story_code,
+      slug: story_code,
       title: `조립 검사용 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',
@@ -599,6 +599,56 @@ describe('service — DB 를 안 보는 조각들', () => {
 // 조립-2 장면
 // ═══════════════════════════════════════════════════════════════════════════
 
+검사('service/run — 회차를 시작할 아이 (결정 71)', () => {
+  // 🔴 그전에는 `child_id ?? gen_random_uuid()` 라 **없는 아이를 회차마다 하나씩 지어냈다.**
+  //    우리 DB 엔 FK 가 없어 아무도 안 아팠지만, 저쪽에는 `children` FK 가 있어
+  //    얹는 순간 모든 회차 시작이 `23503` 으로 죽었을 자리다.
+  //    지어내는 길을 지웠다는 것은 **없을 때 터진다**로만 잴 수 있다.
+
+  it('🔴 아이 id 가 없으면 지어내지 않고 터진다', async () => {
+    const 원래 = process.env.GQ_EXPERIMENT_CHILD_ID
+    // ⚠️ `delete` 가 아니라 **빈 문자열**이다. `loadSettings()` 는 `.env.local` 을
+    //    `override: false` 로 읽는데, dotenv 는 값이 아니라 `hasOwnProperty` 로 판단한다 —
+    //    지워 버리면 파일에 있는 값이 도로 채워져 이 검사가 조용히 무의미해진다.
+    //    (`tests/config.test.ts` 머리말이 같은 수법을 설명한다.)
+    process.env.GQ_EXPERIMENT_CHILD_ID = ''
+    try {
+      await 트랜잭션(async (tx) => {
+        const 씨 = await 콘텐츠_넣기(tx)
+        await expect(startRun(tx, { story_code: 씨.story_code })).rejects.toThrow(
+          /GQ_EXPERIMENT_CHILD_ID/,
+        )
+      })
+    } finally {
+      process.env.GQ_EXPERIMENT_CHILD_ID = 원래
+    }
+  })
+
+  it('설정에 있으면 그 값을 그대로 든다 — 누구인지는 묻지 않는다', async () => {
+    const 원래 = process.env.GQ_EXPERIMENT_CHILD_ID
+    const 아이 = randomUUID()
+    process.env.GQ_EXPERIMENT_CHILD_ID = 아이
+    try {
+      await 트랜잭션(async (tx) => {
+        const 씨 = await 콘텐츠_넣기(tx)
+        const { session_id } = await startRun(tx, { story_code: 씨.story_code })
+        expect((await readSession(tx, session_id)).child_id).toBe(아이)
+      })
+    } finally {
+      process.env.GQ_EXPERIMENT_CHILD_ID = 원래
+    }
+  })
+
+  it('인자로 준 값이 설정을 이긴다', async () => {
+    const 아이 = randomUUID()
+    await 트랜잭션(async (tx) => {
+      const 씨 = await 콘텐츠_넣기(tx)
+      const { session_id } = await startRun(tx, { story_code: 씨.story_code, child_id: 아이 })
+      expect((await readSession(tx, session_id)).child_id).toBe(아이)
+    })
+  })
+})
+
 검사('service/story — 전개는 지문, 대화는 멀티턴', () => {
   it('전개 장면은 messages 를 안 남기고 지문만 찍는다 (결정 22)', async () => {
     await 트랜잭션(async (tx) => {
@@ -670,7 +720,7 @@ describe('service — DB 를 안 보는 조각들', () => {
 
     await 트랜잭션(async (tx) => {
       const { run } = await startRun(tx, {
-        story_code: 's_banggui_daughter_in_law_001',
+        story_code: 'fart-bride',
         started_by: '검사',
       })
 
@@ -678,7 +728,7 @@ describe('service — DB 를 안 보는 조각들', () => {
         conn: tx,
         run_id: run.id,
         session_id: run.session_id,
-        story_code: 's_banggui_daughter_in_law_001',
+        story_code: 'fart-bride',
         prompt_version: 'mvp_v1',
         utterance_source: 'synthetic_adult',
         input: () => '며느리가 창피했을 것 같아',

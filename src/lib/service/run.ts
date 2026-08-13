@@ -145,7 +145,8 @@ export interface StartRunArgs {
   scene_order?: number | null
   started_by?: string | null
   /**
-   * 시험용 아이 id. **안 주면 DB 가 새 UUID 를 만든다** (결정 46).
+   * 시험용 아이 id. 안 주면 **설정의 `GQ_EXPERIMENT_CHILD_ID`** 를 쓰고, 그것도 없으면 터진다
+   * (결정 71 · 2026-08-13). 지어내지 않는다 — 저쪽에는 `children` FK 가 있다.
    * ⚠️ 우리는 그 값을 불투명하게 흘려보낼 뿐 누구인지 모른다 (`CLAUDE.md` DB 절).
    */
   child_id?: string | null
@@ -173,10 +174,21 @@ export async function startRun(
     throw new ValueError(`이야기에 장면이 없다: ${args.story_code} (시드를 넣었나?)`)
   }
 
+  // 🔴 여기가 아이를 고르는 **유일한 자리**다 (결정 71). 저장 계층은 설정을 안 읽는다.
+  //    없으면 지어내지 않고 터진다 — 지어낸 uuid 는 저쪽 `children` FK 에서 100% 튕기고,
+  //    그때 나오는 말(`23503`)은 원인을 안 알려 준다. 차라리 여기서 이름을 대고 죽는다.
+  const child_id = args.child_id ?? loadSettings().child_id
+  if (!child_id) {
+    throw new ValueError(
+      '아이 id 가 없다 — `GQ_EXPERIMENT_CHILD_ID` 를 넣거나 `child_id` 를 넘겨라 (결정 71). ' +
+        '지어내지 않는다: 저쪽 `story_sessions.child_id` 에는 `children` FK 가 걸려 있다.',
+    )
+  }
+
   return conn.transaction(async (tx) => {
     const session_id = await createSession(tx, {
       story_id: 장면들[0].story_id,
-      child_id: args.child_id ?? null,
+      child_id,
     })
     const run = await createRun(tx, {
       session_id,

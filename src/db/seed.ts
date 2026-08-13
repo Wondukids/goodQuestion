@@ -9,7 +9,8 @@
  *   cd web
  *   npx tsx db/seed.ts
  *
- *   DATABASE_URL 은 web/.env.local 에서 읽는다 (이식판 전용 DB: goodquestion_ts).
+ *   DATABASE_URL 은 web/.env.local → 레포 루트 .env.local 순으로 읽는다
+ *   (이식판 전용 DB: goodquestion_ts).
  *   표가 없으면 먼저 `npx drizzle-kit push` 로 스키마를 밀어 둔다.
  *
  * ── ⚠️ 여러 번 돌려도 된다 — 파이썬 판과 갈리는 자리다 ──────────
@@ -18,11 +19,17 @@
  *   `story_sessions.story_id` 의 FK 가 (ON DELETE 절이 없어 NO ACTION 이라) 그 DELETE 를 막아,
  *   회차가 한 번이라도 돈 뒤에는 시드가 통째로 실패했다.
  *
- *   그래서 여기서는 지우지 않고 **upsert 한다.** 열쇠는 `code` 다.
- *     stories        ← code
+ *   그래서 여기서는 지우지 않고 **upsert 한다.**
+ *     stories        ← slug  ⚠️ **여기만 갱신하지 않는다** (아래)
  *     characters     ← (story_id, code)
  *     story_scenes   ← (story_id, code)
  *   `stories.id` 가 안 바뀌므로 이미 쌓인 세션·메시지가 살아 있는 채로 콘텐츠만 갱신된다.
+ *
+ * ── 🔴 `stories` 만 `onConflictDoNothing` 이다 (2026-08-13 결정 4 · 4차) ──
+ *   저쪽(팀 레포 Supabase)에 `slug = 'fart-bride'` 인 행이 **이미 있고 `published`** 다.
+ *   그 행의 `difficulty`·`topics` 등 여섯 칸은 **저쪽 값을 따르기로** 정했다 —
+ *   우리 코드가 그 칸을 한 번도 안 읽기 때문이다(전수 grep 0건). 그래서 덮어쓰지 않는다.
+ *   ⚠️ 이야기 행이 없으면 넣고, 있으면 그 행의 id 만 가져온다. 장면·캐릭터는 그 밑에 붙는다.
  *
  *   ⚠️ 다만 **지우는 방향은 없다.** 시드에서 뺀 장면·캐릭터는 DB 에 그대로 남는다.
  *      messages.scene_id · story_sessions.current_scene_id 가 그 행을 붙들고 있을 수 있어
@@ -51,27 +58,32 @@
  *                         required_elements / max_turns
  *
  * ── 002 에 없어서 여기서 처음 채우는 값 ──────────────────────────
- *   `stories.code` · `story_scenes.code` 는 sql/002 에 없다. 파이썬 판에 그 컬럼이
- *   아예 없었기 때문이다. 값은 docs/기준/콘텐츠_방귀뀌는며느리.md 에서 가져왔다
- *   (`s_banggui_daughter_in_law_001` :160,172 · `sc_banggui_01`–`09` :201,236).
+ *   `story_scenes.code` 는 파이썬 판에 그 컬럼이 아예 없어서 여기서 처음 채웠다.
+ *   값은 docs/기준/콘텐츠_방귀뀌는며느리.md 에서 가져왔다 (`sc_banggui_01`–`09` :201,236).
+ *   ⚠️ 2026-08-13 에 `sql/002` 에도 넣었다 — 거기서는 값을 적지 않고 `scene_order` 에서 만든다
+ *      (`sc_banggui_` + 두 자리). 여기 목록과 그 규칙이 어긋나면 002 쪽이 옳다.
  *   `characters.code` 는 002 에 이미 있던 값 그대로다.
+ *   `stories.slug` 는 저쪽 URL 슬러그라 콘텐츠 문서가 아니라 **저쪽 DB** 에서 왔다
+ *   (`fart-bride` — 41행 중 유일한 `published` 행. 파이썬 판 `_슬러그` 와 같은 글자다).
  */
 
-import { config } from 'dotenv'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
+import { loadEnvFile } from '../lib/config'
 import { characters, stories, story_scenes, test_children } from './schema'
 
-config({ path: '.env.local' })
+// ⚠️ cwd 기준으로 `.env.local` 을 직접 읽던 자리다 — `web/` 하나만 봤다.
+//    `loadEnvFile()` 은 web → 레포 루트 순으로 둘 다 본다 (`drizzle.config.ts` 와 같은 이유).
+loadEnvFile()
 
 // ─────────────────────────────────────────────────────────────
 // 이야기
 // ─────────────────────────────────────────────────────────────
 const 이야기 = {
-  // ⚠️ 002 에 없는 값. docs/기준/콘텐츠_방귀뀌는며느리.md:160,172
-  code: 's_banggui_daughter_in_law_001',
+  // 저쪽 `stories` 41행 중 유일한 `published` 행의 슬러그다 (결정 3 · 4차).
+  slug: 'fart-bride',
   title: '방귀 뀌는 며느리',
   summary: '큰 방귀를 부끄러워하던 며느리가 자신의 다름을 장점으로 바꾸는 이야기',
   difficulty: '보통',
@@ -440,23 +452,27 @@ type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
 
 export async function seed(db: DB | Tx) {
   // 이야기 --------------------------------------------------------------
-  const [행_이야기] = await db
+  // ⛔ **덮어쓰지 않는다** (결정 4 · 4차). 저쪽 `fart-bride` 행의 여섯 칸은 저쪽 값이 맞다.
+  //    `onConflictDoNothing` 은 충돌하면 아무 행도 안 돌려주므로, 그때는 있던 행을 읽어 온다.
+  const [넣은_이야기] = await db
     .insert(stories)
     .values(이야기)
-    .onConflictDoUpdate({
-      target: stories.code,
-      set: {
-        title: 이야기.title,
-        summary: 이야기.summary,
-        difficulty: 이야기.difficulty,
-        topics: 이야기.topics,
-        estimated_minutes: 이야기.estimated_minutes,
-        status: 이야기.status,
-      },
-    })
+    .onConflictDoNothing({ target: stories.slug })
     .returning({ id: stories.id })
 
-  const story_id = 행_이야기.id
+  const story_id =
+    넣은_이야기?.id ??
+    (
+      await db
+        .select({ id: stories.id })
+        .from(stories)
+        .where(eq(stories.slug, 이야기.slug))
+        .limit(1)
+    )[0]?.id
+
+  if (story_id === undefined) {
+    throw new Error(`이야기를 넣지도 찾지도 못했다: stories.slug = ${이야기.slug}`)
+  }
 
   // 캐릭터 --------------------------------------------------------------
   // 장면이 character_id 를 필요로 하므로 code → id 표를 만들어 둔다.
@@ -563,7 +579,7 @@ export async function seed(db: DB | Tx) {
 // ─────────────────────────────────────────────────────────────
 async function main() {
   const url = process.env.DATABASE_URL
-  if (!url) throw new Error('DATABASE_URL 이 없다. web/.env.local 을 확인해라.')
+  if (!url) throw new Error('DATABASE_URL 이 없다. web/.env.local 이나 레포 루트 .env.local 을 확인해라.')
 
   // max: 1 — 시드는 한 연결로 순서대로 돈다. 트랜잭션 하나로 묶기 위해서다.
   const sql = postgres(url, { max: 1 })

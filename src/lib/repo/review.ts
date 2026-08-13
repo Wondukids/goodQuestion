@@ -30,11 +30,26 @@
 // `jsonb_agg` 가 한 문장에 겹쳐 있어 질의 빌더로 펴면 오히려 읽기 어려워진다.
 // 창(`row_number() OVER`)이 필요한 `현재_채점들`·`보류_목록`·`다시볼_판정들` 도 같다.
 //
+// ## 손 SQL 에서 **관리 표만** `${표}` 로 끼워 넣는다
+//
+// 관리 도구 11표는 `public` 이 아니라 **`gq_admin`** 스키마에 있다 (결정 5) — 같은 DB 를
+// 저쪽과 나눠 쓰는데 `public` 에 두면 PostgREST 가 그대로 노출하기 때문이다. 손 SQL 에
+// 맨 이름으로 `scores` 라고 적으면 `search_path` 에 안 걸려 런타임에
+// `relation "scores" does not exist` 로 죽는다.
+//
+// 그래서 이 파일이 건드리는 관리 표 다섯(`scores`·`corrections`·`review_criteria`·
+// `runs`·`llm_calls`)은 **표 객체를 템플릿에 끼워 넣어** 드리즐이 `"gq_admin"."scores"` 로
+// 찍게 한다. 문자열로 `gq_admin.scores` 라고 박지 않는 이유는 하나다 — 이렇게 두면
+// **선언이 스키마를 옮길 때 이 파일이 저절로 따라간다.** 박아 두면 다음에 옮길 때 조용히 낡는다.
+//
+// `public` 에 남는 표(`messages`·`story_scenes`·`utterance_analyses`)는 **맨 이름 그대로**다.
+// 한 문장 안에 두 표기가 섞여 보이지만, 옮길 이유가 없는 쪽까지 바꾸면 diff 만 커진다.
+//
 // ⛔ 트랜잭션을 여닫지 않는다 (결정 18). 커밋 경계는 `lib/service/review.ts` 에 있다.
 
 import { and, eq, sql } from 'drizzle-orm'
 
-import { corrections, review_criteria, scores } from '@/db/schema'
+import { corrections, llm_calls, review_criteria, runs, scores } from '@/db/schema'
 
 import type { Conn } from './db'
 
@@ -114,7 +129,7 @@ export async function currentScores(
                        PARTITION BY s.message_id, s.llm_call_id, s.target, s.check_name
                        ORDER BY s.created_at DESC, s.id DESC
                    ) AS latest_no
-              FROM scores s
+              FROM ${scores} s
              WHERE s.run_id = ${run_id}
            ) ranked
      WHERE ranked.latest_no = 1
@@ -198,7 +213,7 @@ export async function reviewTurns(
            character_call.id AS llm_call_id,
            COALESCE(criteria.criteria, '[]'::jsonb) AS criteria,
            COALESCE(criteria.latest_version, 0) AS latest_criteria_version
-      FROM runs r
+      FROM ${runs} r
       JOIN messages m
         ON m.session_id = r.session_id
        AND m.speaker_type = 'child'
@@ -225,7 +240,7 @@ export async function reviewTurns(
            ) next_message ON true
  LEFT JOIN LATERAL (
             SELECT lc.id
-              FROM llm_calls lc
+              FROM ${llm_calls} lc
              WHERE lc.run_id = r.id
                AND lc.message_id = m.id
                AND lc.purpose = 'character'
@@ -247,7 +262,7 @@ export async function reviewTurns(
                    max(current.version) AS latest_version
               FROM (
                     SELECT DISTINCT ON (rc.element) rc.*
-                      FROM review_criteria rc
+                      FROM ${review_criteria} rc
                      WHERE rc.scene_id = m.scene_id
                   ORDER BY rc.element, rc.version DESC, rc.created_at DESC
                    ) current
@@ -295,21 +310,21 @@ export async function reviewRecords(
                        PARTITION BY s.message_id, s.llm_call_id, s.target, s.check_name
                        ORDER BY s.created_at DESC, s.id DESC
                    ) = 1 AS is_latest
-              FROM scores s
+              FROM ${scores} s
              WHERE s.run_id = ${run_id} AND s.graded_by <> 'auto'
            ) ranked
  LEFT JOIN messages m ON m.id = ranked.message_id
  LEFT JOIN story_scenes sc ON sc.id = m.scene_id
  LEFT JOIN LATERAL (
             SELECT c.corrected
-              FROM corrections c
+              FROM ${corrections} c
              WHERE c.score_id = ranked.id
           ORDER BY c.created_at DESC, c.id DESC
              LIMIT 1
            ) correction ON true
  LEFT JOIN LATERAL (
             SELECT max(rc.version) AS latest_version
-              FROM review_criteria rc
+              FROM ${review_criteria} rc
              WHERE rc.scene_id = m.scene_id
            ) criteria ON true
   ORDER BY ranked.created_at DESC, ranked.id DESC
@@ -348,7 +363,7 @@ export async function pendingScores(conn: Conn): Promise<PendingScore[]> {
                        PARTITION BY s.message_id, s.llm_call_id, s.target, s.check_name
                        ORDER BY s.created_at DESC, s.id DESC
                    ) AS latest_no
-              FROM scores s
+              FROM ${scores} s
              WHERE s.graded_by <> 'auto'
            ) ranked
       JOIN messages m ON m.id = ranked.message_id
@@ -375,11 +390,11 @@ export async function staleScores(
            m.scene_id,
            m.turn_order,
            COALESCE(criteria.latest_version, 0) AS latest_criteria_version
-      FROM scores s
+      FROM ${scores} s
       JOIN messages m ON m.id = s.message_id
  LEFT JOIN LATERAL (
             SELECT max(rc.version) AS latest_version
-              FROM review_criteria rc
+              FROM ${review_criteria} rc
              WHERE rc.scene_id = m.scene_id
            ) criteria ON true
      WHERE s.run_id = ${run_id}
@@ -429,7 +444,7 @@ export async function insertCriterion(
 ): Promise<ReviewCriterionRow> {
   const 다음_판 = sql<number>`(
     select coalesce(max(rc.version), 0) + 1
-      from review_criteria rc
+      from ${review_criteria} rc
      where rc.scene_id = ${scene_id}
   )`
   const 행들 = await conn
@@ -486,7 +501,7 @@ export async function analysisGoldenRows(conn: Conn): Promise<AnalysisGoldenRow[
                    PARTITION BY s.message_id, s.target, s.check_name
                    ORDER BY s.created_at DESC, s.id DESC
                ) AS latest_no
-          FROM scores s
+          FROM ${scores} s
          WHERE s.graded_by <> 'auto' AND s.target = 'analysis'
     )
     SELECT latest.id AS score_id,
@@ -530,7 +545,7 @@ export async function analysisGoldenRows(conn: Conn): Promise<AnalysisGoldenRow[
            ) previous_message ON true
  LEFT JOIN LATERAL (
             SELECT c.corrected
-              FROM corrections c
+              FROM ${corrections} c
              WHERE c.score_id = latest.id AND c.target = 'analysis'
           ORDER BY c.created_at DESC, c.id DESC
              LIMIT 1
@@ -575,7 +590,7 @@ export async function utteranceExportRows(conn: Conn): Promise<UtteranceExportRo
                    PARTITION BY s.message_id, s.target, s.check_name
                    ORDER BY s.created_at DESC, s.id DESC
                ) AS latest_no
-          FROM scores s
+          FROM ${scores} s
          WHERE s.graded_by <> 'auto' AND s.target = 'utterance'
     )
     SELECT latest.run_id,
@@ -606,7 +621,7 @@ export async function utteranceExportRows(conn: Conn): Promise<UtteranceExportRo
            ) character_message ON true
  LEFT JOIN LATERAL (
             SELECT c.corrected
-              FROM corrections c
+              FROM ${corrections} c
              WHERE c.score_id = latest.id AND c.target = 'utterance'
           ORDER BY c.created_at DESC, c.id DESC
              LIMIT 1
@@ -628,14 +643,14 @@ export async function latestHumanReviewAt(conn: Conn): Promise<Date | null> {
   const 행들 = await conn.execute(sql`
     SELECT max(changes.changed_at) AS changed_at
       FROM (
-            SELECT s.created_at AS changed_at FROM scores s WHERE s.graded_by <> 'auto'
+            SELECT s.created_at AS changed_at FROM ${scores} s WHERE s.graded_by <> 'auto'
              UNION ALL
             SELECT c.created_at
-              FROM corrections c
-              JOIN scores s ON s.id = c.score_id
+              FROM ${corrections} c
+              JOIN ${scores} s ON s.id = c.score_id
              WHERE s.graded_by <> 'auto'
              UNION ALL
-            SELECT rc.created_at FROM review_criteria rc
+            SELECT rc.created_at FROM ${review_criteria} rc
            ) changes
   `)
   const 첫 = 행들[0] as { changed_at: Date | null } | undefined

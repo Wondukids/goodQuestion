@@ -113,6 +113,18 @@ export interface Settings {
   llm_rpm: number
 
   database_url: string | null
+
+  /**
+   * 회차를 시작할 때 `story_sessions.child_id` 에 넣을 값 (결정 71 · 2026-08-13).
+   *
+   * 🔴 **없으면 회차 시작이 터진다. 일부러다.** 그전에는 안 주면 `gen_random_uuid()` 로
+   * **없는 아이를 회차마다 하나씩 지어냈다.** 우리 DB 엔 FK 가 없어 아무 문제가 없었지만,
+   * 저쪽(팀 레포)에는 `children` FK 가 있어 **얹는 순간 모든 회차 시작이 FK 위반으로 죽는다.**
+   * 지어낸 값을 조용히 흘려보내느니 여기서 멈추는 편이 낫다.
+   *
+   * ⚠️ 우리는 이 값이 **누구인지 모른다.** 불투명하게 받아 흘려보낼 뿐이다 (`CLAUDE.md` DB 절).
+   */
+  child_id: string | null
 }
 
 function 글자(이름: string, 기본값: string): string {
@@ -163,6 +175,7 @@ export function loadSettings(overrides: Partial<Settings> = {}): Settings {
     llm_rpm: 숫자('GQ_LLM_RPM', 12),
 
     database_url: 있으면('DATABASE_URL'),
+    child_id: 있으면('GQ_EXPERIMENT_CHILD_ID'),
 
     ...overrides,
   }

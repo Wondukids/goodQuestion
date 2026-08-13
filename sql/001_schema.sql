@@ -21,7 +21,7 @@
 --   위 7개는 원문에 근거가 없는 판단이다. 원본 작성자와 다르게 정했다면 여기부터 고치면 된다.
 --
 -- ── 원문에 없는 테이블을 하나 보탰다 ─────────────────────────────
---   characters : 캐릭터 LLM 이 "누구로서" 말할지를 담는다. 아래 4.5 절 참고.
+--   story_characters : 캐릭터 LLM 이 "누구로서" 말할지를 담는다. 아래 4.5 절 참고.
 --   DB 문서에는 이 테이블이 없고 story_scenes.character_name (varchar) 한 칸이 전부인데,
 --   MVP 요건(docs/조사/굿퀘스천_엑셀.md:99)이 "캐릭터의 성격과 입장을 유지한 추가 질문"을 요구하고
 --   대화작동규칙이 guidanceStyle 을 "캐릭터별 표현 방식"이라 부르므로(:275) 담을 곳이 필요하다.
@@ -32,6 +32,12 @@
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE stories (
     id                   uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- 저쪽(팀 레포 Supabase) 이야기의 URL 슬러그. 예: fart-bride
+    -- 우리는 이 칸을 **조인 키로** 쓴다 (2026-08-13 결정 3 · 4차). 저쪽에 이미 NOT NULL·UNIQUE
+    -- 로 서 있는 칸이라 우리 식별자(`code`)를 새로 만드는 대신 여기에 맞췄다 —
+    -- 그러면 저쪽 `stories` 41행을 건드리는 조항이 하나도 안 남는다.
+    -- ⚠️ 콘텐츠 원본 문서의 식별자(`s_banggui_daughter_in_law_001`)는 이 칸이 아니다.
+    slug                 varchar     NOT NULL UNIQUE,
     title                varchar     NOT NULL,
     summary              text        NOT NULL,
     difficulty           varchar     NOT NULL,
@@ -44,7 +50,14 @@ CREATE TABLE stories (
 );
 
 -- ─────────────────────────────────────────────────────────────
--- 4.5 characters — 캐릭터  ※ 원문에 없는 테이블 (결정 7)
+-- 4.5 story_characters — 이야기 등장인물  ※ 원문에 없는 테이블 (결정 7)
+--
+-- 🔴 이름이 `characters` 에서 `story_characters` 로 바뀌었다 (2026-08-13 결정 70).
+--    저쪽(팀 레포 Supabase)은 `characters` 라는 낱말을 이미 **아이 아바타 프리셋** 뜻으로
+--    쓴다(`children.character_id` · `src/lib/characters.ts`). 같은 이름을 다른 뜻으로 넣으면
+--    `children.character_id`(varchar, 아바타)와 `story_scenes.character_id`(uuid, 등장인물)가
+--    한 스키마에 나란히 앉는다. ⚠️ 코드 쪽 심볼은 `characters` 그대로다 —
+--    `web/db/schema.ts` 가 `pgTable('story_characters', …)` 를 `characters` 로 내보낸다.
 --
 -- 캐릭터 LLM 이 "누구로서" 말할지를 담는다. 분석 LLM 은 이 테이블을 절대 보지 않는다
 -- (docs/기준/대화작동규칙.md:81 — character_name 을 분석 입력에 넣지 않는다).
@@ -69,7 +82,7 @@ CREATE TABLE stories (
 -- guidance_style 은 docs/기준/대화작동규칙.md:275 의 guidanceStyle 이다.
 -- 원문이 "캐릭터별 표현 방식"이라고만 하고 값 형식을 정해 두지 않아 자유 텍스트로 둔다.
 -- ─────────────────────────────────────────────────────────────
-CREATE TABLE characters (
+CREATE TABLE story_characters (
     id             uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
     story_id       uuid    NOT NULL REFERENCES stories (id) ON DELETE CASCADE,
     -- 콘텐츠 문서가 쓰는 사람이 읽는 식별자. 예: ch_banggui_daughter_in_law
@@ -116,14 +129,16 @@ CREATE TABLE characters (
 CREATE TABLE story_scenes (
     id                uuid     PRIMARY KEY DEFAULT gen_random_uuid(),
     story_id          uuid     NOT NULL REFERENCES stories (id) ON DELETE CASCADE,
+    -- 콘텐츠 문서가 쓰는 사람이 읽는 식별자. sc_banggui_01–09 가 scene_order 1–9 와 대응한다.
+    code              varchar  NOT NULL,
     scene_order       smallint NOT NULL,
     scene_description text,
     conflict          text,
     -- 원문 컬럼. 전개 장면은 원문에서 '-' 라 nullable 로 바꿨다.
     character_name    varchar,
-    -- character_id 가 있으면 이 장면은 대화 장면이다. characters.name 이 정본이고
+    -- character_id 가 있으면 이 장면은 대화 장면이다. story_characters.name 이 정본이고
     -- character_name 은 표시용 사본이다.
-    character_id      uuid     REFERENCES characters (id),
+    character_id      uuid     REFERENCES story_characters (id),
     -- 이 장면에서 캐릭터가 어느 편에 서 있는지.
     -- 대화2의 시아버지는 아이와 대립하는 입장이라 며느리와 같은 재료를 주면 안 된다.
     scene_stance      text,
@@ -149,6 +164,7 @@ CREATE TABLE story_scenes (
     max_turns         smallint,
 
     UNIQUE (story_id, scene_order),
+    UNIQUE (story_id, code),
 
     -- 대화 장면이면 대화에 필요한 재료가 전부 있어야 한다.
     -- 전개 장면(character_id IS NULL)에는 이 조건을 걸지 않는다.
@@ -260,7 +276,11 @@ CREATE TABLE utterance_analyses (
         CHECK (utterance_validity IN ('VALID', 'SHORT', 'UNCLEAR', 'OFF_TOPIC', 'PLAYFUL')),
     -- 어느 버전의 분석 프롬프트가 낸 결과인지. 프롬프트를 고쳐 가며 결과를 비교하려면 필요하다.
     -- (원문 컬럼 표에는 없고 11번 절 참고에만 언급된 컬럼. 2026-08-05 추가하기로 결정)
-    analysis_version   varchar NOT NULL DEFAULT 'mvp_v1'
+    analysis_version   varchar NOT NULL DEFAULT 'mvp_v1',
+    -- ⚠️ 원문 컬럼 표에 없는 칸인데 **저쪽(팀 레포 Supabase)에는 있다** (2026-08-13 라이브 실측).
+    --    저쪽 모양 그대로 맞춰 둔다 — 선언에서 빠지면 드리즐로 읽을 수 없고, 나중에 DDL 을
+    --    다시 뽑을 때 이 칸이 조용히 사라진다.
+    created_at         timestamptz NOT NULL DEFAULT now()
 );
 
 -- ─────────────────────────────────────────────────────────────
@@ -283,7 +303,7 @@ CREATE TABLE post_activity_results (
 -- story_scenes(story_id), messages(session_id), utterance_analyses(message_id),
 -- post_activity_results(session_id) 는 위의 UNIQUE 제약이 이미 인덱스를 만든다.
 -- ─────────────────────────────────────────────────────────────
-CREATE INDEX idx_characters_story_id     ON characters (story_id);
+CREATE INDEX idx_story_characters_story_id ON story_characters (story_id);
 CREATE INDEX idx_story_scenes_character_id ON story_scenes (character_id);
 CREATE INDEX idx_story_sessions_child_id ON story_sessions (child_id);
 CREATE INDEX idx_story_sessions_story_id ON story_sessions (story_id);

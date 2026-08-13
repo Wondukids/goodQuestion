@@ -26,12 +26,19 @@
  *   위 7개는 원문에 근거가 없는 판단이다. 원본 작성자와 다르게 정했다면 여기부터 고치면 된다.
  *
  * ── 파이썬 판에서 달라진 것 (2026-08-12 이식) ────────────────────
- *   1. `stories.code` · `story_scenes.code` 를 처음부터 넣는다.
- *      원본 md 가 준 식별자를 DB 에도 둔다. 파이썬 쪽에는 `characters.code` 만 있었고
- *      나머지 둘은 `stories.title` 이 조회·조인 키였다 — UNIQUE 도 없어서
- *      제목이 같은 이야기가 둘이면 조용히 섞였다. 여기서 끊는다.
+ *   1. `stories.slug` · `story_scenes.code` 를 처음부터 넣는다.
+ *      파이썬 쪽에는 `characters.code` 만 있었고 나머지 둘은 `stories.title` 이 조회·조인
+ *      키였다 — UNIQUE 도 없어서 제목이 같은 이야기가 둘이면 조용히 섞였다. 여기서 끊는다.
+ *      ⚠️ `stories` 쪽 열쇠는 `code` 가 아니라 **`slug`** 다 (2026-08-13 결정 3 · 4차).
+ *      저쪽(팀 레포 Supabase)에는 `code` 칸이 없고 `slug`(NOT NULL·UNIQUE)가 이미 있어,
+ *      우리가 `code` 를 새로 만들면 저쪽 41행을 건드리는 유일한 조항이 된다. 그래서 맞춘다.
  *   2. `EMOTION` → `EMPATHY`. docs/설계/스펙확정_연동기준.md 확정 F.
  *   3. 컬럼 이름 = 코드 이름. 변환하지 않는다 (CLAUDE.md). 그래서 속성도 snake_case 다.
+ *   4. 이야기 등장인물 표의 **DB 이름은 `story_characters`** 다 (결정 70). 저쪽이 `characters`
+ *      라는 낱말을 이미 아이 아바타 프리셋 뜻으로 쓰기 때문이다. 내보내는 심볼은 `characters`
+ *      그대로라 코드 쪽은 한 글자도 안 바뀐다.
+ *   5. 관리 도구 11표는 `public` 이 아니라 **`gq_admin` 스키마**에 선다 (결정 5 · 4차).
+ *      엔진 7표만 `public` 에 남는다. 내보내는 심볼 이름은 그대로다. 아래 관리 도구 절 참조.
  */
 
 import { sql } from 'drizzle-orm'
@@ -43,6 +50,7 @@ import {
   index,
   integer,
   jsonb,
+  pgSchema,
   pgTable,
   primaryKey,
   real,
@@ -61,9 +69,13 @@ export const stories = pgTable(
   'stories',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // 콘텐츠 문서가 쓰는 사람이 읽는 식별자. 예: s_banggui_daughter_in_law_001
-    // (docs/기준/콘텐츠_방귀뀌는며느리.md). 파이썬 판에는 없던 컬럼이다.
-    code: varchar('code').notNull(),
+    // 저쪽(팀 레포 Supabase) 이야기의 URL 슬러그. 예: fart-bride
+    // 우리는 이 칸을 **조인 키로** 쓴다 (2026-08-13 결정 3 · 4차). 저쪽에 이미
+    // `NOT NULL`·`UNIQUE` 로 서 있는 칸이라, 우리 식별자(`code`)를 새로 만드는 대신
+    // 여기에 맞췄다 — 그러면 저쪽 `stories` 41행을 건드리는 조항이 하나도 안 남는다.
+    // ⚠️ 콘텐츠 원본 문서의 식별자(`s_banggui_daughter_in_law_001`)는 이 칸이 아니다.
+    //    그 값은 docs/기준/콘텐츠_방귀뀌는며느리.md 에 기록으로 남는다.
+    slug: varchar('slug').notNull(),
     title: varchar('title').notNull(),
     summary: text('summary').notNull(),
     difficulty: varchar('difficulty').notNull(),
@@ -74,13 +86,20 @@ export const stories = pgTable(
     status: varchar('status').notNull(),
   },
   (t) => [
-    unique('stories_code_key').on(t.code),
+    unique('stories_slug_key').on(t.slug),
     check('stories_status_check', sql`${t.status} IN ('draft', 'published', 'archived')`),
   ],
 )
 
 // ─────────────────────────────────────────────────────────────
-// 4.5 characters — 캐릭터  ※ 원문에 없는 테이블 (결정 7)
+// 4.5 story_characters — 이야기 등장인물  ※ 원문에 없는 테이블 (결정 7)
+//
+// 🔴 **DB 이름은 `story_characters`, 내보내는 심볼은 `characters` 다** (결정 70).
+//    저쪽(팀 레포)은 `characters` 라는 낱말을 이미 **아이 아바타 프리셋** 뜻으로 쓴다
+//    (`children.character_id` · `src/lib/characters.ts`). 같은 이름을 다른 뜻으로 넣으면
+//    `children.character_id`(varchar, 아바타)와 `story_scenes.character_id`(uuid, 등장인물)가
+//    한 스키마에 나란히 앉는다. 이름으로 그 혼동을 막는다.
+//    심볼을 그대로 둔 것은 우리 코드 쪽을 한 글자도 안 바꾸기 위해서다.
 //
 // 캐릭터 LLM 이 "누구로서" 말할지를 담는다. 분석 LLM 은 이 테이블을 절대 보지 않는다
 // (docs/기준/대화작동규칙.md:81 — character_name 을 분석 입력에 넣지 않는다).
@@ -98,7 +117,7 @@ export const stories = pgTable(
 // 원문이 "캐릭터별 표현 방식"이라고만 하고 값 형식을 정해 두지 않아 자유 텍스트로 둔다.
 // ─────────────────────────────────────────────────────────────
 export const characters = pgTable(
-  'characters',
+  'story_characters',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     story_id: uuid('story_id')
@@ -117,8 +136,8 @@ export const characters = pgTable(
     forbidden: text('forbidden').array().notNull().default([]),
   },
   (t) => [
-    unique('characters_story_id_code_key').on(t.story_id, t.code),
-    index('idx_characters_story_id').on(t.story_id),
+    unique('story_characters_story_id_code_key').on(t.story_id, t.code),
+    index('idx_story_characters_story_id').on(t.story_id),
   ],
 )
 
@@ -146,7 +165,9 @@ export const characters = pgTable(
 // 시드는 처음부터 그렇게 되어 있었지만 규칙이 아니라 관행이었다. 아래 두 CHECK 가 그것을 조인다.
 // ⚠️ 「한쪽만 있어야 한다」까지는 안 막는다 — 둘 다 채운 행도 통과한다.
 //    저쪽 레포가 scene_description 을 「모든 장면의 소개문」으로 읽으면 대화 장면에도 값을
-//    채워야 하고, 그 답이 아직 안 왔다 (docs/설계/팀레포_요청서.md 2-1 · 합의안 4절 질문 6).
+//    채워야 한다. 물어볼 자리가 없어졌다 — 저쪽 story_scenes 는 0행이고 저쪽 코드가 이 표를
+//    한 줄도 읽지 않는다(2026-08-13 실측). 그래서 **읽는 쪽이 우리뿐**이라 우리 관행이 곧 규칙이다
+//    (docs/설계/팀레포_통보서.md · 합의안 4절 질문 6).
 //    상호 배타는 우리가 지키는 관행이고, CHECK 가 재는 것은 "제 본문이 비었나"다.
 // ─────────────────────────────────────────────────────────────
 export const story_scenes = pgTable(
@@ -164,7 +185,7 @@ export const story_scenes = pgTable(
     conflict: text('conflict'),
     // 원문 컬럼. 전개 장면은 원문에서 '-' 라 nullable 로 바꿨다.
     character_name: varchar('character_name'),
-    // character_id 가 있으면 이 장면은 대화 장면이다. characters.name 이 정본이고
+    // character_id 가 있으면 이 장면은 대화 장면이다. story_characters.name 이 정본이고
     // character_name 은 표시용 사본이다.
     character_id: uuid('character_id').references(() => characters.id),
     // 이 장면에서 캐릭터가 어느 편에 서 있는지.
@@ -344,9 +365,12 @@ export const utterance_analyses = pgTable(
   'utterance_analyses',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // ⚠️ 이름을 **직접 준다.** 드리즐이 이름 없는 `.unique()` 에 붙이는 `…_unique` 는
+    //    포스트그레스 기본 이름(`…_key`)과 다르다. 저쪽 DB 규약이 `…_key` 라, 이름을 안 주면
+    //    저쪽에 얹을 때 에러가 아니라 **같은 칸에 유니크 인덱스가 조용히 둘** 생긴다.
     message_id: uuid('message_id')
       .notNull()
-      .unique()
+      .unique('utterance_analyses_message_id_key')
       .references(() => messages.id, { onDelete: 'cascade' }),
     // 원문 목록: QUESTION, OPINION, REASONING, SOLUTION, DECISION, PERSPECTIVE,
     //            EMOTION, REQUEST, CHALLENGE, PLAYFUL, OFF_TOPIC, SHORT_RESPONSE, UNCLEAR
@@ -365,6 +389,11 @@ export const utterance_analyses = pgTable(
     // 어느 버전의 분석 프롬프트가 낸 결과인지. 프롬프트를 고쳐 가며 결과를 비교하려면 필요하다.
     // (원문 컬럼 표에는 없고 11번 절 참고에만 언급된 컬럼. 2026-08-05 추가하기로 결정)
     analysis_version: varchar('analysis_version').notNull().default('mvp_v1'),
+    // ⚠️ 원문 컬럼 표에도 없고 우리 001 에도 없던 칸인데 **저쪽에는 있다**
+    //    (`timestamptz NOT NULL DEFAULT now()`. 2026-08-13 라이브 실측).
+    //    기본값이 있어 INSERT 는 안 죽지만, 선언에 없으면 드리즐로 **읽을 수가 없고**
+    //    나중에 DDL 을 다시 뽑을 때 조용히 사라진다. 저쪽 모양 그대로 맞춘다.
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     check(
@@ -381,9 +410,10 @@ export const utterance_analyses = pgTable(
 // ─────────────────────────────────────────────────────────────
 export const post_activity_results = pgTable('post_activity_results', {
   id: uuid('id').primaryKey().defaultRandom(),
+  // 이름을 직접 준다 — 위 `utterance_analyses.message_id` 와 같은 이유다 (`…_unique` 금지).
   session_id: uuid('session_id')
     .notNull()
-    .unique()
+    .unique('post_activity_results_session_id_key')
     .references(() => story_sessions.id, { onDelete: 'cascade' }),
   submitted_order: text('submitted_order').array(),
   is_order_correct: boolean('is_order_correct'),
@@ -413,14 +443,31 @@ export const post_activity_results = pgTable('post_activity_results', {
 //    🔴 **8개를 옮길 때도 같은 잣대를 썼다** — 003 의 FK 는 전부 `onDelete: 'cascade'` 다.
 //       `review_criteria.scene_id` 도 그렇다: 맨 REFERENCES 로 두면 001 의
 //       stories → story_scenes CASCADE 가 같은 방식으로 막힌다.
+//
+// ── 🔴 이 11표는 `public` 이 아니라 `gq_admin` 에 선다 (결정 5 · 4차) ──
+//
+// 저쪽(팀 레포 Supabase) DB 에 같이 세우기 때문이다. `public` 에 두면 둘이 걸린다 —
+//   1. PostgREST 가 `public` 을 그대로 REST 로 노출한다. 검수·실험 기록이 API 면이 된다.
+//   2. 이름이 부딪힐 여지가 있다 (`runs`·`scores` 같은 흔한 낱말이다).
+//
+// ⚠️ 대신 **RLS 자동 켜짐이 없어진다.** 저쪽 `ensure_rls` 이벤트 트리거는 `public` 만 보므로
+//    `gq_admin` 의 새 표에는 걸리지 않는다. 그래서 막는 자리가 옮겨간다 —
+//    `anon`·`authenticated` 의 권한을 **명시로 걷는다**. 그 REVOKE 는 `sql/004_저쪽DB_맞춤.sql`
+//    ①번 절과 `sql/003_admin.sql` 머리에 있다. 여기(드리즐 선언)에는 권한을 적을 자리가 없다.
+//
+// ⚠️ 관리 표에서 `public` 표로 가는 FK(`runs.session_id → story_sessions.id` 등)는 그대로 산다.
+//    드리즐이 스키마를 넘는 참조를 알아서 찍는다.
 // ═════════════════════════════════════════════════════════════
-export const runs = pgTable(
+export const gq_admin = pgSchema('gq_admin')
+
+export const runs = gq_admin.table(
   'runs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // 이름을 직접 준다 — 위 `utterance_analyses.message_id` 와 같은 이유다 (`…_unique` 금지).
     session_id: uuid('session_id')
       .notNull()
-      .unique()
+      .unique('runs_session_id_key')
       .references(() => story_sessions.id, { onDelete: 'cascade' }),
     scope: varchar('scope').notNull(),
     scene_order: smallint('scene_order'),
@@ -443,10 +490,15 @@ export const runs = pgTable(
       sql`(${t.scope} = 'scene' AND ${t.scene_order} IS NOT NULL)
         OR (${t.scope} = 'story' AND ${t.scene_order} IS NULL)`,
     ),
+    // ⚠️ 둘 다 `sql/003_admin.sql:233-234` 에 있는데 이식하며 빠져 있었다 (2026-08-13 되살렸다).
+    //    `listRunsWithStory()` 가 `started_at DESC` 로만 정렬하고, 회차 화면 전부가
+    //    `session_id` 로 조인한다.
+    index('idx_runs_session').on(t.session_id),
+    index('idx_runs_started_at').on(t.started_at.desc()),
   ],
 )
 
-export const llm_calls = pgTable(
+export const llm_calls = gq_admin.table(
   'llm_calls',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -499,7 +551,7 @@ export const llm_calls = pgTable(
 //  2. **FK 를 `cascade` 로 걸었다.** 원본은 맨 `REFERENCES` 라
 //     `001` 의 CASCADE 를 무력화하는 쪽이었다 — 회차가 한 번이라도 돈 세션은
 //     `DELETE FROM story_sessions` 가 막혔다. 같은 함정을 되풀이하지 않는다.
-export const turn_conditions = pgTable(
+export const turn_conditions = gq_admin.table(
   'turn_conditions',
   {
     // 한 턴 = 한 아이 메시지. PK 라 **턴당 한 행**이고, 판정을 다시 돌려도 안 늘어난다.
@@ -541,7 +593,7 @@ export const turn_conditions = pgTable(
 // `criteria_version` 은 `review_criteria.version` 을 가리키지만 FK 가 아니다 (원본도 그렇다) —
 // 행 id 가 아니라 판 번호이고, 그 판의 기준 행이 요소마다 여럿이기 때문이다.
 // ─────────────────────────────────────────────────────────────
-export const scores = pgTable(
+export const scores = gq_admin.table(
   'scores',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -578,7 +630,7 @@ export const scores = pgTable(
 // `corrected` 의 모양은 `target` 에 따라 다르므로 (분석 결과 조각 / 고친 대사)
 // 스키마로 좁히지 않고 jsonb 그대로 둔다.
 // ─────────────────────────────────────────────────────────────
-export const corrections = pgTable(
+export const corrections = gq_admin.table(
   'corrections',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -602,7 +654,7 @@ export const corrections = pgTable(
 // 지난 회차의 점수가 어느 잣대로 매겨졌는지(`scores.criteria_version`)가 남아야 한다.
 // `origin` 은 출처 표기다 (헌법 원칙 IV). 2026-08-11 현재 값은 둘뿐이다.
 // ─────────────────────────────────────────────────────────────
-export const review_criteria = pgTable(
+export const review_criteria = gq_admin.table(
   'review_criteria',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -637,7 +689,7 @@ export const review_criteria = pgTable(
 // `row_id` 에 FK 를 걸지 않는다 — 여러 표(`stories`·`story_scenes`·`characters`…)의 행을
 // 한 표에 모아 가리키기 때문이다. 어느 표인지는 `table_name` 이 말한다.
 // ─────────────────────────────────────────────────────────────
-export const seed_revisions = pgTable(
+export const seed_revisions = gq_admin.table(
   'seed_revisions',
   {
     // bigserial — 번호는 DB 가 매긴다. 이 번호 자체가 「몇 번째 판인가」다.
@@ -662,7 +714,7 @@ export const seed_revisions = pgTable(
 //
 // PK 가 (run_id, name) 이라 회차당 프롬프트는 종류별 하나뿐이다.
 // ─────────────────────────────────────────────────────────────
-export const experiment_prompts = pgTable(
+export const experiment_prompts = gq_admin.table(
   'experiment_prompts',
   {
     run_id: uuid('run_id')
@@ -683,7 +735,7 @@ export const experiment_prompts = pgTable(
 // 이름표(`file_name`·`prompt_label`)는 사람이 잊거나 덮어쓸 수 있으므로
 // 정답지와 프롬프트의 **원문 지문**(`*_digest`)을 함께 박제한다.
 // ─────────────────────────────────────────────────────────────
-export const goldenset_runs = pgTable(
+export const goldenset_runs = gq_admin.table(
   'goldenset_runs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -713,7 +765,7 @@ export const goldenset_runs = pgTable(
 // 판정 실패와 「틀렸다」를 섞지 않으려는 것이고, CHECK 가 그 짝을 강제한다.
 // ⚠️ `got_main_point` 는 그 짝에 안 들어간다 — 판정에 안 쓰는 참고 텍스트라서다.
 // ─────────────────────────────────────────────────────────────
-export const goldenset_results = pgTable(
+export const goldenset_results = gq_admin.table(
   'goldenset_results',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -783,10 +835,9 @@ export const goldenset_results = pgTable(
 // ⚠️ 원본 `sql/003_admin.sql:227` 은 표를 만든 자리에서 네 행을 INSERT 한다.
 //    여기서는 그 행을 안 옮겼다 — Drizzle 스키마는 **표의 정의**만 담고
 //    값은 `db/seed.ts` 가 넣는 것이 이 레포의 갈래다 (sql/002 도 같은 선으로 갈렸다).
-//    ⛔ 그래서 **시드에 아직 시험용 아이 네 명이 없다.** 회차 시작 화면이 그들을 고르게 하려면
-//       `db/seed.ts` 에 넣어야 한다. 값은 003 의 INSERT 에 그대로 있다.
+//    ✅ 그 네 명은 `db/seed.ts` 에 들어와 있다 (2026-08-13). 003 의 INSERT 값 그대로다.
 // ─────────────────────────────────────────────────────────────
-export const test_children = pgTable('test_children', {
+export const test_children = gq_admin.table('test_children', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name').notNull(),
   // docs/기준/db구조.md 2장 — 만 나이 대신 출생연도만 둔다. 연도 기준 연령이다.

@@ -156,7 +156,7 @@ async function 검수거리_만들기(tx: Conn): Promise<검수거리> {
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: `s_review_${꼬리}`,
+      slug: `s-review-${꼬리}`,
       title: `검수 검사 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',
@@ -199,7 +199,7 @@ async function 검수거리_만들기(tx: Conn): Promise<검수거리> {
     })
     .returning({ id: story_scenes.id })
 
-  const session_id = await createSession(tx, { story_id: 이야기.id })
+  const session_id = await createSession(tx, { story_id: 이야기.id, child_id: randomUUID() })
   await enterScene(tx, session_id, 장면.id)
   const run = await createRun(tx, {
     session_id,

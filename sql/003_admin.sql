@@ -2,8 +2,38 @@
 -- 이 파일은 본 제품으로 이식되지 않는다.
 -- 헌법 원칙 II: 스키마는 sql/*.sql 에만 두고 역할로 가른다
 -- (001=엔진, 003=관리 도구).
+--
+-- ⚠️ 파이썬 `src/goodquestion_admin/tables.py` 는 이 파일의 사본이었는데 **이제 낡았다.**
+--    아래 11표가 `gq_admin` 으로 옮겨간 것을 따라가지 않는다 — 파이썬은 아카이빙 대상이라
+--    (이슈 #26) 같이 고치지 않는다. 지금 이 파일과 짝을 맞추는 사본은 `web/db/schema.ts` 다.
 
-CREATE TABLE runs (
+-- ─────────────────────────────────────────────────────────────
+-- 표 11개가 앉을 스키마 (결정 5 · 4차)
+--
+-- `public` 에 두지 않는 이유 둘 — PostgREST 노출과 이름 충돌이 한 번에 없어진다.
+-- ⚠️ 대신 저쪽(팀 레포 Supabase) `ensure_rls` 이벤트 트리거는 `public` 만 보므로
+--    **RLS 자동 켜짐도 없어진다.** 그래서 권한을 명시로 걷는다.
+--
+-- `sql/004_저쪽DB_맞춤.sql` ①번 절과 같은 문장이다. 004 는 저쪽 DB 에 한 번 돌리는 맞춤 DDL 이고
+-- 이 파일은 우리 DB 의 정의라, 어느 쪽으로 세워도 같은 모양이 되게 양쪽에 둔다.
+-- ─────────────────────────────────────────────────────────────
+CREATE SCHEMA IF NOT EXISTS gq_admin;
+
+-- `anon`·`authenticated` 는 수파베이스가 만드는 롤이다. 맨 Postgres(우리 DB)에는 없으므로
+-- 있을 때만 걷는다 — 없다고 여기서 멈추면 검증을 못 돌린다.
+DO $$
+DECLARE 롤 text;
+BEGIN
+    FOREACH 롤 IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 롤) THEN
+            EXECUTE format('revoke all on schema gq_admin from %I', 롤);
+            EXECUTE format(
+                'alter default privileges in schema gq_admin revoke all on tables from %I', 롤);
+        END IF;
+    END LOOP;
+END $$;
+
+CREATE TABLE gq_admin.runs (
     id                       uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id               uuid        NOT NULL UNIQUE REFERENCES story_sessions (id),
     scope                    varchar     NOT NULL,
@@ -26,9 +56,9 @@ CREATE TABLE runs (
     )
 );
 
-CREATE TABLE llm_calls (
+CREATE TABLE gq_admin.llm_calls (
     id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    run_id          uuid        NOT NULL REFERENCES runs (id),
+    run_id          uuid        NOT NULL REFERENCES gq_admin.runs (id),
     message_id      uuid        REFERENCES messages (id),
     purpose         varchar     NOT NULL,
     attempt_no      smallint    NOT NULL,
@@ -49,11 +79,11 @@ CREATE TABLE llm_calls (
     CONSTRAINT llm_calls_duration_ms_check CHECK (duration_ms >= 0)
 );
 
-CREATE TABLE scores (
+CREATE TABLE gq_admin.scores (
     id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    run_id           uuid        NOT NULL REFERENCES runs (id),
+    run_id           uuid        NOT NULL REFERENCES gq_admin.runs (id),
     message_id       uuid        REFERENCES messages (id),
-    llm_call_id      uuid        REFERENCES llm_calls (id),
+    llm_call_id      uuid        REFERENCES gq_admin.llm_calls (id),
     target           varchar     NOT NULL,
     check_name       varchar     NOT NULL,
     value            real,
@@ -66,16 +96,16 @@ CREATE TABLE scores (
     CONSTRAINT scores_value_check CHECK (value IS NULL OR value IN (0.0, 1.0))
 );
 
-CREATE TABLE corrections (
+CREATE TABLE gq_admin.corrections (
     id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    score_id   uuid        NOT NULL REFERENCES scores (id),
+    score_id   uuid        NOT NULL REFERENCES gq_admin.scores (id),
     target     varchar     NOT NULL,
     corrected  jsonb       NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT corrections_target_check CHECK (target IN ('analysis', 'utterance'))
 );
 
-CREATE TABLE review_criteria (
+CREATE TABLE gq_admin.review_criteria (
     id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     scene_id   uuid        NOT NULL REFERENCES story_scenes (id),
     element    varchar     NOT NULL,
@@ -89,7 +119,7 @@ CREATE TABLE review_criteria (
     CONSTRAINT review_criteria_scene_element_version_key UNIQUE (scene_id, element, version)
 );
 
-CREATE TABLE seed_revisions (
+CREATE TABLE gq_admin.seed_revisions (
     id          bigserial   PRIMARY KEY,
     table_name  varchar     NOT NULL,
     row_id      uuid,
@@ -112,9 +142,9 @@ CREATE TABLE seed_revisions (
 -- 아래 두 묶음은 `runner.턴결과` 의 `저장된_상태`(= `[상태]` 줄) 와
 -- `판정`(= `[판정]` 줄) 을 컬럼 이름·순서까지 그대로 옮긴 것이다.
 -- 엔진은 이 표를 모른다. 부르는 쪽(`goodquestion_admin`)이 받아 적는다.
-CREATE TABLE turn_conditions (
+CREATE TABLE gq_admin.turn_conditions (
     message_id     uuid    PRIMARY KEY REFERENCES messages (id),
-    run_id         uuid    NOT NULL REFERENCES runs (id),
+    run_id         uuid    NOT NULL REFERENCES gq_admin.runs (id),
     seed_revision  bigint  NOT NULL,
     prompt_version varchar NOT NULL,
 
@@ -134,8 +164,8 @@ CREATE TABLE turn_conditions (
     scene_end_reason varchar
 );
 
-CREATE TABLE experiment_prompts (
-    run_id uuid    NOT NULL REFERENCES runs (id),
+CREATE TABLE gq_admin.experiment_prompts (
+    run_id uuid    NOT NULL REFERENCES gq_admin.runs (id),
     name   varchar NOT NULL,
     body   text    NOT NULL,
     CONSTRAINT experiment_prompts_name_check CHECK (name IN ('analysis', 'character')),
@@ -144,7 +174,7 @@ CREATE TABLE experiment_prompts (
 
 -- 골든셋 축1 — 분석 LLM 라벨 측정의 원자료.
 -- 이름표는 사람이 잊을 수 있으므로 정답지와 프롬프트의 원문 지문을 함께 박제한다.
-CREATE TABLE goldenset_runs (
+CREATE TABLE gq_admin.goldenset_runs (
     id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     file_name       varchar     NOT NULL,
     file_digest     varchar     NOT NULL,
@@ -159,9 +189,9 @@ CREATE TABLE goldenset_runs (
     ended_at        timestamptz
 );
 
-CREATE TABLE goldenset_results (
+CREATE TABLE gq_admin.goldenset_results (
     id                    uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    goldenset_run_id      uuid        NOT NULL REFERENCES goldenset_runs (id),
+    goldenset_run_id      uuid        NOT NULL REFERENCES gq_admin.goldenset_runs (id),
     item_id               varchar     NOT NULL,
     item_review           varchar     NOT NULL,
     unjudged_reason       text,
@@ -207,7 +237,7 @@ CREATE TABLE goldenset_results (
 --   더한 것: note   (검수하는 사람이 「왜 이 값인가」를 읽는다)
 -- ─────────────────────────────────────────────────────────────
 
-CREATE TABLE test_children (
+CREATE TABLE gq_admin.test_children (
     id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     -- story_sessions.child_id 에 이 값을 넣는다. FK 는 걸지 않는다 —
     -- 001(엔진)이 003(관리 도구)을 참조하면 이식 경계가 뒤집힌다(헌법 원칙 II).
@@ -224,19 +254,45 @@ CREATE TABLE test_children (
 --    ⭐ 이름을 고른 기준이 하나 더 있다 — **받침 있는 이름과 없는 이름을 섞었다.**
 --    Q12(아이 이름 `ㅇㅇ` 치환)의 딸린 질문이 「받침 규칙(`ㅇㅇ아`/`ㅇㅇ이`)」인데
 --    아직 미답이다. 답이 오면 두 경우를 다 시험할 수 있게 미리 갈라 두었다.
-INSERT INTO test_children (name, birth_year, note) VALUES
+INSERT INTO gq_admin.test_children (name, birth_year, note) VALUES
     ('민준', 2020, '✏️ 시험용. 만 6세 — 대상 나이의 아래 끝. 받침 있는 이름(준)'),
     ('지우', 2019, '✏️ 시험용. 만 7세. 받침 없는 이름(우)'),
     ('서아', 2018, '✏️ 시험용. 만 8세. 받침 없는 이름(아)'),
     ('하준', 2017, '✏️ 시험용. 만 9세 — 대상 나이의 위 끝. 받침 있는 이름(준)');
 
-CREATE INDEX idx_runs_session          ON runs (session_id);
-CREATE INDEX idx_runs_started_at       ON runs (started_at DESC);
-CREATE INDEX idx_llm_calls_run         ON llm_calls (run_id);
-CREATE INDEX idx_llm_calls_message     ON llm_calls (message_id);
-CREATE INDEX idx_scores_run            ON scores (run_id);
-CREATE INDEX idx_scores_message        ON scores (message_id);
-CREATE INDEX idx_review_criteria_scene ON review_criteria (scene_id, element);
-CREATE INDEX idx_turn_conditions_run   ON turn_conditions (run_id);
-CREATE INDEX idx_goldenset_results_run ON goldenset_results (goldenset_run_id);
-CREATE INDEX idx_goldenset_runs_started_at ON goldenset_runs (started_at DESC);
+-- ⚠️ 인덱스 **이름 자체에는** 스키마를 붙이지 않는다. 이름은 표가 속한 스키마 안에서만 유일하면 된다.
+CREATE INDEX idx_runs_session          ON gq_admin.runs (session_id);
+CREATE INDEX idx_runs_started_at       ON gq_admin.runs (started_at DESC);
+CREATE INDEX idx_llm_calls_run         ON gq_admin.llm_calls (run_id);
+CREATE INDEX idx_llm_calls_message     ON gq_admin.llm_calls (message_id);
+CREATE INDEX idx_scores_run            ON gq_admin.scores (run_id);
+CREATE INDEX idx_scores_message        ON gq_admin.scores (message_id);
+CREATE INDEX idx_review_criteria_scene ON gq_admin.review_criteria (scene_id, element);
+CREATE INDEX idx_turn_conditions_run   ON gq_admin.turn_conditions (run_id);
+CREATE INDEX idx_goldenset_results_run ON gq_admin.goldenset_results (goldenset_run_id);
+CREATE INDEX idx_goldenset_runs_started_at ON gq_admin.goldenset_runs (started_at DESC);
+
+-- ─────────────────────────────────────────────────────────────
+-- 권한 한 번 더 — 이미 선 표에 대고 직접 걷는다
+--
+-- 위 `alter default privileges` 는 **앞으로 만들 표**에만 듣는다. 표가 다른 경로로 먼저 서고
+-- 나중에 이 파일이 도는 순서(예: 저쪽 DB 에 004 → drizzle 마이그레이션 → 003)에서는
+-- 그 문장이 이미 늦었다. 그래서 선 표에 대고 한 번 더 건다.
+--
+-- ⛔ **RLS 는 켜지 않는다.** 「`ensure_rls` 가 `public` 만 보니 여기서는 명시로 켜자」가
+--    4차 인계의 메모였는데, 켜고 정책을 하나도 안 두면 권한 없는 롤이 **에러가 아니라 0행**을
+--    받는다. 이 레포에서 가장 비싼 실패는 조용한 실패다 — 저쪽 `story_scenes` 의 INSERT 정책
+--    부재가 「이야기에 장면이 없다」는 엉뚱한 말로 죽는 것과 같은 모양이다.
+--    REVOKE 는 `permission denied for table runs` 로 **시끄럽게** 죽는다. 그쪽을 고른다.
+--    (우리는 `postgres` = `rolbypassrls` 로 붙으므로 어느 쪽이든 우리에겐 차이가 없다.)
+-- ─────────────────────────────────────────────────────────────
+DO $$
+DECLARE 롤 text;
+BEGIN
+    FOREACH 롤 IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 롤) THEN
+            EXECUTE format('revoke all on all tables in schema gq_admin from %I', 롤);
+            EXECUTE format('revoke all on all sequences in schema gq_admin from %I', 롤);
+        END IF;
+    END LOOP;
+END $$;

@@ -229,7 +229,7 @@ async function 콘텐츠_넣기(tx: Conn): Promise<씨앗> {
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: story_code,
+      slug: story_code,
       title: `화면 검사용 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',

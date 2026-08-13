@@ -422,7 +422,7 @@ async function 회차_하나(tx: Conn, 고칠_것: { analysis_model?: string | n
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: `s_cost_${꼬리}`,
+      slug: `s-cost-${꼬리}`,
       title: `비용 검사 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',

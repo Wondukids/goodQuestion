@@ -42,7 +42,7 @@ export function getDb(): Conn {
 
   const database_url = loadSettings().database_url
   if (!database_url) {
-    throw new Error('DATABASE_URL 이 없다 (web/.env.local 을 확인할 것)')
+    throw new Error('DATABASE_URL 이 없다 (web/.env.local 이나 레포 루트 .env.local 을 확인할 것)')
   }
 
   const client = postgres(database_url)

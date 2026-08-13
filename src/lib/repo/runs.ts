@@ -124,7 +124,8 @@ export async function listRunsWithStory(conn: Conn): Promise<RunWithStory[]> {
       run: runs,
       status: story_sessions.status,
       current_scene_id: story_sessions.current_scene_id,
-      story_code: stories.code,
+      // 바깥 이름은 `story_code` 그대로, 읽는 칸은 `stories.slug` 다 (결정 3 · 4차).
+      story_code: stories.slug,
       story_title: stories.title,
     })
     .from(runs)

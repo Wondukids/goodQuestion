@@ -6,9 +6,9 @@
 --
 -- ── 원문에 없어서 우리가 채운 값 (전부 여기 표시했다) ──────────────
 --   ✏️ preferred_turns          — 결정 2. 최대 턴의 절반 (2/3/3/2)
---   📄 characters 의 성격        — docs/원본/방귀뀌는며느리 캐릭터 성격.md 가 세 명을 다 준다.
+--   📄 story_characters 의 성격  — docs/원본/방귀뀌는며느리 캐릭터 성격.md 가 세 명을 다 준다.
 --                                 2026-08-11 에 찾았다. 결정 12 의 「어느 문서에도 없다」는 틀렸다.
---   ✏️ characters 의 말투        — 정본이 말투는 안 준다. 고정 대사에서 역산한 초안이다. 검수 필요
+--   ✏️ story_characters 의 말투  — 정본이 말투는 안 준다. 고정 대사에서 역산한 초안이다. 검수 필요
 --   ✏️ scene_stance             — 결정 12. 같은 초안. 정본 성격과 어긋나지 않는 선에서 썼다
 --   ✏️ remaining_worries        — 결정 12. 같은 초안
 --   ✏️ conflict                 — 3장 표에 이 열이 없어 원문 전개 지문에서 요약했다
@@ -27,8 +27,10 @@ DELETE FROM stories WHERE title = '방귀 뀌는 며느리';
 -- 이야기
 -- ─────────────────────────────────────────────────────────────
 WITH 이야기 AS (
-    INSERT INTO stories (title, summary, difficulty, topics, estimated_minutes, status)
+    -- slug 는 저쪽(팀 레포 Supabase) 이야기의 URL 슬러그이고 우리 조인 키다 (결정 3 · 4차).
+    INSERT INTO stories (slug, title, summary, difficulty, topics, estimated_minutes, status)
     VALUES (
+        'fart-bride',
         '방귀 뀌는 며느리',
         '큰 방귀를 부끄러워하던 며느리가 자신의 다름을 장점으로 바꾸는 이야기',
         '보통',
@@ -47,7 +49,7 @@ WITH 이야기 AS (
 --    기획자 검수 전에는 이 값으로 대화 품질을 판단하지 말 것.
 -- ─────────────────────────────────────────────────────────────
 캐릭터 AS (
-    INSERT INTO characters (story_id, code, name, persona, speech_style, guidance_style, forbidden)
+    INSERT INTO story_characters (story_id, code, name, persona, speech_style, guidance_style, forbidden)
     SELECT 이야기.id, v.code, v.name, v.persona, v.speech_style, v.guidance_style, v.forbidden
     FROM 이야기, (VALUES
         (
@@ -139,8 +141,11 @@ WITH 이야기 AS (
 -- ─────────────────────────────────────────────────────────────
 -- 장면 9개
 -- ─────────────────────────────────────────────────────────────
+-- code 는 값을 따로 적지 않고 scene_order 에서 만든다.
+-- 원본 md 가 준 식별자가 `sc_banggui_01`–`09` 이고 **scene_order 1–9 와 그대로 대응**하기 때문이다
+-- (CLAUDE.md · docs/기준/콘텐츠_방귀뀌는며느리.md). 규칙을 한 자리에만 두면 둘이 어긋날 수 없다.
 INSERT INTO story_scenes (
-    story_id, scene_order, scene_description, conflict,
+    story_id, code, scene_order, scene_description, conflict,
     character_name, character_id, scene_stance, remaining_worries,
     character_opening, character_closing, scene_goal,
     required_elements, element_criteria, preferred_turns, max_turns
@@ -148,7 +153,8 @@ INSERT INTO story_scenes (
 
 -- ── 전개 장면 5개 — 아이가 말하지 않는다 ─────────────────────
 SELECT
-    이야기.id, v.scene_order, v.scene_description, NULL,
+    이야기.id, 'sc_banggui_' || lpad(v.scene_order::text, 2, '0'),
+    v.scene_order, v.scene_description, NULL,
     NULL, NULL, NULL, '{}'::jsonb,
     NULL, NULL, NULL, NULL, '{}'::jsonb, NULL, NULL
 FROM 이야기, (VALUES
@@ -168,7 +174,8 @@ UNION ALL
 
 -- ── 대화 장면 4개 — 아이가 말한다 ────────────────────────────
 SELECT
-    이야기.id, v.scene_order, NULL, v.conflict,
+    이야기.id, 'sc_banggui_' || lpad(v.scene_order::text, 2, '0'),
+    v.scene_order, NULL, v.conflict,
     v.character_name, 캐릭터.id, v.scene_stance, v.remaining_worries::jsonb,
     v.character_opening, v.character_closing, v.scene_goal,
     v.required_elements, v.element_criteria::jsonb, v.preferred_turns, v.max_turns

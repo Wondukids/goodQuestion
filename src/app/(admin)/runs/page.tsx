@@ -50,11 +50,11 @@ export default async function RunsPage({
               <select
                 name="story_code"
                 className="border px-2 py-1"
-                defaultValue={이야기들[0]?.code}
+                defaultValue={이야기들[0]?.slug}
               >
                 {이야기들.map((이야기) => (
-                  <option key={이야기.id} value={이야기.code}>
-                    {이야기.title} ({이야기.code})
+                  <option key={이야기.id} value={이야기.slug}>
+                    {이야기.title} ({이야기.slug})
                   </option>
                 ))}
               </select>

@@ -143,7 +143,7 @@ async function 콘텐츠_넣기(tx: Conn): Promise<씨앗> {
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: story_code,
+      slug: story_code,
       title: `검사용 이야기 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',
@@ -316,17 +316,18 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
       const 목록 = await listStories(tx)
-      expect(목록.map((행) => 행.code)).toContain(씨.story_code)
+      expect(목록.map((행) => 행.slug)).toContain(씨.story_code)
     })
   })
 
-  it('⭐ 시드가 채운 진짜 코드로 「방귀 뀌는 며느리」 3장면을 읽는다', async () => {
+  it('⭐ 시드가 채운 진짜 슬러그로 「방귀 뀌는 며느리」 3장면을 읽는다', async () => {
     // 파이썬은 `_슬러그 = {"fart-bride": "방귀 뀌는 며느리"}` 표를 거쳐 **제목**으로 찾았다.
-    // 그 표가 사라졌다는 것을 실제 시드 데이터로 확인하는 자리다.
+    // 그 표가 사라졌다는 것을 실제 시드 데이터로 확인하는 자리다 — 같은 글자가 이제 DB 칸
+    // (`stories.slug`)에 있다 (2026-08-13 결정 3 · 4차).
     // ⚠️ `npx tsx db/seed.ts` 를 한 번도 안 돌린 DB 라면 여기서 빨개진다. 그게 맞다.
     await 트랜잭션(async (tx) => {
       const { scene, preceding } = await findScene(tx, {
-        story_code: 's_banggui_daughter_in_law_001',
+        story_code: 'fart-bride',
         scene_code: 'sc_banggui_03',
       })
       expect(scene.scene_order).toBe(3)
@@ -341,10 +342,10 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
 // ═══════════════════════════════════════════════════════════════════════════
 
 검사('repo/sessions — 세션 읽기·갱신', () => {
-  it('세션을 만들면 child_id 를 DB 가 만들고 장면 상태는 비어 있다', async () => {
+  it('세션을 만들면 장면 상태가 비어 있다', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       const 세션 = await readSession(tx, session_id)
 
       expect(세션.child_id).toMatch(/^[0-9a-f-]{36}$/)
@@ -378,7 +379,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('세션에 이야기 코드·제목을 붙여 읽는다', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       const 세션 = await readSessionWithStory(tx, session_id)
       expect(세션.story_code).toBe(씨.story_code)
       expect(세션.story_title).toContain('검사용 이야기')
@@ -389,7 +390,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('장면에 들어가면 장면 상태 9칸이 초기화된다 (결정 22)', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
 
       // 앞 장면에서 값이 쌓인 상태를 만든다.
       await enterScene(tx, session_id, 씨.scene_ids.sc_test_03)
@@ -422,7 +423,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('판정 아홉 칸을 한 번에 쓴다 (결정 18)', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       await enterScene(tx, session_id, 씨.scene_ids.sc_test_03)
       const 전 = await readSession(tx, session_id)
 
@@ -453,7 +454,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
     // 위 검사는 둘이 같은 값이라 이 자리를 못 가른다 — 갈라지는 판정으로 한 번 더 때린다.
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       await enterScene(tx, session_id, 씨.scene_ids.sc_test_03)
 
       await updateSession(tx, {
@@ -471,7 +472,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('세션을 끝내면 completed 가 되고 completed_at 이 찍힌다', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       await completeSession(tx, session_id)
       const 세션 = await readSession(tx, session_id)
       expect(세션.status).toBe('completed')
@@ -482,7 +483,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('turn_order 는 장면이 바뀌어도 이어지는 **세션 전체** 순번이다', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
 
       const 하나 = await insertMessage(tx, {
         session_id,
@@ -519,7 +520,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('직전 캐릭터 말은 **현재 장면**의 마지막 한 줄뿐이다', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       const 대화1 = 씨.scene_ids.sc_test_03
       const 대화2 = 씨.scene_ids.sc_test_05
 
@@ -553,7 +554,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('장면 대화는 turn_order 순이고, 이번 발화는 빼고 읽을 수 있다', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       const scene_id = 씨.scene_ids.sc_test_03
 
       await insertMessage(tx, { session_id, scene_id, speaker_type: 'character', text: '첫 대사' })
@@ -585,7 +586,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
   it('분석은 **후처리 전 원본**을 그대로 넣는다 (결정 26)', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       const 아이 = await insertMessage(tx, {
         session_id,
         scene_id: 씨.scene_ids.sc_test_03,
@@ -630,7 +631,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
       )
 
       const 씨 = await 콘텐츠_넣기(tx)
-      const session_id = await createSession(tx, { story_id: 씨.story_id })
+      const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
       const 아이 = await insertMessage(tx, {
         session_id,
         scene_id: 씨.scene_ids.sc_test_03,
@@ -657,7 +658,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
     let 남긴_세션 = ''
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
-      남긴_세션 = await createSession(tx, { story_id: 씨.story_id })
+      남긴_세션 = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
     })
     const 남았나 = await getDb()
       .select({ id: story_sessions.id })
@@ -673,7 +674,7 @@ function 시도(고칠_것: Partial<Attempt> = {}): Attempt {
 
 async function 회차_씨앗(tx: Conn): Promise<{ 씨: 씨앗; session_id: string; run_id: string }> {
   const 씨 = await 콘텐츠_넣기(tx)
-  const session_id = await createSession(tx, { story_id: 씨.story_id })
+  const session_id = await createSession(tx, { story_id: 씨.story_id, child_id: randomUUID() })
   const 회차 = await createRun(tx, {
     session_id,
     scope: 'story',

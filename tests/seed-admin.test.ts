@@ -256,6 +256,7 @@ async function 트랜잭션(본문: (tx: Conn) => Promise<void>): Promise<void> 
 interface 씨앗 {
   story_id: string
   story_title: string
+  story_slug: string
   character_id: string
   /** 대화 장면 */
   scene_id: string
@@ -269,13 +270,13 @@ async function 콘텐츠_넣기(tx: Conn): Promise<씨앗> {
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: `s_seed_${꼬리}`,
+      slug: `s-seed-${꼬리}`,
       title: `시드검사 이야기 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',
       status: 'draft',
     })
-    .returning({ id: stories.id, title: stories.title })
+    .returning({ id: stories.id, title: stories.title, slug: stories.slug })
 
   const [캐릭터] = await tx
     .insert(characters)
@@ -323,6 +324,7 @@ async function 콘텐츠_넣기(tx: Conn): Promise<씨앗> {
   return {
     story_id: 이야기.id,
     story_title: 이야기.title,
+    story_slug: 이야기.slug,
     character_id: 캐릭터.id,
     scene_id: 대화.id,
     narration_id: 전개.id,
@@ -670,14 +672,16 @@ async function 기준점_수(tx: Conn): Promise<number> {
       expect(본문.startsWith('-- 관리자 화면에서 내보낸 시드 작업값')).toBe(true)
       expect(본문).toContain('BEGIN;')
       expect(본문.trimEnd().endsWith('COMMIT;')).toBe(true)
-      expect(본문).toContain('UPDATE characters c')
+      expect(본문).toContain('UPDATE story_characters c')
       expect(본문).toContain('UPDATE story_scenes sc')
       // 따옴표가 겹쳐 막혀 있어야 그대로 부을 수 있다.
       expect(본문).toContain("SET persona = '아이가 ''응'' 했다',")
       // 출처가 주석으로 남아 무엇이 검수 대상인지 SQL 에서도 보인다.
       expect(본문).toContain('검사용 며느리 출처: persona=초안')
-      // 열쇠는 제목과 코드다 (파이썬 그대로).
-      expect(본문).toContain(`AND s.title = '${씨.story_title}'`)
+      // 🔴 열쇠는 **슬러그**와 코드다. 파이썬은 제목으로 조인했는데 `title` 에는 UNIQUE 가
+      //    없어, 제목을 고치면 이 SQL 이 0행을 갱신하고 조용히 성공했다 (2026-08-13 · 2-d 의 H).
+      expect(본문).toContain(`AND s.slug = '${씨.story_slug}'`)
+      expect(본문).not.toContain('AND s.title =')
       expect(본문).toContain("AND c.code = 'ch_seed_test';")
       expect(본문).toContain('AND sc.scene_order = 2;')
       // 걱정 문장은 열쇠를 정렬해 적는다 — 같은 값이면 같은 글자가 나온다.

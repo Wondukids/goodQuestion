@@ -175,7 +175,7 @@ describe('봉투', () => {
       },
       meta: null,
     })
-    const 몸 = await 봉투(await 장면_부르기('s_banggui_daughter_in_law_001', 'sc_banggui_03'))
+    const 몸 = await 봉투(await 장면_부르기('fart-bride', 'sc_banggui_03'))
     expect(Object.keys(몸).sort()).toEqual(['api_version', 'data'])
   })
 
@@ -382,9 +382,9 @@ describe('라우트는 셋만 한다 — 읽고 · 부르고 · 씌우고', () =
 
   it('④ params 프라미스를 풀어 그대로 넘긴다', async () => {
     가짜.장면.mockResolvedValue({ data: { code: 'sc_banggui_03' }, meta: null })
-    await 장면_부르기('s_banggui_daughter_in_law_001', 'sc_banggui_03')
+    await 장면_부르기('fart-bride', 'sc_banggui_03')
     expect(가짜.장면).toHaveBeenCalledExactlyOnceWith({
-      story_code: 's_banggui_daughter_in_law_001',
+      story_code: 'fart-bride',
       scene_code: 'sc_banggui_03',
     })
   })

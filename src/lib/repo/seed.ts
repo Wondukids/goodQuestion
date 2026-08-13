@@ -81,11 +81,13 @@ const 칸_컬럼: Readonly<Record<string, Readonly<Record<string, AnyPgColumn>>>
 /** `seed_revisions` 한 행. */
 export type SeedRevisionRow = typeof seed_revisions.$inferSelect
 
-/** 캐릭터 한 행 + 이야기 제목 + 칸별 출처. */
+/** 캐릭터 한 행 + 이야기 제목·슬러그 + 칸별 출처. */
 export interface SeedCharacterRow {
   id: string
   story_id: string
   story_title: string
+  /** 내보내기 SQL 이 조인하는 열쇠. `title` 에는 UNIQUE 가 없어 열쇠로 못 쓴다. */
+  story_slug: string
   code: string
   name: string
   persona: string
@@ -96,11 +98,13 @@ export interface SeedCharacterRow {
   origins: Record<string, string>
 }
 
-/** 대화 장면 한 행 + 이야기 제목 + 캐릭터 코드 + 칸별 출처. */
+/** 대화 장면 한 행 + 이야기 제목·슬러그 + 캐릭터 코드 + 칸별 출처. */
 export interface SeedSceneRow {
   id: string
   story_id: string
   story_title: string
+  /** 내보내기 SQL 이 조인하는 열쇠. `title` 에는 UNIQUE 가 없어 열쇠로 못 쓴다. */
+  story_slug: string
   code: string
   scene_order: number
   character_id: string | null
@@ -159,6 +163,7 @@ export async function listSeed(conn: Conn): Promise<SeedList> {
       id: characters.id,
       story_id: characters.story_id,
       story_title: stories.title,
+      story_slug: stories.slug,
       code: characters.code,
       name: characters.name,
       persona: characters.persona,
@@ -177,6 +182,7 @@ export async function listSeed(conn: Conn): Promise<SeedList> {
       id: story_scenes.id,
       story_id: story_scenes.story_id,
       story_title: stories.title,
+      story_slug: stories.slug,
       code: story_scenes.code,
       scene_order: story_scenes.scene_order,
       character_id: story_scenes.character_id,

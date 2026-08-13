@@ -23,7 +23,7 @@
 //   길과 `experimentPrompts()` 가 그 값을 꺼내 주는 데까지 본다 (보고에 적었다).
 // - 주소가 `/prompts` → `/prompt-lab` 이다.
 
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -252,7 +252,7 @@ async function 회차_열기(tx: Conn): Promise<string> {
   const [이야기] = await tx
     .insert(stories)
     .values({
-      code: `s_test_${꼬리}`,
+      slug: `s-test-${꼬리}`,
       title: `검사용 이야기 ${꼬리}`,
       summary: '검사용',
       difficulty: '보통',
@@ -290,7 +290,7 @@ async function 회차_열기(tx: Conn): Promise<string> {
     max_turns: 4,
   })
 
-  const session_id = await createSession(tx, { story_id: 이야기.id })
+  const session_id = await createSession(tx, { story_id: 이야기.id, child_id: randomUUID() })
   const 회차 = await createRun(tx, {
     session_id,
     scope: 'story',

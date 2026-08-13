@@ -311,7 +311,8 @@ function 배열_값(원문: string): string[] {
  */
 export function 시드_파일_값들(경로?: string): 파일_값들 {
   const 원문 = 주석_제거(readFileSync(경로 ?? 시드_파일_경로(), 'utf-8'))
-  const 캐릭터_시작 = 원문.indexOf('INSERT INTO characters')
+  // ⚠️ 표 이름이 `story_characters` 다 (2026-08-13 결정 70). 코드 쪽 심볼만 `characters` 로 남았다.
+  const 캐릭터_시작 = 원문.indexOf('INSERT INTO story_characters')
   const { 행들: 캐릭터_행들, 끝: 다음_위치 } = values_행들(원문, 캐릭터_시작)
   // 장면 VALUES 가 둘이다 — 앞이 전개 장면, **뒤가 대화 장면**이다. 화면이 쓰는 것은 뒤쪽이다.
   const 첫_장면_values = 원문.indexOf('FROM 이야기, (VALUES', 다음_위치)
@@ -427,7 +428,13 @@ export function 값_읽기(원문: string, column_name: string): SeedValue {
     const 글자 = 원문.trim()
     // 파이썬 `int()` 와 같은 잣대다 — `1.5`·`한글`·빈 칸은 거절한다.
     if (!/^[+-]?\d+$/.test(글자)) throw new ValueError('턴 수는 정수여야 한다')
-    return Number.parseInt(글자, 10)
+    const 값 = Number.parseInt(글자, 10)
+    // 🔴 하한이 있어야 **화면에서** 막힌다. 저쪽 `story_scenes` 에는 `preferred_turns > 0`
+    //    CHECK 가 이미 걸려 있어(우리 DB 에는 없다), 0 이나 음수를 그냥 흘리면 저쪽에 얹은 뒤
+    //    사람이 「저장」을 누르는 순간 사람 말이 아니라 DB 오류가 뜬다.
+    //    0턴 대화는 뜻도 없다 — 아이가 한 번도 말하지 않는 대화 장면이다.
+    if (값 < 1) throw new ValueError('턴 수는 1 이상이어야 한다')
+    return 값
   }
   if (column_name === 'forbidden' || column_name === 'required_elements') {
     const 값들 = 원문
@@ -664,8 +671,9 @@ function 걱정_리터럴(값: Record<string, string> | null): string {
  *
  * ⛔ 이 함수는 파일을 쓰지 않는다. 사람이 받아 검토해 `sql/002_seed_banggui.sql` 로 옮긴다.
  *
- * ⚠️ `stories.title` 로 찾는 것이 파이썬 그대로다. 이식판 스키마에는 `stories.code` 가
- *    있지만 **옮겨 붙일 곳이 파이썬 시절의 `sql/002`** 라 그 파일이 아는 열쇠로 적는다.
+ * 🔴 **`stories.slug` 로 조인한다** (2026-08-13 · 2-d 의 H). 파이썬 그대로 `s.title` 이었는데
+ *    `title` 에는 UNIQUE 가 없다 — 화면에서 제목을 고치면 이 SQL 이 **0행을 갱신하고 조용히
+ *    성공한다.** 아무도 안 아프고 값만 안 옮겨진다. `slug` 는 NOT NULL·UNIQUE 라 그 구멍이 없다.
  */
 export async function seedExportSql(conn?: Conn): Promise<string> {
   const 자료 = await seedExportData(conn ?? getDb())
@@ -688,14 +696,14 @@ export async function seedExportSql(conn?: Conn): Promise<string> {
       ]),
     )
     줄들.push(
-      'UPDATE characters c',
+      'UPDATE story_characters c',
       '   SET persona = ' + sql_문자열(캐릭터.persona) + ',',
       '       speech_style = ' + sql_문자열(캐릭터.speech_style) + ',',
       '       guidance_style = ' + sql_문자열(캐릭터.guidance_style) + ',',
       '       forbidden = ' + sql_배열(캐릭터.forbidden),
       '  FROM stories s',
       ' WHERE c.story_id = s.id',
-      '   AND s.title = ' + sql_문자열(캐릭터.story_title),
+      '   AND s.slug = ' + sql_문자열(캐릭터.story_slug),
       '   AND c.code = ' + sql_문자열(캐릭터.code) + ';',
       '',
     )
@@ -721,7 +729,7 @@ export async function seedExportSql(conn?: Conn): Promise<string> {
       '       max_turns = ' + sql_숫자(장면.max_turns),
       '  FROM stories s',
       ' WHERE sc.story_id = s.id',
-      '   AND s.title = ' + sql_문자열(장면.story_title),
+      '   AND s.slug = ' + sql_문자열(장면.story_slug),
       `   AND sc.scene_order = ${장면.scene_order};`,
       '',
     )

@@ -37,6 +37,15 @@
 //
 // 인덱스는 대조하지 않는다. 없어도 결과가 안 바뀌기 때문이다.
 //
+// ## 견주는 단위는 **`스키마.표`** 다
+//
+// 관리 도구 11표는 `gq_admin` 에, 엔진 7표는 `public` 에 선다 (결정 5 · 4차). 맨 이름만 견주면
+// 「선언은 `gq_admin.runs` 인데 DB 에는 `public.runs` 가 서 있다」를 **못 본다** — 양쪽 다 `runs`
+// 라서 사이좋게 초록이다. 표가 옮겨가는 이식에서 정확히 새는 자리가 거기라, 1~7 을 전부
+// `스키마.표` 로 올려 견준다. sql 파일도 선언도 `public` 은 안 적으므로(드리즐은 `schema` 를
+// `undefined` 로 준다) 없으면 `public` 으로 채워 정규화한다. DB 를 뒤지는 질의도 스키마를 손으로
+// 박지 않고 **선언에서 뽑은 값**으로 건다 — 표가 또 옮겨가도 이 파일은 안 고친다.
+//
 // ## DB 가 없으면 **건너뛴다** — 조용히 통과시키지 않는다
 //
 // `tests/repo.test.ts` 와 같은 문지기다. `describe.skip` 이라 보고에 「skipped」로 뜬다.
@@ -46,7 +55,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { SQL, getTableName, is, sql } from 'drizzle-orm'
+import { SQL, is, sql } from 'drizzle-orm'
 import { PgDialect, PgTable, getTableConfig } from 'drizzle-orm/pg-core'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -71,21 +80,39 @@ function 표인가(값: unknown): 값 is PgTable {
 
 const 선언된_표 = 스키마의_값들.filter(표인가).map((표) => getTableConfig(표))
 
-const 선언된_표_이름 = 선언된_표.map((표) => 표.name).sort()
+/** 견주는 단위. 스키마를 안 적은 쪽(`public`)을 채워 넣는다 — 드리즐은 `undefined` 로 준다. */
+function 전체이름(표: { name: string; schema: string | undefined }): string {
+  return `${표.schema ?? 'public'}.${표.name}`
+}
+
+const 선언된_표_이름 = 선언된_표.map((표) => 전체이름(표)).sort()
+
+/** DB 질의에 걸 스키마 목록. 손으로 박지 않고 선언에서 뽑는다. */
+const 선언된_스키마 = [...new Set(선언된_표.map((표) => 표.schema ?? 'public'))].sort()
+
+function 선언찾기(표이름: string) {
+  return 선언된_표.find((표) => 전체이름(표) === 표이름)!
+}
 
 // ── sql 파일이 만드는 표 이름 ─────────────────────────────────────────────
 
 // ⚠️ 이 파일은 **레포 루트의 `tests/`** 에 있어 한 칸만 올라간다
 //    (우리 레포에서는 `web/tests/` 라 두 칸이었다 — 착지 ④에서 고친 자리).
 const 레포루트 = join(dirname(fileURLToPath(import.meta.url)), '..')
-const 표만들기 = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*)/gi
+// 스키마는 있을 수도 없을 수도 있다 — 003 은 `CREATE TABLE gq_admin.runs`, 001 은 맨 이름이다.
+const 표만들기 =
+  /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:([a-z_][a-z0-9_]*)\.)?([a-z_][a-z0-9_]*)/gi
 
 function sql파일_읽기(파일이름: string): string {
   return readFileSync(join(레포루트, 'sql', 파일이름), 'utf-8')
 }
 
 function sql파일의_표들(파일이름: string): string[] {
-  return [...sql파일_읽기(파일이름).matchAll(표만들기)].map((맞은것) => 맞은것[1])
+  // ⚠️ 스키마 자리(1번 그룹)는 안 맞으면 런타임에 `undefined` 다. 타입은 `string` 이지만
+  //    (`noUncheckedIndexedAccess` 가 꺼져 있다) `전체이름` 이 그 자리를 `public` 으로 메운다.
+  return [...sql파일_읽기(파일이름).matchAll(표만들기)].map((맞은것) =>
+    전체이름({ name: 맞은것[2], schema: 맞은것[1] }),
+  )
 }
 
 // ── sql 파일이 **이름 붙여** 건 제약 ──────────────────────────────────────
@@ -100,9 +127,10 @@ function sql파일의_표들(파일이름: string): string[] {
 //
 // ⚠️ **한 방향이다** — 「sql 파일에 있는데 선언에 없는 것」만 잡는다. 반대로 sql 파일에서만
 //    제약을 지우면 아무 데도 안 걸린다(2026-08-13 결정 74 를 넣으며 깨뜨려 확인했다).
-//    반대 방향을 막으려면 예외 목록이 있어야 하는데, `code` 칸 셋처럼 **선언에만 있고 001 에는
-//    없는 것이 이미 여럿**이라(드리즐이 스키마 주인이 된 뒤로 001 은 이식 원본으로 남았다)
-//    그 목록이 곧 낡는다. 그래서 안 건다.
+//    반대 방향을 막으려면 예외 목록이 있어야 하는데, 드리즐이 스키마 주인이 된 뒤로 001 은
+//    이식 원본으로 남아 언제든 갈릴 수 있어 그 목록이 곧 낡는다. 그래서 안 건다.
+//    (2026-08-13 현재 칸은 양쪽이 같다 — `stories.slug` · `story_scenes.code` ·
+//     `utterance_analyses.created_at` 을 001 에 마저 적어 넣었다.)
 const 이름붙은_제약 = /CONSTRAINT\s+([a-z_][a-z0-9_]*)\s+(?:CHECK|UNIQUE|PRIMARY\s+KEY)/gi
 
 function sql파일의_제약이름들(파일이름: string): string[] {
@@ -255,27 +283,31 @@ describe('sql 파일과 표 선언', () => {
 
   it('001 은 엔진, 003 은 관리 도구 — 이 선이 곧 이식 경계다', () => {
     // 헌법 원칙 II · V. 관리 표는 본 제품으로 안 간다.
+    // ⭐ 스키마까지 적어 둔 목록이라 「11표가 `gq_admin` 에 선다」(결정 5 · 4차)를 여기서 못 박는다.
+    //    하나가 `public` 으로 되돌아가면 이 검사가 먼저 빨개진다 (DB 없이도 돈다).
     expect(sql파일의_표들('001_schema.sql').sort()).toEqual([
-      'characters',
-      'messages',
-      'post_activity_results',
-      'stories',
-      'story_scenes',
-      'story_sessions',
-      'utterance_analyses',
+      'public.messages',
+      'public.post_activity_results',
+      'public.stories',
+      // ⚠️ 표 이름은 `story_characters` 인데 **내보내는 심볼은 `characters`** 다 (결정 70).
+      //    저쪽이 `characters` 를 아이 아바타 프리셋 뜻으로 이미 쓴다.
+      'public.story_characters',
+      'public.story_scenes',
+      'public.story_sessions',
+      'public.utterance_analyses',
     ])
     expect(sql파일의_표들('003_admin.sql').sort()).toEqual([
-      'corrections',
-      'experiment_prompts',
-      'goldenset_results',
-      'goldenset_runs',
-      'llm_calls',
-      'review_criteria',
-      'runs',
-      'scores',
-      'seed_revisions',
-      'test_children',
-      'turn_conditions',
+      'gq_admin.corrections',
+      'gq_admin.experiment_prompts',
+      'gq_admin.goldenset_results',
+      'gq_admin.goldenset_runs',
+      'gq_admin.llm_calls',
+      'gq_admin.review_criteria',
+      'gq_admin.runs',
+      'gq_admin.scores',
+      'gq_admin.seed_revisions',
+      'gq_admin.test_children',
+      'gq_admin.turn_conditions',
     ])
   })
 
@@ -307,7 +339,7 @@ describe('sql 파일과 표 선언', () => {
         const 파일쪽 = 언급된_칸(파일_본문, 칸이름들)
         const 선언쪽 = 언급된_칸(방언.sqlToQuery(하나.value).sql, 칸이름들)
         if (파일쪽.join(' ') !== 선언쪽.join(' ')) {
-          어긋난.push(`${표.name}.${하나.name}: sql=[${파일쪽}] 선언=[${선언쪽}]`)
+          어긋난.push(`${전체이름(표)}.${하나.name}: sql=[${파일쪽}] 선언=[${선언쪽}]`)
         }
       }
     }
@@ -325,19 +357,26 @@ type 실제PK = { 컬럼들: string }
 
 검사('표 선언 ↔ 살아 있는 DB', () => {
   it('선언한 표가 DB 에 다 있다', async () => {
+    // ⚠️ `schemaname` 을 `'public'` 으로 박으면 `gq_admin` 표가 전부 「DB 에 없다」로 나온다.
+    //    선언에서 뽑은 목록으로 건다 — 배열을 넣으면 드리즐이 `IN ($1, $2)` 로 편다.
     const 있는_표 = (
-      await getDb().execute<{ tablename: string }>(sql`
-        SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+      await getDb().execute<{ 이름: string }>(sql`
+        SELECT schemaname || '.' || tablename AS 이름
+          FROM pg_tables
+         WHERE schemaname IN ${선언된_스키마}
       `)
-    ).map((행) => 행.tablename)
+    ).map((행) => 행.이름)
 
     const 없는_표 = 선언된_표_이름.filter((이름) => !있는_표.includes(이름))
-    // 「선언에는 있는데 DB 에 없는 표」— drizzle-kit push 를 안 돌렸나
+    // 「선언에는 있는데 DB 에 없는 표」— drizzle-kit push 를 안 돌렸나, 아니면 스키마가 어긋났나
     expect(없는_표).toEqual([])
   })
 
+  // 아래 넷은 표 하나를 `${표이름}::regclass` 로 집는다. 이름이 `gq_admin.runs` 라 스키마째 집히고,
+  // ⚠️ 그 자리에 표가 없으면 **질의가 터진다** (조용히 0행이 아니다). 선언과 DB 의 스키마가
+  //    어긋나면 바로 위 검사가 목록으로 알려 주고 여기서는 그 표의 이름을 달고 빨개진다.
   it.each(선언된_표_이름)('%s — 컬럼 이름·타입·NULL·기본값이 DB 와 같다', async (표이름) => {
-    const 선언 = 선언된_표.find((표) => 표.name === 표이름)!
+    const 선언 = 선언찾기(표이름)
     const 실제 = await getDb().execute<실제컬럼>(sql`
       SELECT a.attname                              AS column_name,
              format_type(a.atttypid, a.atttypmod)   AS 타입,
@@ -380,7 +419,7 @@ type 실제PK = { 컬럼들: string }
   })
 
   it.each(선언된_표_이름)('%s — 이름 붙은 CHECK·UNIQUE 가 DB 와 같다', async (표이름) => {
-    const 선언 = 선언된_표.find((표) => 표.name === 표이름)!
+    const 선언 = 선언찾기(표이름)
     const 실제 = await getDb().execute<실제제약>(sql`
       SELECT conname, contype::text AS contype
         FROM pg_constraint
@@ -411,20 +450,24 @@ type 실제PK = { 컬럼들: string }
   })
 
   // FK·PK 는 **이름이 아니라 내용**으로 견준다 (머리말 5번).
-  // 한 줄의 모양: `run_id → runs(id) ON DELETE cascade`
+  // 한 줄의 모양: `run_id → public.story_sessions(id) ON DELETE cascade`
+  // ⭐ 가리키는 표도 `스키마.표` 로 적는다. 관리 표에서 엔진 표로 가는 FK 가 스키마를 넘으므로
+  //    (`gq_admin.runs.session_id → public.story_sessions.id`) 맨 이름만 견주면
+  //    「같은 이름의 다른 표를 가리킨다」를 못 본다.
   it.each(선언된_표_이름)('%s — FK 가 가리키는 곳과 ON DELETE 가 DB 와 같다', async (표이름) => {
-    const 선언 = 선언된_표.find((표) => 표.name === 표이름)!
+    const 선언 = 선언찾기(표이름)
     const 실제 = await getDb().execute<실제FK>(sql`
       SELECT (SELECT string_agg(a.attname, ',' ORDER BY 짝.차례)
                 FROM unnest(c.conkey) WITH ORDINALITY 짝(칸번호, 차례)
                 JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = 짝.칸번호)  AS 컬럼들,
-             대상.relname                                                                  AS 대상표,
+             대상틀.nspname || '.' || 대상.relname                                        AS 대상표,
              (SELECT string_agg(a.attname, ',' ORDER BY 짝.차례)
                 FROM unnest(c.confkey) WITH ORDINALITY 짝(칸번호, 차례)
                 JOIN pg_attribute a ON a.attrelid = c.confrelid AND a.attnum = 짝.칸번호)  AS 대상컬럼들,
              c.confdeltype::text                                                           AS 지울때
         FROM pg_constraint c
         JOIN pg_class 대상 ON 대상.oid = c.confrelid
+        JOIN pg_namespace 대상틀 ON 대상틀.oid = 대상.relnamespace
        WHERE c.conrelid = ${표이름}::regclass
          AND c.contype = 'f'
     `)
@@ -434,7 +477,7 @@ type 실제PK = { 컬럼들: string }
         const 가리키는곳 = 하나.reference()
         const 이쪽 = 가리키는곳.columns.map((칸) => 칸.name).join(',')
         const 저쪽 = 가리키는곳.foreignColumns.map((칸) => 칸.name).join(',')
-        const 대상표 = getTableName(가리키는곳.foreignTable)
+        const 대상표 = 전체이름(getTableConfig(가리키는곳.foreignTable))
         return `${이쪽} → ${대상표}(${저쪽}) ON DELETE ${하나.onDelete ?? 'no action'}`
       })
       .sort()
@@ -450,7 +493,7 @@ type 실제PK = { 컬럼들: string }
   })
 
   it.each(선언된_표_이름)('%s — PK 컬럼이 DB 와 같다', async (표이름) => {
-    const 선언 = 선언된_표.find((표) => 표.name === 표이름)!
+    const 선언 = 선언찾기(표이름)
     const 실제 = await getDb().execute<실제PK>(sql`
       SELECT (SELECT string_agg(a.attname, ',' ORDER BY 짝.차례)
                 FROM unnest(c.conkey) WITH ORDINALITY 짝(칸번호, 차례)
@@ -510,7 +553,7 @@ function 튕긴_제약(오류: unknown): string | null {
         const [이야기] = await tx
           .insert(스키마.stories)
           .values({
-            code: `s_chk_${꼬리}`,
+            slug: `s-chk-${꼬리}`,
             title: `CHECK 검사 ${꼬리}`,
             summary: '제약만 재는 이야기',
             difficulty: 'easy',

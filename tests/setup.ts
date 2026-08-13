@@ -51,6 +51,38 @@ vi.mock('openai', async (importOriginal) => {
 // 문지기 자체를 재려면 그 검사에서 `__testing.enable()` 을 부르고 가짜 시계를 끼워라
 // (파이썬 `@pytest.mark.분당` 에 해당한다).
 
+// ── F-3 회차를 시작할 아이 ────────────────────────────────────────────────
+//
+// `startRun()` 은 아이 id 가 없으면 **터진다** (결정 71). 그전에는 `gen_random_uuid()` 로
+// 없는 아이를 회차마다 지어냈는데, 저쪽(팀 레포)에는 `children` FK 가 있어 그 값이 100% 튕긴다.
+//
+// ⚠️ 그래서 검사에도 값이 있어야 한다. **`.env.local` 에 기대지 않는다** — 그 파일은
+//    gitignore 라 새로 클론한 사람에게는 없고, 없으면 검사 예순둘이 한꺼번에 빨개져서
+//    「이식이 깨졌나」로 읽힌다. 값의 출처는 여기다.
+// ⚠️ 이미 환경에 있으면 안 덮는다. 저쪽 DB 를 물고 돌릴 때는 진짜 `children.id` 가 와야 한다.
+//
+// 🔴 이 줄이 「없으면 터진다」를 못 재게 만든다. 그건 `tests/service.test.ts` 가
+//    이 변수를 잠깐 비워서 따로 잰다.
+
+process.env.GQ_EXPERIMENT_CHILD_ID ||= '00000000-0000-4000-8000-0000000c8171'
+
+// ── F-4 남의 DB 금지 ──────────────────────────────────────────────────────
+//
+// 🔴 검사는 진짜 DB 에 **행을 넣고 지운다.** 그래서 `DATABASE_URL` 이 어디를 가리키는지가
+//    F-1(진짜 LLM 금지)과 같은 급의 문제다. F-1 이 돈을 지킨다면 이건 **남의 데이터**를 지킨다.
+//
+// ⚠️ 여기서 읽으려면 `.env.local` 이 먼저 `process.env` 에 올라와 있어야 한다.
+//    vitest 는 그 파일을 안 읽으므로 우리가 부른다(`override: false` 라 셸 값이 이긴다 —
+//    `DATABASE_URL=… npx vitest run` 으로 덮어쓰는 길이 그대로 산다).
+//
+// 담은 `drizzle-kit push` 가 쓰는 것과 **같은 화이트리스트**다. 목록이 둘이면 한쪽만 낡는다.
+
+import { 검사_대상_가드 } from '@/db/push-guard'
+import { loadEnvFile } from '@/lib/config'
+
+loadEnvFile()
+검사_대상_가드(process.env.DATABASE_URL)
+
 import { __testing as rateLimit } from '@/lib/llm/rate-limit'
 import { clearFakeSdks } from './support/sdk-gate'
 
