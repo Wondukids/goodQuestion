@@ -74,7 +74,13 @@ export { GoldensetError, reviewedOnly } from '@/lib/scoring'
 // (`CLAUDE.md` 경계 6 의 프롬프트 규칙과 같은 원리).
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** `<레포>/goldenset`. `web/` 아래가 아니다 — 파이썬 판과 **같은 파일**을 읽는다. */
+/**
+ * `<레포>/goldenset`. `src/` 아래가 아니다 — 파이썬 판과 **같은 파일**을 읽는다.
+ *
+ * 🔴 `PROJECT_ROOT`(`lib/config.ts`)가 한 칸이라도 어긋나면 여기가 없는 폴더를 가리키고
+ *    `goldensetFiles()` 가 예외 없이 `[]` 를 돌려준다 — **화면만 조용히 빈다.**
+ *    그래서 착지 확인에 「/goldenset 에 파일 둘이 보이나」가 들어 있다.
+ */
 export const GOLDENSET_DIR = path.join(PROJECT_ROOT, 'goldenset')
 
 /** `goldenset/*.jsonl` 의 파일 이름들. 건수도 파일 수도 코드에 박지 않는다. */

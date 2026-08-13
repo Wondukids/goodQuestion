@@ -10,7 +10,7 @@
 //
 // ## `prompts/` 를 어떻게 찾나 — ⚠️ 여기가 이 파일에서 가장 미끄러운 자리다
 //
-// `prompts/` 는 **레포 루트**에 있고 이 코드는 `web/` 안에 있다. 그런데 경로를 잡는 두 흔한
+// `prompts/` 는 **레포 루트**에 있고 이 코드는 `src/` 안에 있다. 그런데 경로를 잡는 두 흔한
 // 방법이 런타임마다 갈린다.
 //
 // - `import.meta.dirname` (= 파이썬 `Path(__file__)`) 는 vitest·tsx·node 에서는 맞지만
@@ -18,8 +18,8 @@
 //   Next 문서가 못박아 뒀다 — "Since Next.js compiles your code into a separate directory
 //   you can't use `__dirname` … Instead you can use `process.cwd()`"
 //   (`node_modules/next/dist/docs/02-pages/04-api-reference/03-functions/get-static-props.md:160-168`).
-// - `process.cwd()` 는 Next 가 권하는 쪽이지만(`next dev`·`next start` 는 `web/` 에서 돈다)
-//   검사를 어디서 돌리느냐에 따라 레포 루트일 수도 `web/` 일 수도 있다.
+// - `process.cwd()` 는 Next 가 권하는 쪽이지만(`next dev`·`next start` 는 레포 루트에서 돈다)
+//   검사를 어디서 돌리느냐에 따라 갈릴 수 있다.
 //
 // 그래서 **둘 다 시작점으로 삼아 위로 거슬러 올라가며 표식 파일이 있는 `prompts/` 를 찾는다.**
 // 짐작하지 않고 **있는지 확인해서** 고르므로 두 런타임에서 같은 답이 나오고,

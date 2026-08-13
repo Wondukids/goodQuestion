@@ -1,6 +1,9 @@
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
+// 이 파일은 **레포 루트**에 있다. 코드는 `src/` 아래이므로 `@` 는 한 칸 내려야 한다
+// (저쪽 `tsconfig.json` 의 `"@/*": ["./src/*"]` 과 같은 뜻).
 const here = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
@@ -14,6 +17,6 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
   },
   resolve: {
-    alias: { '@': here },
+    alias: { '@': path.join(here, 'src') },
   },
 })

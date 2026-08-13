@@ -75,7 +75,9 @@ const 선언된_표_이름 = 선언된_표.map((표) => 표.name).sort()
 
 // ── sql 파일이 만드는 표 이름 ─────────────────────────────────────────────
 
-const 레포루트 = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+// ⚠️ 이 파일은 **레포 루트의 `tests/`** 에 있어 한 칸만 올라간다
+//    (우리 레포에서는 `web/tests/` 라 두 칸이었다 — 착지 ④에서 고친 자리).
+const 레포루트 = join(dirname(fileURLToPath(import.meta.url)), '..')
 const 표만들기 = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*)/gi
 
 function sql파일_읽기(파일이름: string): string {

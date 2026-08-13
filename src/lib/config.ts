@@ -29,13 +29,23 @@ import { parse as parseToml, TomlError } from 'smol-toml'
  *
  * 그래서 없으면 `process.cwd()` 로 내려앉는다 — Next 문서가 권하는 쪽이고
  * (`02-pages/04-api-reference/03-functions/get-static-props.md:160-168`)
- * `next dev`·`next start` 는 `web/` 에서 돈다. vitest·tsx 에서는 예전과 똑같다.
+ * `next dev`·`next start` 는 **레포 루트**에서 돈다. vitest·tsx 에서는 예전과 똑같다.
+ *
+ * ⚠️ 팀 repo 착지(이슈 #26 ④)에서 `'lib'` 이 `'src/lib'` 로 바뀌었다 — 코드가
+ *    `web/lib/` 에서 `src/lib/` 로 옮겨졌기 때문이다. 이 한 칸이 어긋나면
+ *    `PROJECT_ROOT` 가 **레포 밖**을 가리키고 골든셋 화면이 **조용히 빈다**.
  */
 const 이_파일_폴더 = import.meta.dirname as string | undefined
-const 기준 = 이_파일_폴더 ?? path.join(process.cwd(), 'lib')
+const 기준 = 이_파일_폴더 ?? path.join(process.cwd(), 'src', 'lib')
 
-/** 레포 루트. 이 파일은 `<루트>/web/lib/config.ts` 다. */
+/** 레포 루트. 이 파일은 `<루트>/src/lib/config.ts` 다. */
 export const PROJECT_ROOT = path.resolve(기준, '..', '..')
+/**
+ * 앱 코드의 뿌리 — 이제 `<루트>/src` 다 (옛 `web/`).
+ *
+ * ⚠️ **이름은 일부러 그대로 뒀다.** 이식 중에 이름을 바꾸면 파이썬 판과의 대조가 흐려진다.
+ *    값의 뜻만 「`web/`」에서 「`src/`」로 옮겨 갔다.
+ */
 export const WEB_ROOT = path.resolve(기준, '..')
 
 // 제미나이 키를 여기 적힌 **순서대로** 쓴다. 한도에 걸리면 다음 키로 넘어간다.
@@ -76,7 +86,8 @@ export function loadEnvFile(): void {
   if (dotenv를_읽었나) return
   dotenv를_읽었나 = true
 
-  // web/.env.local 이 먼저다. 레포 루트 쪽은 파이썬 판이 쓰던 자리라 뒤에 본다.
+  // ⚠️ 착지 뒤에는 `src/.env.local` → `<레포>/.env.local` 순이 된다. **뒤엣것이 맞는 자리**이고
+  //    Next 도 레포 루트의 `.env.local` 을 읽으므로 둘이 어긋나지 않는다. 앞엣것은 안 만든다.
   for (const 후보 of [path.join(WEB_ROOT, '.env.local'), path.join(PROJECT_ROOT, '.env.local')]) {
     if (existsSync(후보)) loadDotenv({ path: 후보, override: false, quiet: true })
   }
@@ -411,13 +422,15 @@ export function 단가표_해석(원본: unknown, 출처 = '단가표'): 단가�
 /**
  * 단가표 파일의 자리. 환경변수 `GQ_PRICING_FILE` 로 바꾼다 (파이썬과 같은 이름).
  *
- * ⚠️ 기본 자리가 파이썬(레포 루트)과 다르다 — **`web/단가표.toml`** 이다. 루트 것은
- *    파이썬과 함께 아카이빙되므로 타입스크립트 판이 읽는 사본을 `web/` 에 두었다.
+ * ⚠️ 자리가 **레포 루트**다 (`<레포>/단가표.toml`). `prompts/`·`sql/`·`goldenset/` 과 같은
+ *    칸에 둔다 — 넷 다 런타임에 디스크에서 읽히는 자산이고, 흩어 두면
+ *    `next.config.ts` 의 `outputFileTracingIncludes` 도 흩어진다.
+ *    (우리 레포에서는 `web/단가표.toml` 이었다. 착지하며 한 칸 올라왔다.)
  */
 export function 단가표_경로(): string {
   loadEnvFile()
   const 지정 = (process.env['GQ_PRICING_FILE'] ?? '').trim()
-  return 지정 === '' ? path.join(WEB_ROOT, '단가표.toml') : 지정
+  return 지정 === '' ? path.join(PROJECT_ROOT, '단가표.toml') : 지정
 }
 
 /**
