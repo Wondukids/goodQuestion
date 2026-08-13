@@ -8,7 +8,7 @@ export type { ContinueStory, Story, StoryIntro } from "@/lib/story-types";
 /* RLS(stories_select_visible)가 draft·published 만 통과시킨다(archived 숨김).
    draft 는 목록에 "제작 중" 으로 보여 주고, 입장은 published 만 허용한다. */
 const STORY_COLUMNS =
-  "slug, status, title, summary, difficulty, topics, estimated_minutes, thumbnail_url, hero_url, intro";
+  "slug, status, title, summary, difficulty, topics, estimated_minutes, thumbnail_url, hero_url, intro, created_at";
 
 type StoryRow = {
   slug: string;
@@ -21,6 +21,7 @@ type StoryRow = {
   thumbnail_url: string | null;
   hero_url: string | null;
   intro: StoryIntro | null;
+  created_at: string;
 };
 
 function toStory(row: StoryRow): Story {
@@ -35,6 +36,7 @@ function toStory(row: StoryRow): Story {
     thumbnail: row.thumbnail_url ?? "",
     hero: row.hero_url,
     intro: row.intro,
+    createdAt: row.created_at,
   };
 }
 

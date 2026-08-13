@@ -29,11 +29,13 @@ export type Story = {
   /** 시작 화면 전면(2:3) 이미지. 없으면 썸네일 블러 채움으로 대체한다. */
   hero: string | null;
   intro: StoryIntro | null;
+  /** stories.created_at — 홈 "새로운 이야기" 정렬 기준 */
+  createdAt: string;
 };
 
 export type ContinueStory = Story & {
-  /** 진행바 채움 비율 (0–1) */
-  progress: number;
+  /** 진행바 채움 비율 (0–1). 장면 데이터가 없어 못 구하면 null — 배지만 보여 준다. */
+  progress: number | null;
 };
 
 /* 이야기 목록(6) — 상단 필터 칩. "전체" 는 필터를 걸지 않는다.

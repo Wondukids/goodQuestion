@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CharacterAvatar } from "@/components/child/character-avatar";
 import { requireSelectedChild } from "@/lib/selected-child";
 import { getStory } from "@/lib/stories";
+import { startStory } from "./actions";
 
 const OPENING_LABEL = "이야기의 시작";
 
@@ -164,14 +165,20 @@ export default async function StoryIntroPage(
           </p>
         )}
 
-        {/* 재생 화면이 있는 published 만 시작할 수 있다. draft 는 버튼 자리에 "제작 중". */}
+        {/* 재생 화면이 있는 published 만 시작할 수 있다. draft 는 버튼 자리에 "제작 중".
+            시작은 세션 기록을 남겨야 해서 링크가 아니라 서버 액션이다. */}
         {story.status === "published" ? (
-          <Link
-            href={`/stories/${story.id}/play`}
-            className="absolute top-[924px] left-12 flex h-[68px] w-[587px] items-center justify-center rounded-lg bg-primary-strong text-[24px] leading-[1.5] font-extrabold text-white"
+          <form
+            action={startStory.bind(null, story.id)}
+            className="absolute top-[924px] left-12 w-[587px]"
           >
-            이야기 시작하기
-          </Link>
+            <button
+              type="submit"
+              className="flex h-[68px] w-full cursor-pointer items-center justify-center rounded-lg bg-primary-strong text-[24px] leading-[1.5] font-extrabold text-white"
+            >
+              이야기 시작하기
+            </button>
+          </form>
         ) : (
           <p className="absolute top-[924px] left-12 flex h-[68px] w-[587px] items-center justify-center rounded-lg bg-ink-faint text-[24px] leading-[1.5] font-extrabold text-white">
             제작 중

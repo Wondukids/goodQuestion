@@ -95,6 +95,27 @@ export function StoryBrowseCard({ story }: { story: Story }) {
   );
 }
 
+/** 홈 추천 섹션 카드 — LLM 이 붙인 추천 이유 말풍선이 카드 위에 얹힌다.
+    폴백(최신순)이라 이유가 없으면 카드만 보여 준다. */
+export function RecommendedStoryCard({
+  story,
+  reason,
+}: {
+  story: Story;
+  reason: string | null;
+}) {
+  return (
+    <div className="flex w-[295px] flex-col gap-3">
+      {reason && (
+        <p className="rounded-[16px] rounded-bl-[4px] bg-primary-pale px-4 py-3 text-[14px] leading-[1.5] font-bold text-ink">
+          ✨ {reason}
+        </p>
+      )}
+      <StoryCard story={story} />
+    </div>
+  );
+}
+
 export function ContinueStoryCard({ story }: { story: ContinueStory }) {
   return (
     <div className={CARD_CLASS}>
@@ -119,12 +140,15 @@ export function ContinueStoryCard({ story }: { story: ContinueStory }) {
           </span>
         </div>
 
-        <div className="absolute bottom-0 left-0 h-2 w-full overflow-hidden bg-[#515151]">
-          <div
-            className="h-2 rounded-r-md bg-[#fa4f52]"
-            style={{ width: `${story.progress * 100}%` }}
-          />
-        </div>
+        {/* 장면 데이터(story_scenes)가 아직 없어 진행률을 못 구하면 바를 생략한다. */}
+        {typeof story.progress === "number" && (
+          <div className="absolute bottom-0 left-0 h-2 w-full overflow-hidden bg-[#515151]">
+            <div
+              className="h-2 rounded-r-md bg-[#fa4f52]"
+              style={{ width: `${story.progress * 100}%` }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex w-full flex-col gap-5 bg-surface px-4 py-5">
