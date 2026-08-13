@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { setSelectedChild } from "@/lib/selected-child";
 import { createClient } from "@/lib/supabase/server";
 
-/** 아이 카드를 누르면 그 아이를 "지금 함께하는 아이" 로 저장하고 홈으로 보낸다. */
+/** 아이 카드를 누르면 그 아이를 "지금 함께하는 아이" 로 저장하고 홈으로 보낸다.
+    재생 화면(대화 씬)이 이 쿠키로 아이 이름을 부른다. */
 export async function selectChild(childId: string) {
   const supabase = await createClient();
 

@@ -76,6 +76,38 @@
   --shadow-panel: -4px 6px 20px 8px rgb(0 0 0 / 0.04);
 }
 
+/* 책장 넘김 — 재생 화면 전환 연출. 왼쪽 가장자리를 책등 삼아
+   새 페이지가 세워진 상태(-90deg)에서 오른쪽으로 펼쳐지며 눕는다.
+   부모에 perspective 가 있어야 입체감이 난다. */
+@keyframes page-turn {
+  from {
+    transform: rotateY(-90deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+/* 넘김 중 책등 쪽에 지는 그림자 — 페이지가 눕는 동안 서서히 걷힌다 */
+@keyframes page-turn-shade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.page-turn {
+  transform-origin: left center;
+  animation: page-turn 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+.page-turn-shade {
+  animation: page-turn-shade 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
 html,
 body {
   height: 100%;

@@ -10,11 +10,17 @@ import FartBridePlay from "./fart-bride/play";
  * 여기의 id 는 URL 의 [id] 이자 stories 테이블의 slug 와 같은 값이어야 한다
  * (/stories/fart-bride/play → "fart-bride"). 유저 id 와는 무관하다.
  */
-const PLAY_SCREENS: Record<string, ComponentType> = {
+/** 모든 재생 화면이 공통으로 받는 props — 라우트가 채워서 넘긴다. */
+export type PlayScreenProps = {
+  /** 선택된 아이 이름 — 대화 씬에서 아이를 부를 때 쓴다. 없으면 부르지 않는다. */
+  childName: string | null;
+};
+
+const PLAY_SCREENS: Record<string, ComponentType<PlayScreenProps>> = {
   "fart-bride": FartBridePlay,
 };
 
 /** 아직 재생 화면이 없는 이야기면 null — 라우트가 404 로 떨어뜨린다. */
-export function getPlayScreen(id: string): ComponentType | null {
+export function getPlayScreen(id: string): ComponentType<PlayScreenProps> | null {
   return PLAY_SCREENS[id] ?? null;
 }

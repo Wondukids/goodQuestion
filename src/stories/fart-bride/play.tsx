@@ -1,44 +1,166 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { SEQUENCE, type VideoStep } from "./data";
+import { InteractiveScene } from "./interactive-scene";
+import { VIDEO_SUBTITLES } from "./subtitles";
+
 /**
- * 방귀 뀌는 며느리 — 재생 화면 (시안 8~17).
+ * 방귀 뀌는 며느리 — 재생 화면.
  *
- * **이 폴더(src/stories/fart-bride/)는 이 이야기 담당자 것이다.**
- * 파일을 몇 개로 쪼개든, 상태를 어떻게 들든, 안에서는 자유롭게 하면 된다.
- * 바깥과의 약속은 하나뿐이다 — 이 파일이 컴포넌트를 default export 한다.
+ * 영상 5파트 사이에 인터랙티브 4씬(STT→TTS)이 끼어드는 시퀀서.
+ * 순서 정의는 data.ts, 대화 씬 동작은 interactive-scene.tsx 에 있다.
  *
- * ── 어디서 들어오나
- * /stories/fart-bride 의 "이야기 시작하기" → /stories/fart-bride/play → 이 컴포넌트.
- * 라우트(src/app/stories/[id]/play/page.tsx)는 id 로 이 컴포넌트를 찾아 그리기만 한다.
- * 다른 이야기는 각자 src/stories/<id>/ 폴더를 쓰므로 이 파일과 섞이지 않는다.
- *
- * ── 만들어야 하는 것 (시안 8~17)
- *  8      전면 장면 + 하단 내레이션 바 + 장면 점 + 다음 버튼
- *  9~11   좌우 분할. 오른쪽 대화 패널, 마이크 대기 → 녹음 중
- *  12~14  아이 답변 말풍선, "다시 말하기 / 잘했어", 며느리 응답 대기
- *  15-1·2 완료 모달
- *  16~17  이야기 순서 맞추기 미션
- *
- * ── 쓸 수 있는 것 (새로 만들지 말 것)
- * - 제목·요약·칩          src/lib/mock-data.ts 의 getStoryDetail("fart-bride")
- * - 아이 원형 아바타       src/components/child/character-avatar.tsx
- * - 색·그림자 토큰         src/app/globals.css 의 @theme
- * - 뒤로가기 아이콘        public/figma/icons/arrow-left.svg
- * - 장면 이미지            지금은 public/figma/stories/ 에 7번 히어로 한 장뿐이다.
- *                        시안 8~14 의 장면 컷은 아직 없으니 받아서 넣어야 한다.
- *
- * ── 시안 옮길 때 반복해서 걸리는 것
- * - Figma 텍스트는 거의 전부 line-height: normal 이다. globals.css 가 body 에 걸어
- *   뒀으니, 줄간격이 필요한 곳만 leading-[1.6] 처럼 직접 준다.
- * - 캔버스는 1366×1024 고정이고 루트 레이아웃이 뷰포트를 1366 으로 잠근다.
- * - next/image 는 fill 과 sizes 를 꼭 같이 준다. sizes 를 빼면 3840px 을 받아 온다.
- * - 새 확장자의 정적 파일을 쓰면 src/proxy.ts 의 matcher 제외 목록에 추가한다.
- *   빠뜨리면 파일마다 인증 왕복이 붙는다.
+ * 시안 8~17 디자인은 추후 제공 예정이라 지금은 기능 테스트용 최소 UI 다.
+ * 첫 화면의 "이야기 시작" 버튼은 소리 있는 자동재생을 허용받기 위한
+ * 사용자 제스처이기도 하다 — 빼면 브라우저가 영상 소리를 막는다.
  */
-export default function FartBridePlay() {
+export default function FartBridePlay({
+  childName,
+}: {
+  /** 선택된 아이 이름 — 대화 씬이 아이를 부를 때 쓴다 (라우트가 채워 준다) */
+  childName: string | null;
+}) {
+  const [started, setStarted] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  const finished = stepIndex >= SEQUENCE.length;
+  const step = finished ? null : SEQUENCE[stepIndex];
+  const next = () => setStepIndex((index) => index + 1);
+
+  /* 대화 씬은 이야기 흐름이 끊기지 않도록 진입·이탈 모두 넘김 없이 바로 전환.
+     책 넘김은 대화를 끼지 않고 영상으로 넘어갈 때만 — 현재 구성(영상·대화 교대)
+     에서는 시작·다시 보기로 첫 파트에 들어갈 때다. */
+  const prevStep = stepIndex > 0 ? SEQUENCE[stepIndex - 1] : null;
+  const turning = step?.kind === "video" && prevStep?.kind !== "interactive";
+
   return (
-    <main className="flex h-[1024px] w-full items-center justify-center bg-story-bg">
-      <p className="text-[20px] font-bold text-ink-mid">
-        방귀 뀌는 며느리 — 재생 화면(시안 8~17) 준비 중
-      </p>
+    <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
+      {!started && (
+        <div className="flex h-full flex-col items-center justify-center gap-8">
+          <h1 className="text-[40px] font-extrabold text-ink">방귀 뀌는 며느리</h1>
+          <p className="text-[18px] font-bold text-ink-mid">
+            이야기 중간중간 등장인물이 말을 걸어요. 마이크를 준비해 주세요!
+          </p>
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            className="rounded-2xl bg-primary px-14 py-5 text-[26px] font-extrabold text-white"
+          >
+            이야기 시작
+          </button>
+        </div>
+      )}
+
+      {started && finished && (
+        <div className="flex h-full flex-col items-center justify-center gap-8">
+          <h1 className="text-[40px] font-extrabold text-ink">이야기 끝!</h1>
+          <p className="text-[18px] font-bold text-ink-mid">
+            며느리와 이야기 나눠 줘서 고마워요.
+          </p>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setStepIndex(0)}
+              className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
+            >
+              다시 보기
+            </button>
+            <Link
+              href="/stories/fart-bride"
+              className="rounded-2xl bg-primary px-10 py-4 text-[20px] font-extrabold text-white"
+            >
+              이야기 소개로
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {started && step && (
+        <div className="h-full w-full bg-black [perspective:2000px]">
+          <div
+            key={step.id}
+            className={`relative h-full w-full ${turning ? "page-turn" : ""}`}
+          >
+            {step.kind === "video" ? (
+              <PartVideo step={step} onEnded={next} />
+            ) : (
+              <InteractiveScene step={step} childName={childName} onComplete={next} />
+            )}
+            {turning && (
+              <div className="page-turn-shade pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+            )}
+          </div>
+
+          {/* 상단 바 — 뒤로가기, 진행 점, 건너뛰기(테스트용) */}
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-6 pt-5 pb-10">
+            <Link href="/stories/fart-bride" aria-label="뒤로가기">
+              <Image
+                src="/figma/icons/arrow-left.svg"
+                alt=""
+                width={36}
+                height={36}
+                className="brightness-0 invert"
+              />
+            </Link>
+
+            <div className="flex items-center gap-2">
+              {SEQUENCE.map((s, index) => (
+                <span
+                  key={s.id}
+                  className={`rounded-full ${
+                    s.kind === "interactive" ? "size-3" : "size-2.5"
+                  } ${index <= stepIndex ? "bg-white" : "bg-white/30"}`}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={next}
+              className="rounded-lg bg-white/20 px-4 py-2 text-[15px] font-bold text-white"
+            >
+              건너뛰기
+            </button>
+          </div>
+        </div>
+      )}
     </main>
+  );
+}
+
+/**
+ * 파트 영상 + 자막. 타이밍은 subtitles.ts (story_database.json 의 음성
+ * 길이로 자동 생성 — 영상이 음성을 그대로 이어붙인 것이라 오차 0.05초 이내).
+ */
+function PartVideo({ step, onEnded }: { step: VideoStep; onEnded: () => void }) {
+  const [time, setTime] = useState(0);
+  const cue = (VIDEO_SUBTITLES[step.id] ?? []).find(
+    (c) => time >= c.start && time < c.end,
+  );
+
+  return (
+    <div className="relative h-full w-full">
+      <video
+        src={step.src}
+        autoPlay
+        playsInline
+        onEnded={onEnded}
+        onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
+        className="h-full w-full object-contain"
+      />
+      {cue && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center px-10">
+          <p className="max-w-[900px] rounded-2xl bg-black/55 px-6 py-4 text-center text-[22px] font-bold leading-[1.5] text-white">
+            {cue.speaker && (
+              <span className="mr-2 text-[18px] text-amber-300">{cue.speaker}</span>
+            )}
+            {cue.text}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

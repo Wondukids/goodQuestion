@@ -42,7 +42,7 @@ export function ChildCard({
   return (
     <CardShell>
       <form action={selectChild.bind(null, id)}>
-        <button type="submit" className={CARD_CLASS}>
+        <button type="submit" className={`${CARD_CLASS} cursor-pointer`}>
           <CharacterAvatar characterId={characterId} size={185} />
           <span className="flex flex-col items-center gap-2">
             <span className="text-[26px] font-extrabold text-ink">{name}</span>

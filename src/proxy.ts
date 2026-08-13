@@ -43,6 +43,6 @@ export const config = {
      (측정: otf 33~69ms vs 제외된 png 1.8ms). 나중에 woff2 로 되돌리거나 웨이트를
      추가해도 다시 새지 않도록 폰트 확장자를 모두 적어 둔다. */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|otf|ttf|woff|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|otf|ttf|woff|woff2|mp4|wav|mp3)$).*)",
   ],
 };

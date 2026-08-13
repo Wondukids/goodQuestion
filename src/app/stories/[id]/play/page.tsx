@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { getSelectedChild } from "@/lib/selected-child";
+import { createClient } from "@/lib/supabase/server";
 import { getPlayScreen } from "@/stories";
 
 /**
@@ -13,6 +15,28 @@ import { getPlayScreen } from "@/stories";
  *
  * 상단·하단 네비가 없는 전체 화면이라 (main) 레이아웃 밖에 둔다.
  */
+
+/** 선택된 아이(쿠키) 이름. 쿠키가 없거나 남의 아이면 첫 아이로, 그마저 없으면 null. */
+async function getChildName(): Promise<string | null> {
+  const selected = await getSelectedChild();
+  if (selected) return selected.name;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("children")
+    .select("name")
+    .eq("parent_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single();
+  return data?.name ?? null;
+}
+
 export default async function StoryPlayPage(
   props: PageProps<"/stories/[id]/play">,
 ) {
@@ -20,5 +44,5 @@ export default async function StoryPlayPage(
   const PlayScreen = getPlayScreen(id);
   if (!PlayScreen) notFound();
 
-  return <PlayScreen />;
+  return <PlayScreen childName={await getChildName()} />;
 }
