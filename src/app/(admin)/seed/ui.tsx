@@ -1,0 +1,88 @@
+// 시드 작업대의 조각들 (이슈 #26 화면-2).
+//
+// ⛔ **여기에 규칙이 없다.** 값을 어떻게 보이느냐만 정한다.
+// ⚠️ 라우트 파일(`page.tsx`)에서 이런 것을 export 하지 않는다 — Next 가 그 파일의 export 를
+//    규격으로 검사하므로, 화면 조각은 라우트가 **아닌** 파일에 둔다
+//    (`app/(admin)/runs/ui.tsx` 와 같은 규칙이다).
+
+import { 고를_수_있는_출처, 출처_이름 } from '@/lib/service/seed'
+
+/** 폼이 어느 칸을 고치는지. 파이썬에서는 이것이 주소(`/seed/{table}/{row_id}/{column}`)였다. */
+export function 숨은칸들({
+  table_name,
+  row_id,
+  column_name,
+  json_key,
+}: {
+  table_name: string
+  row_id: string
+  column_name: string
+  json_key?: string
+}) {
+  return (
+    <>
+      <input type="hidden" name="table_name" value={table_name} />
+      <input type="hidden" name="row_id" value={row_id} />
+      <input type="hidden" name="column_name" value={column_name} />
+      {json_key !== undefined && <input type="hidden" name="json_key" value={json_key} />}
+    </>
+  )
+}
+
+/** 칸 이름 + 지금 출처 배지. 배지에는 **셋 다** 뜬다 (`표시 없음` 도 상태다). */
+export function 칸머리({ 이름, 출처 }: { 이름: string; 출처: string }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className="font-semibold">{이름}</span>
+      <mark className="bg-zinc-200 px-1 font-mono text-[11px] dark:bg-zinc-700 dark:text-zinc-100">
+        {출처_이름[출처] ?? 출처}
+      </mark>
+    </span>
+  )
+}
+
+/**
+ * 출처 고르개. **고를 수 있는 것 둘뿐이다** — `unmarked` 는 읽기 전용 상태라 넣지 않는다
+ * (넣으면 고른 순간 400 이 난다).
+ */
+export function 출처고르개({ 지금 }: { 지금: string }) {
+  // 지금 값이 `unmarked` 면 고르개에 그 값이 없다. 그때는 `draft` 가 첫 값이 된다.
+  const 처음 = 지금 in 고를_수_있는_출처 ? 지금 : 'draft'
+  return (
+    <label className="flex items-center gap-1 text-xs text-zinc-500">
+      출처
+      <select name="origin" defaultValue={처음} className="border px-1 py-0.5 text-xs">
+        {Object.entries(고를_수_있는_출처).map(([값, 글]) => (
+          <option key={값} value={값}>
+            {글}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+/**
+ * 「시드 파일 값 보기」 — ⭐ **대조용으로 읽기만 한다** (2026-08-10 결정 8).
+ *
+ * 파일을 못 읽었으면 `null` 이 와서 「값 없음」이 뜬다. 화면이 안 죽는 것이 먼저다.
+ */
+export function 시드파일값({ 값 }: { 값: string | null }) {
+  return (
+    <details className="text-xs">
+      <summary className="cursor-pointer text-zinc-500">▸ 시드 파일 값 보기</summary>
+      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 dark:bg-zinc-900">
+        {값 ?? '값 없음'}
+      </pre>
+    </details>
+  )
+}
+
+/** 이 칸 저장 단추. 파이썬 템플릿의 「이 칸 저장」·「입장 저장」 자리다. */
+export function 저장단추({ 글 = '이 칸 저장' }: { 글?: string }) {
+  return (
+    <button type="submit" className="border border-zinc-700 px-2 py-1 text-xs font-semibold">
+      {글}
+    </button>
+  )
+}

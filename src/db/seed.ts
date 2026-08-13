@@ -1,0 +1,587 @@
+/**
+ * 「방귀 뀌는 며느리」 콘텐츠 시드 (sql/002_seed_banggui.sql 이식)
+ *
+ * ⚠️ 콘텐츠 말고 하나 더 들어 있다 — **시험용 아이 4명**(`sql/003_admin.sql:227` 의 INSERT).
+ *    003 은 관리 도구 표를 만드는 파일이라 콘텐츠와 갈래가 다르지만, 그 안에서 값을 넣는 자리는
+ *    거기 한 곳뿐이고 회차를 시작하려면 그 넷이 DB 에 있어야 한다 (아래 「시험용 아이」 절).
+ *
+ * ── 돌리는 법 ────────────────────────────────────────────────
+ *   cd web
+ *   npx tsx db/seed.ts
+ *
+ *   DATABASE_URL 은 web/.env.local 에서 읽는다 (이식판 전용 DB: goodquestion_ts).
+ *   표가 없으면 먼저 `npx drizzle-kit push` 로 스키마를 밀어 둔다.
+ *
+ * ── ⚠️ 여러 번 돌려도 된다 — 파이썬 판과 갈리는 자리다 ──────────
+ *   sql/002 는 첫 줄이 `DELETE FROM stories WHERE title = '방귀 뀌는 며느리'` 였다.
+ *   머리말은 「여러 번 돌려도 같은 결과」라고 적혀 있었지만 실제로는 아니었다 —
+ *   `story_sessions.story_id` 의 FK 가 (ON DELETE 절이 없어 NO ACTION 이라) 그 DELETE 를 막아,
+ *   회차가 한 번이라도 돈 뒤에는 시드가 통째로 실패했다.
+ *
+ *   그래서 여기서는 지우지 않고 **upsert 한다.** 열쇠는 `code` 다.
+ *     stories        ← code
+ *     characters     ← (story_id, code)
+ *     story_scenes   ← (story_id, code)
+ *   `stories.id` 가 안 바뀌므로 이미 쌓인 세션·메시지가 살아 있는 채로 콘텐츠만 갱신된다.
+ *
+ *   ⚠️ 다만 **지우는 방향은 없다.** 시드에서 뺀 장면·캐릭터는 DB 에 그대로 남는다.
+ *      messages.scene_id · story_sessions.current_scene_id 가 그 행을 붙들고 있을 수 있어
+ *      말없이 지우면 기록이 깨진다. 정말 빼야 하면 사람이 손으로 지운다.
+ *
+ * ── 값은 sql/002 그대로다 ────────────────────────────────────
+ *   002 가 콘텐츠 정본이므로(CLAUDE.md 「DB」) 한 글자도 바꾸지 않았다.
+ *   002 의 주석도 같이 옮겼다 — 원문에서 무엇을 왜 바꿨는지가 거기에만 있다.
+ *
+ *   002 원문 머리말:
+ *     정본: docs/원본/MVP 콘텐츠) 방귀 뀌는 며느리 ....md (노션 export)
+ *           그중 「3. 장면 구성 테이블」이 정본이다. 5장 화면 흐름 절과 어긋나는 곳은
+ *           docs/결정/결정기록.md 결정 1 · 결정 9 에 적었다.
+ *
+ *     ── 원문에 없어서 우리가 채운 값 (전부 여기 표시했다) ──────────────
+ *       ✏️ preferred_turns          — 결정 2. 최대 턴의 절반 (2/3/3/2)
+ *       📄 characters 의 성격        — docs/원본/방귀뀌는며느리 캐릭터 성격.md 가 세 명을 다 준다.
+ *                                     2026-08-11 에 찾았다. 결정 12 의 「어느 문서에도 없다」는 틀렸다.
+ *       ✏️ characters 의 말투        — 정본이 말투는 안 준다. 고정 대사에서 역산한 초안이다. 검수 필요
+ *       ✏️ scene_stance             — 결정 12. 같은 초안. 정본 성격과 어긋나지 않는 선에서 썼다
+ *       ✏️ remaining_worries        — 결정 12. 같은 초안
+ *       ✏️ conflict                 — 3장 표에 이 열이 없어 원문 전개 지문에서 요약했다
+ *       ✏️ element_criteria         — docs/제안/초안_요소기준.md 3장의 분석 LLM 입력 기준 16문장
+ *       원문 그대로인 것: id / scene_order / character_name / scene_description /
+ *                         character_opening / character_closing / scene_goal /
+ *                         required_elements / max_turns
+ *
+ * ── 002 에 없어서 여기서 처음 채우는 값 ──────────────────────────
+ *   `stories.code` · `story_scenes.code` 는 sql/002 에 없다. 파이썬 판에 그 컬럼이
+ *   아예 없었기 때문이다. 값은 docs/기준/콘텐츠_방귀뀌는며느리.md 에서 가져왔다
+ *   (`s_banggui_daughter_in_law_001` :160,172 · `sc_banggui_01`–`09` :201,236).
+ *   `characters.code` 는 002 에 이미 있던 값 그대로다.
+ */
+
+import { config } from 'dotenv'
+import { eq } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+
+import { characters, stories, story_scenes, test_children } from './schema'
+
+config({ path: '.env.local' })
+
+// ─────────────────────────────────────────────────────────────
+// 이야기
+// ─────────────────────────────────────────────────────────────
+const 이야기 = {
+  // ⚠️ 002 에 없는 값. docs/기준/콘텐츠_방귀뀌는며느리.md:160,172
+  code: 's_banggui_daughter_in_law_001',
+  title: '방귀 뀌는 며느리',
+  summary: '큰 방귀를 부끄러워하던 며느리가 자신의 다름을 장점으로 바꾸는 이야기',
+  difficulty: '보통',
+  topics: ['다름', '자기이해', '장점 발견'],
+  estimated_minutes: 20,
+  status: 'published',
+}
+
+// ─────────────────────────────────────────────────────────────
+// 캐릭터 3명
+//
+// ✏️ persona / speech_style / guidance_style / forbidden 은 전부 초안이다.
+//    어느 문서에도 없어서 고정 대사의 말투를 역산해 썼다 (결정 12).
+//    기획자 검수 전에는 이 값으로 대화 품질을 판단하지 말 것.
+// ─────────────────────────────────────────────────────────────
+const 캐릭터들 = [
+  {
+    code: 'ch_banggui_daughter_in_law',
+    name: '방귀쟁이 며느리',
+    // 📄 성격: 캐릭터 성격.md 「며느리」 다섯 줄. 상황은 도입·전개1 지문
+    persona:
+      '시집온 지 얼마 안 된 며느리. 가족에게 폐를 끼치거나 이상하게 보이는 것을 걱정해 ' +
+      '자기 불편함보다 주변 사람의 반응을 먼저 생각한다. ' +
+      '방귀를 며칠씩 참느라 배가 빵빵하고 얼굴이 노랗게 변할 만큼 힘든데도 말을 못 꺼내고 있다. ' +
+      '자기 특징을 쉽게 드러내지 못하고 숨기려 하지만, 따뜻하고 배려심이 있어 ' +
+      '그 힘도 남을 돕는 데 쓴다. 이야기를 거치며 조금씩 당당해진다.',
+    // 근거: "ㅇㅇ아, ~ 않을까?" — 아이를 이름으로 부르고 반말을 쓴다
+    speech_style:
+      '아이를 이름으로 부르며 또래에게 말하듯 반말을 쓴다. 존댓말을 쓰지 않는다. ' +
+      '말끝을 흐리거나 "~까?"로 되묻는 일이 잦다. 목소리가 작고 조심스럽다.',
+    // 근거: 첫 대사가 이미 "가르치는 질문"이 아니라 "자기 걱정 털어놓기"다
+    guidance_style:
+      '아이를 가르치듯 묻지 않는다. 자기 걱정을 소리 내어 말하는 방식으로 드러낸다. ' +
+      '"너는 어떻게 생각해?"보다 "나는 이게 걱정이야…"에 가깝게 말한다.',
+    forbidden: [
+      '아이 대신 해결책을 말하기',
+      '장면을 스스로 끝내기',
+      '뒷이야기(배를 떨어뜨리는 일, 시아버지의 사과)를 미리 말하기',
+      '아이를 칭찬하거나 평가하기',
+    ],
+  },
+  {
+    code: 'ch_banggui_father_in_law',
+    name: '시아버지',
+    // 📄 성격: 캐릭터 성격.md 「시아버지」 여섯 줄. 화의 뿌리는 놀람이 아니라 체면이다
+    persona:
+      '집안의 체면과 남의 시선을 무엇보다 중히 여기는 어른. 며느리의 방귀에 갓이 날아갔고, ' +
+      '이 일로 집안 체면이 구겨질까 봐 그 걱정이 그대로 화로 나왔다. ' +
+      '놀라거나 당황하면 반응이 크고 과장되어 웃음을 준다. ' +
+      '자기 생각과 기준이 분명해 쉽게 입장을 바꾸지 않는다. ' +
+      '며느리가 일부러 그런 게 아니라는 것도, 오래 참아서 힘들었다는 것도 아직 모른다.',
+    // ✏️ 말투 자체는 정본에 없다. "~느냐!", "그렇지 않니?", "흥," 에서 역산했다.
+    // 📄 다만 「호들갑스러움」·「익살스러운 어른」 두 줄은 캐릭터 성격.md 에서 왔다
+    speech_style:
+      '아이에게 하대한다("~느냐", "~보아라"). 놀라거나 못마땅할 때 반응이 크고 과장된다 — ' +
+      '감탄사와 느낌표가 잦고 목소리가 크다. "흥" 하고 코웃음을 친다. ' +
+      '그 큰 반응은 무섭기보다 우스워야 한다. 옛 어른의 말투를 쓴다.',
+    // 📄 「티격태격하는 소통」·「아이의 말은 귀담아들음」 두 줄을 옮겼다.
+    // 아이는 시아버지를 설득해야 한다. 순순히 물어봐 주면 설득이 성립하지 않는다
+    //
+    // ✏️ 2026-08-12 — 마지막 두 문장은 실측으로 더했다 (아직 사람 검수 전).
+    //    아이 역할 LLM 3회에서 GUIDED 턴이 3/3 실패했는데, 그 대사가 전부
+    //    자기 체면 이야기였고 받은 걱정 한 줄을 아예 안 썼다
+    //    ("소리가 크고 작고가 문제가 아니니라, 내 갓이 …" / "내 꼴이 이래서야 …").
+    //    「자기 입장을 먼저 세게 말하고」가 유도 턴까지 먹은 것으로 본다.
+    //    입장을 죽이지 않고 **화제만** 걱정 쪽에 묶는다.
+    guidance_style:
+      '순순히 묻지 않는다. 자기 입장을 먼저 세게 말하고, 아이가 반박하도록 만든다. ' +
+      '티격태격하되 호통치거나 위압적으로 대하지 않는다. ' +
+      '아이 말에 일리가 있으면 그 자리에서 인정한다. 다만 그렇다고 결정을 뒤집지는 않는다. ' +
+      '부족한 요소는 "그래서 나더러 어쩌라는 게냐?"처럼 되받아치는 방식으로 드러낸다. ' +
+      '걱정 한 줄을 받은 턴에는 그 걱정이 화제를 정한다. 네 체면 이야기로 화제를 ' +
+      '바꿔치기하지 않는다. 세게 말하는 것은 그 화제 안에서 한다.',
+    forbidden: [
+      '아이 대신 며느리를 이해해 주기',
+      '아이 말 한 번에 바로 마음을 바꾸기',
+      '장면을 스스로 끝내기',
+      '뒷이야기(배를 떨어뜨리는 일, 자신이 사과하게 되는 일)를 미리 말하기',
+      '아이를 혼내거나 위압적으로 대하기',
+    ],
+  },
+  {
+    code: 'ch_banggui_village_chief',
+    name: '마을 이장',
+    // 📄 성격: 캐릭터 성격.md 「마을 이장님」 다섯 줄. 상황은 전개3 지문
+    persona:
+      '아랫마을을 돌보는 어른. 마을의 불편이나 문제를 먼저 살피고 사람들의 의견을 모은다. ' +
+      '해마다 열리는 배를 아무도 못 따서 오래 아쉬워했고, 장대도 써 보고 나무에 올라가 ' +
+      '보기도 했지만 다 실패했다. 특이하거나 낯선 방법이라도 실제로 도움이 되면 받아들이고, ' +
+      '새로운 생각을 들으면 "그게 정말 되겠소?" 하며 관심을 보인다. ' +
+      '며느리와 시아버지의 사정은 모르고, 아이를 꾀 많은 사람으로 대접하며 방법을 구한다.',
+    // 근거: "없었소", "않겠는가?", "고맙소!" — 하오체
+    speech_style:
+      '하오체를 쓴다("~소", "~구려", "~겠는가"). 아이를 어린애 취급하지 않고 ' +
+      '어른에게 상의하듯 정중하게 말한다. 넉살이 좋고 감탄을 잘 한다.',
+    // 📄 「사람들의 안전을 중요하게 여김」·「좋은 결과를 적극적으로 인정함」 두 줄
+    guidance_style:
+      '답을 알면서 떠보지 않는다. 정말로 방법을 몰라서 묻는 사람처럼 말한다. ' +
+      '아이가 낸 방법의 좋은 점을 먼저 인정하고, 걱정은 한 번에 하나만 얹는다. ' +
+      '해결 방법만큼 주변 사람들이 다치지 않는지도 신경 쓴다.',
+    forbidden: [
+      '아이 대신 방법을 말하기',
+      '방귀로 배를 떨어뜨린다는 답을 먼저 꺼내기',
+      '장면을 스스로 끝내기',
+      '정답/오답을 매기기',
+    ],
+  },
+]
+
+// ─────────────────────────────────────────────────────────────
+// 장면 9개
+//
+// `code` 는 ⚠️ 002 에 없는 값이다. sc_banggui_01–09 가 scene_order 1–9 와
+// 그대로 대응한다 (docs/기준/콘텐츠_방귀뀌는며느리.md:201,236).
+// ─────────────────────────────────────────────────────────────
+
+/** 전개 장면 5개 — 아이가 말하지 않는다. 대화 관련 값이 전부 없다 */
+const 전개장면들: { code: string; scene_order: number; scene_description: string }[] = [
+  {
+    code: 'sc_banggui_01',
+    scene_order: 1,
+    scene_description:
+      '옛날 어느 마을에 방귀를 아주 크게 뀌는 며느리가 살았습니다. 며느리는 시집에 온 뒤로 늘 얌전하고 예의 바르게 보이고 싶었습니다. 시댁 식구들이 자신을 이상하게 볼까 봐 걱정했기 때문입니다.',
+  },
+  {
+    code: 'sc_banggui_02',
+    scene_order: 2,
+    scene_description:
+      '그래서 며느리는 방귀가 나오려고 할 때마다 꾹꾹 참았습니다. 하루도 참고, 이틀도 참고, 그렇게 오래 참다 보니 배는 점점 빵빵하게 부풀어 올랐고 얼굴은 노랗게 변했습니다. 몸도 마음도 너무 힘들었지만, 며느리는 차마 가족들에게 솔직하게 말하지 못했습니다.',
+  },
+  {
+    code: 'sc_banggui_04',
+    scene_order: 4,
+    scene_description:
+      '며느리는 더 이상 참을 수 없어 몰래 살짝만 방귀를 뀌려고 합니다. 하지만 오래 참았던 탓에 방귀가 크게 터져 나왔습니다. 마당의 먼지가 휘리릭 날아가고, 기왓장이 달그락거리고, 시아버지의 갓까지 휙 날아가 버렸습니다.',
+  },
+  {
+    code: 'sc_banggui_06',
+    scene_order: 6,
+    scene_description:
+      '한참 걷다 보니 아랫마을 길가에 아주 높은 배나무가 한 그루 서 있었습니다. 나무 꼭대기에는 노랗고 탐스러운 배들이 주렁주렁 매달려 있었습니다. 시아버지는 배를 보자 군침이 돌았습니다. 마침 아랫마을 사람들도 그 배를 먹고 싶어 했지만, 나무가 너무 높아 아무도 딸 수 없었습니다.',
+  },
+  {
+    code: 'sc_banggui_08',
+    scene_order: 8,
+    scene_description:
+      '시아버지는 며느리의 방귀가 시끄럽고 별난 것이 아니라, 모두를 도울 수 있는 특별한 힘이라는 것을 깨닫습니다. 자신이 며느리를 구박했던 일을 후회하고 사과합니다.',
+  },
+]
+
+/**
+ * 대화 장면 4개 — 아이가 말한다.
+ *
+ * ⚠️ 타입을 붙여 두는 이유: 안 붙이면 remaining_worries 의 키가 장면마다 달라
+ * TS 가 네 장면의 리터럴 타입을 유니온으로 좁힌다(`REQUEST?: undefined` 따위가 붙는다).
+ * 그러면 컬럼 타입인 Record<string, string> 에 안 들어간다.
+ */
+type 대화장면 = {
+  code: string
+  scene_order: number
+  character_code: string
+  character_name: string
+  conflict: string
+  scene_stance: string
+  remaining_worries: Record<string, string>
+  character_opening: string
+  character_closing: string
+  scene_goal: string
+  required_elements: string[]
+  element_criteria: Record<string, string>
+  preferred_turns: number
+  max_turns: number
+}
+
+const 대화장면들: 대화장면[] = [
+  // 대화1 · sc_banggui_03 -----------------------------------------------------
+  // 목표 요소 두 번째 칸: EMOTION → EMPATHY. 2026-08-11 기획자 인터뷰 3회차 Q1 로 확정.
+  // 아이 자기 감정만 EMOTION 이고, 다른 인물의 마음을 헤아린 것은 EMPATHY 다(prompts/analysis.md:131).
+  // 이 자리의 걱정 문장은 처음부터 며느리 마음을 묻고 있었다 — 어긋났던 건 자리 이름이다(이슈 #5).
+  {
+    code: 'sc_banggui_03',
+    scene_order: 3,
+    character_code: 'ch_banggui_daughter_in_law',
+    character_name: '방귀쟁이 며느리',
+    // conflict ✏️ (3장 표에 이 열이 없어 도입·전개1 지문에서 요약했다)
+    conflict: '방귀를 참느라 몸이 상해 가는데도, 가족이 이상하게 볼까 봐 솔직하게 말하지 못하고 있다.',
+    // scene_stance ✏️
+    scene_stance:
+      '아이에게 도움을 구하는 편이다. 자기 힘으로는 결정을 못 내려 아이의 말에 기대고 있다. ' +
+      '아이 말을 반가워하되, 이 장면에서는 아직 용기를 내지 못한다(고정 마지막 대사가 그렇게 끝난다).',
+    // remaining_worries ✏️
+    remaining_worries: {
+      PERSPECTIVE: '가족들은 나를 어떻게 볼까? 생각만 해도 무서워…',
+      EMPATHY: '나도 내 마음이 어떤 건지 잘 모르겠어…',
+      REASON: '근데 어째서 그렇게 하면 되는 걸까? 난 잘 모르겠어.',
+      SOLUTION: '그럼 난 어떻게 하면 좋을까…',
+    },
+    character_opening: 'ㅇㅇ아, 내 방귀가 너무 크다는 걸 알면 가족들이 나를 이상하게 생각하지 않을까?',
+    character_closing: '그래도 아직은 못 말하겠어. 조금만 더 참아 볼게.',
+    scene_goal:
+      '방귀를 숨기고 싶어하는 며느리의 입장을 이해하고, 공감해주며 문제를 숨기지 않고 솔직하게 말할 수 있는 용기를 준다',
+    required_elements: ['PERSPECTIVE', 'EMPATHY', 'REASON', 'SOLUTION'],
+    element_criteria: {
+      PERSPECTIVE:
+        '며느리가 왜 말하지 못하는지, 또는 며느리가 지금 어떤 처지인지를 며느리 쪽에서 말한다. 아이 자기 생각이나 일반론은 안 된다.',
+      EMPATHY:
+        '숨기고 싶어하는 며느리의 마음을 헤아려 말한다. 며느리 처지에 서서 그 마음을 읽어 주거나(무섭겠다·창피하겠다·속상하겠다 …), 며느리가 털어놓은 어려움을 말로 되짚어 주거나 둘 중 하나면 된다. 사실 서술이나 「괜찮아」 같은 빈 위로만으로는 안 되고, 아이 자기 마음만 말한 것은 이 자리가 아니다(그건 EMOTION).',
+      REASON:
+        '말해야 한다 / 숨겨도 된다 중 어느 쪽 판단이든, 그 판단에 붙은 까닭을 댄다. 까닭이 며느리의 몸·마음·가족 관계 중 하나에 닿아야 한다.',
+      SOLUTION:
+        '며느리가 실제로 해 볼 수 있는 행동을 한 가지 이상 말한다. 누구에게 또는 무엇을 중 적어도 하나가 발화에 있어야 한다.',
+    },
+    preferred_turns: 2,
+    max_turns: 4,
+  },
+
+  // 대화2 · sc_banggui_05 -----------------------------------------------------
+  // required_elements: 결정 9 로 확정. 3장 표는 EMOTION/SOLUTION 이지만
+  // 같은 행의 scene_goal 문장과 진행 흐름이 둘 다 EMPATHY/REQUEST 를 가리킨다.
+  {
+    code: 'sc_banggui_05',
+    scene_order: 5,
+    character_code: 'ch_banggui_father_in_law',
+    character_name: '시아버지',
+    conflict: '며느리의 방귀에 갓까지 날아가 체면이 상했다. 놀란 마음이 화로 나와 며느리와 못 살겠다고 한다.',
+    scene_stance:
+      '아이와 대립하는 편이다. 아이가 설득해야 하는 상대다. ' +
+      '아이 말에 일리가 있으면 그 자리에서 인정하지만, 그렇다고 결정을 뒤집지는 않는다(📄 캐릭터 성격.md). ' +
+      '아이 말을 한 번에 받아들이면 이 장면이 성립하지 않는다(고정 마지막 대사가 그렇다).',
+    // 📄 2026-08-11 다시 씀. 정본 캐릭터 성격(체면·호들갑·티격태격)을 따라 「놀람」을 뺐다.
+    // 넷 다 질문이 아니라 억울함이다 — 아이가 반박하며 요소를 낸다(guidance_style 과 같은 결).
+    // 예/아니오로 닫히지 않게, 그리고 아이 몫의 답을 먼저 말해 주지 않게 골랐다.
+    // 🧑 PERSPECTIVE 는 2026-08-11 인터뷰로 사람이 확정했다 (결정 60).
+    //    옛 줄("남들이 우리 집안을 어찌 보겠느냐")은 시아버지 자기 체면만 가리켜
+    //    아이가 낼 「며느리 쪽」으로 가는 길이 없었다. 좁힐 아래 칸이 남지 않아
+    //    캐릭터가 세 번을 다 되풀이했다(3/3 실측). 사람이 아니라 사람 수를 물어
+    //    「누구인지」를 아이가 고르게 한다.
+    remaining_worries: {
+      PERSPECTIVE: '흥, 이 일로 낯을 못 들게 된 사람이 나 하나뿐이지 무어냐!',
+      EMPATHY: '흥, 며느리는 속이 다 시원하겠구나. 창피한 것은 나 혼자로구나!',
+      REASON: '사람이 어찌 그런 방귀를 뀐단 말이냐! 나는 도무지 영문을 모르겠구나.',
+      REQUEST: '그래서 나더러 어쩌라는 게냐?',
+    },
+    character_opening:
+      '아이고 이게 무슨 일이냐! 우리 집안이 다 흔들리는구나! 이렇게 창피한 며느리와 함께 못살겠다! 그렇지 않니?',
+    character_closing: '흥, 그래도 도저히 이런 며느리와는 함께 살 수 없으니 친정으로 데려다줘야겠다.',
+    scene_goal:
+      '시아버지가 놀란 마음을 이해하면서도, 며느리가 일부러 그런 것이 아니라 오래 참아서 힘들었던 것임을 말하고, 며느리를 따뜻하게 이해해 달라고 설득한다.',
+    required_elements: ['PERSPECTIVE', 'EMPATHY', 'REASON', 'REQUEST'],
+    // 🧑 PERSPECTIVE 는 2026-08-11 인터뷰로 사람이 확정했다 (결정 60).
+    //    옛 기준은 시아버지 쪽도 인정했는데, 그러면 시아버지가 걱정으로 이미 말한 것을
+    //    아이가 되받기만 해도 요소가 차서 장면이 일찍 끝난다.
+    element_criteria: {
+      PERSPECTIVE:
+        '며느리가 그때 어떤 처지였는지를 며느리 쪽에서 말한다. 시아버지 자신의 놀람·체면은 이 장면에서 시아버지가 스스로 말하는 것이므로 인정하지 않는다.',
+      EMPATHY: '며느리(또는 시아버지)의 힘듦·마음을 알아주고 편들어 준다. 사실을 옮기는 말이나 부탁만으로는 안 된다.',
+      REASON: '며느리가 일부러 그런 게 아니라는 것의 까닭, 또는 시아버지가 마음을 바꿔야 하는 까닭을 댄다.',
+      REQUEST:
+        '시아버지에게 무엇을 해 달라고(또는 하지 말아 달라고) 말한다. 대상이 시아버지여야 하고 바꿀 행동이 있어야 한다.',
+    },
+    preferred_turns: 3,
+    max_turns: 5,
+  },
+
+  // 대화3 · sc_banggui_07 -----------------------------------------------------
+  {
+    code: 'sc_banggui_07',
+    scene_order: 7,
+    character_code: 'ch_banggui_village_chief',
+    character_name: '마을 이장',
+    conflict: '해마다 열리는 배가 너무 높아 장대로도 나무를 타고도 아무도 따지 못한다.',
+    scene_stance:
+      '아이에게 방법을 구하는 편이다. 정말로 답을 모른다. 며느리의 방귀 이야기는 아이가 먼저 꺼내야 한다. ' +
+      '이장이 먼저 방귀를 언급하면 미션의 의미가 사라진다.',
+    remaining_worries: {
+      SOLUTION: '그래서 어떻게 하면 좋겠소? 나는 도무지 모르겠구려.',
+      REASON: '어째서 그 방법이면 되겠소? 나는 잘 모르겠소.',
+      REQUEST: '며느리한테는 뭐라고 부탁하면 좋겠소?',
+      RESULT: '그렇게 하면 무슨 일이 생기겠소?',
+    },
+    character_opening:
+      '이 배나무는 해마다 탐스러운 배가 열리지만, 너무 높아서 아무도 딸 수가 없었소. 무슨 뾰족한 방법이 없겠는가?',
+    character_closing: '아이고, 방귀 뀌는 며느리 덕분에 온 마을이 배 잔치를 할 수 있겠구려, 고맙소!',
+    scene_goal:
+      '높은 배나무의 배를 떨어뜨릴 방법을 생각하고, 며느리의 큰 방귀를 안전하게 사용할 수 있는 해결책을 제안한다.',
+    required_elements: ['SOLUTION', 'REASON', 'REQUEST', 'RESULT'],
+    element_criteria: {
+      SOLUTION: '무엇을 써서 배를 떨어뜨릴지를 말하고, 그 수단이 며느리의 방귀여야 한다.',
+      REASON:
+        '왜 그 방법이면 되는지를 댄다. 방귀의 성질(세다·바람이 분다·소리가 크다)과 배가 떨어지는 일을 잇는 말이어야 한다.',
+      REQUEST:
+        '며느리에게 무엇을 해 달라고 할지 말한다. 며느리에게 직접 하는 말이든, 이장에게 「며느리한테 …라고 해 주세요」라고 전하는 꼴이든 인정한다.',
+      RESULT:
+        '그렇게 하면 무슨 일이 생기는지를 예상해 말한다. ①배가 떨어진다 ②마을 사람들이 배를 먹는다 ③며느리가 고맙다는 말을 듣는다 중 하나면 된다.',
+    },
+    preferred_turns: 3,
+    max_turns: 5,
+  },
+
+  // 대화4 · sc_banggui_09 -----------------------------------------------------
+  // 목표 요소 첫 칸: EMOTION → EMPATHY. 대화1 과 같은 자리, 같은 근거다.
+  // 2026-08-11 기획자 인터뷰 3회차 Q1 · 이슈 #5. scene_goal 도 며느리를 이해하는 쪽을 가리킨다.
+  {
+    code: 'sc_banggui_09',
+    scene_order: 9,
+    character_code: 'ch_banggui_daughter_in_law',
+    character_name: '방귀쟁이 며느리',
+    conflict: '숨기고 싶던 특징이 남을 도왔다는 걸 알게 됐지만, 아직 부끄러워하지 않아도 되는지 확신이 없다.',
+    scene_stance:
+      '대화1 때와 입장이 정반대다. 이미 방귀로 마을을 도운 뒤다. 더는 숨기려 하지 않고, ' +
+      '다만 앞으로 어떻게 받아들여야 할지를 아이에게 묻는다. 대화1의 위축된 톤을 그대로 쓰지 말 것.',
+    remaining_worries: {
+      EMPATHY: '…나도 내 마음을 아직 잘 모르겠어.',
+      PERSPECTIVE: '다른 사람들도 나처럼 숨기고 싶은 게 있을까?',
+      RESULT: '내가 이제 안 숨기면 어떻게 될까?',
+      SOLUTION: '그럼 앞으로 난 어떻게 하면 좋을까?',
+    },
+    character_opening:
+      'ㅇㅇ이 덕분에 내 방귀가 누군가에게 도움이 될 수 있다는 걸 처음 알았어. 이제는 방귀 소리가 큰 걸 부끄러워하지 않아도 될까?',
+    character_closing: '이제는 부끄러워하며 숨기지 않고, 조심해서 좋은 일에 써 볼게',
+    scene_goal: '다름을 인정하고, 자신의 특징을 긍정적으로 받아들이는 태도를 말한다.',
+    required_elements: ['EMPATHY', 'PERSPECTIVE', 'RESULT', 'SOLUTION'],
+    element_criteria: {
+      EMPATHY:
+        '아직 부끄러움이 남은 며느리의 마음을 헤아려 말한다. 며느리 처지에 서서 지금 그 마음을 읽어 주거나(뿌듯하겠다·아직 부끄럽겠다 …), 며느리가 털어놓은 망설임을 말로 되짚어 주거나 둘 중 하나면 된다. 사실 서술이나 「부끄러워하지 마」 같은 지시만으로는 안 되고, 아이 자기 마음만 말한 것은 이 자리가 아니다(그건 EMOTION).',
+      PERSPECTIVE:
+        '다른 사람에게도 숨기고 싶은 것·남과 다른 점이 있다는 것을 말한다. 자기 얘기만으로는 안 되고, 며느리 아닌 누군가가 발화에 나와야 한다.',
+      RESULT:
+        '며느리가 이제 안 숨기면 무슨 일이 생길지를 예상해 말한다. 몸이 편해진다 / 사람들이 찾는다 / 마을을 돕는다 같은 일어날 일이어야 한다.',
+      SOLUTION:
+        '며느리가 앞으로 어떻게 할지 구체적인 행동을 말한다. 「받아들여라」 같은 태도만으로는 안 되고, 언제 · 어디서 · 어떻게 중 하나가 있어야 한다.',
+    },
+    preferred_turns: 2,
+    max_turns: 4,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────
+// 시험용 아이 4명 — sql/003_admin.sql:227 의 INSERT 를 그대로 옮겼다
+//
+// ✏️ 전부 합성이다 (헌법 원칙 IV). 실제 아이 정보가 아니다.
+//    대상 나이는 만 6~9세이고(인터뷰 Q19 · 🕓 잠정) 2026년 기준 연도 연령이라
+//    birth_year 는 2017~2020 이다.
+//    ⭐ 이름을 고른 기준이 하나 더 있다 — **받침 있는 이름과 없는 이름을 섞었다.**
+//    Q12(아이 이름 `ㅇㅇ` 치환)의 딸린 질문이 「받침 규칙(`ㅇㅇ아`/`ㅇㅇ이`)」인데
+//    아직 미답이다. 답이 오면 두 경우를 다 시험할 수 있게 미리 갈라 두었다.
+//
+// ⚠️ **여기만 upsert 를 못 쓴다.** `test_children` 에는 `id` 말고 UNIQUE 가 없어서
+//    (`sql/003_admin.sql:213` — 003 이 그렇게 정해 뒀다) `onConflictDoUpdate` 가 걸 열쇠가 없다.
+//    UNIQUE 를 새로 거는 것은 답이 아니다 — 스키마의 정의는 sql 파일 하나이고 여기는 사본이다.
+//    그래서 **이름으로 있나 보고, 있으면 고치고 없으면 넣는다.** 여러 번 돌려도 4명 그대로다.
+// ─────────────────────────────────────────────────────────────
+const 시험아이들 = [
+  { name: '민준', birth_year: 2020, note: '✏️ 시험용. 만 6세 — 대상 나이의 아래 끝. 받침 있는 이름(준)' },
+  { name: '지우', birth_year: 2019, note: '✏️ 시험용. 만 7세. 받침 없는 이름(우)' },
+  { name: '서아', birth_year: 2018, note: '✏️ 시험용. 만 8세. 받침 없는 이름(아)' },
+  { name: '하준', birth_year: 2017, note: '✏️ 시험용. 만 9세 — 대상 나이의 위 끝. 받침 있는 이름(준)' },
+]
+
+// ─────────────────────────────────────────────────────────────
+// 넣기 — 지우지 않고 code 로 upsert 한다
+// ─────────────────────────────────────────────────────────────
+type DB = ReturnType<typeof drizzle>
+/** 트랜잭션 핸들. 시드는 db 로도 tx 로도 돌 수 있어야 한다 */
+type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
+
+export async function seed(db: DB | Tx) {
+  // 이야기 --------------------------------------------------------------
+  const [행_이야기] = await db
+    .insert(stories)
+    .values(이야기)
+    .onConflictDoUpdate({
+      target: stories.code,
+      set: {
+        title: 이야기.title,
+        summary: 이야기.summary,
+        difficulty: 이야기.difficulty,
+        topics: 이야기.topics,
+        estimated_minutes: 이야기.estimated_minutes,
+        status: 이야기.status,
+      },
+    })
+    .returning({ id: stories.id })
+
+  const story_id = 행_이야기.id
+
+  // 캐릭터 --------------------------------------------------------------
+  // 장면이 character_id 를 필요로 하므로 code → id 표를 만들어 둔다.
+  const 캐릭터_id: Record<string, string> = {}
+  for (const 캐 of 캐릭터들) {
+    const [행] = await db
+      .insert(characters)
+      .values({ story_id, ...캐 })
+      .onConflictDoUpdate({
+        target: [characters.story_id, characters.code],
+        set: {
+          name: 캐.name,
+          persona: 캐.persona,
+          speech_style: 캐.speech_style,
+          guidance_style: 캐.guidance_style,
+          forbidden: 캐.forbidden,
+        },
+      })
+      .returning({ id: characters.id, code: characters.code })
+    캐릭터_id[행.code] = 행.id
+  }
+
+  // 장면 ----------------------------------------------------------------
+  // 전개 장면은 대화 관련 값이 전부 없다. 그래도 set 에 넣어 둔다 —
+  // 넣지 않으면 이미 있던 옛 값이 살아남아 「대사 있는 전개 장면」이 된다.
+  const 장면들 = [
+    ...전개장면들.map((장) => ({
+      story_id,
+      code: 장.code,
+      scene_order: 장.scene_order,
+      scene_description: 장.scene_description,
+      conflict: null,
+      character_name: null,
+      character_id: null,
+      scene_stance: null,
+      remaining_worries: {},
+      character_opening: null,
+      character_closing: null,
+      scene_goal: null,
+      required_elements: null,
+      element_criteria: {},
+      preferred_turns: null,
+      max_turns: null,
+    })),
+    ...대화장면들.map(({ character_code, ...장 }) => ({
+      story_id,
+      code: 장.code,
+      scene_order: 장.scene_order,
+      scene_description: null,
+      conflict: 장.conflict,
+      character_name: 장.character_name,
+      character_id: 캐릭터_id[character_code],
+      scene_stance: 장.scene_stance,
+      remaining_worries: 장.remaining_worries,
+      character_opening: 장.character_opening,
+      character_closing: 장.character_closing,
+      scene_goal: 장.scene_goal,
+      required_elements: 장.required_elements,
+      element_criteria: 장.element_criteria,
+      preferred_turns: 장.preferred_turns,
+      max_turns: 장.max_turns,
+    })),
+  ].sort((a, b) => a.scene_order - b.scene_order)
+
+  for (const 장 of 장면들) {
+    await db
+      .insert(story_scenes)
+      .values(장)
+      .onConflictDoUpdate({
+        target: [story_scenes.story_id, story_scenes.code],
+        // 열쇠인 story_id·code 까지 set 에 들어가지만 값이 같아 아무 일도 하지 않는다.
+        set: 장,
+      })
+  }
+
+  // 시험용 아이 --------------------------------------------------------
+  for (const 아이 of 시험아이들) {
+    const [있던_행] = await db
+      .select({ id: test_children.id })
+      .from(test_children)
+      .where(eq(test_children.name, 아이.name))
+      .limit(1)
+
+    if (있던_행 === undefined) {
+      await db.insert(test_children).values(아이)
+    } else {
+      await db
+        .update(test_children)
+        .set({ birth_year: 아이.birth_year, note: 아이.note })
+        .where(eq(test_children.id, 있던_행.id))
+    }
+  }
+
+  return {
+    stories: 1,
+    characters: 캐릭터들.length,
+    story_scenes: 장면들.length,
+    test_children: 시험아이들.length,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 직접 실행: npx tsx db/seed.ts
+// ─────────────────────────────────────────────────────────────
+async function main() {
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('DATABASE_URL 이 없다. web/.env.local 을 확인해라.')
+
+  // max: 1 — 시드는 한 연결로 순서대로 돈다. 트랜잭션 하나로 묶기 위해서다.
+  const sql = postgres(url, { max: 1 })
+  try {
+    const 결과 = await drizzle(sql).transaction((tx) => seed(tx))
+    console.log(
+      `[시드] ${이야기.title} — stories ${결과.stories} · characters ${결과.characters} · story_scenes ${결과.story_scenes}` +
+        ` · test_children ${결과.test_children}`,
+    )
+  } finally {
+    await sql.end()
+  }
+}
+
+// 이 파일을 직접 돌렸을 때만 main 을 부른다 (import 만 하면 안 돈다).
+if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+}
