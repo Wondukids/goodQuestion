@@ -124,6 +124,57 @@ export async function lastCharacterMessage(
   return 행들.length === 0 ? null : 행들[0].text
 }
 
+/**
+ * `(child_id, story_id)` 의 **진행 중** 세션 중 가장 최근 것. 세션 열기(4.1)의 검색이다.
+ *
+ * 중복 in_progress 가 있으면 — 옛 `startStory()` 는 유니크 인덱스 없이 넣었다 — 최근 활동
+ * 것을 하나 고른다. 경쟁 자체를 막는 부분 유니크 인덱스는 스키마 이슈 #5 몫이다.
+ */
+export async function latestInProgressSession(
+  conn: Conn,
+  { child_id, story_id }: { child_id: string; story_id: string },
+): Promise<SessionRow | null> {
+  const 행들 = await conn
+    .select()
+    .from(story_sessions)
+    .where(
+      and(
+        eq(story_sessions.child_id, child_id),
+        eq(story_sessions.story_id, story_id),
+        eq(story_sessions.status, 'in_progress'),
+      ),
+    )
+    .orderBy(desc(story_sessions.last_activity_at), desc(story_sessions.id))
+    .limit(1)
+  return 행들.length === 0 ? null : 행들[0]
+}
+
+/**
+ * 현재 장면의 마지막 캐릭터 행 — **id 까지**. 아이 앱의 `last_character_line` 재료다
+ * (재개 지점 = 그 장면의 마지막 캐릭터 `messages` 행 — rev.2 결정 ③).
+ *
+ * `lastCharacterMessage()` 와 다른 점은 id 하나다 — 그쪽은 LLM 재료라 글만 쓰고,
+ * 반환 모양을 바꾸면 엔진 조립이 흔들려 따로 둔다.
+ */
+export async function lastCharacterLine(
+  conn: Conn,
+  { session_id, scene_id }: { session_id: string; scene_id: string },
+): Promise<{ message_id: string; text: string } | null> {
+  const 행들 = await conn
+    .select({ message_id: messages.id, text: messages.text })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.session_id, session_id),
+        eq(messages.scene_id, scene_id),
+        eq(messages.speaker_type, 'character'),
+      ),
+    )
+    .orderBy(desc(messages.turn_order), desc(messages.id))
+    .limit(1)
+  return 행들.length === 0 ? null : 행들[0]
+}
+
 /** 이 세션의 마지막 아이 발화 id. 끝나지 않은 턴을 잇는 자리가 쓴다. */
 export async function lastChildMessageId(
   conn: Conn,

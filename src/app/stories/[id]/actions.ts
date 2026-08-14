@@ -2,44 +2,26 @@
 
 import { redirect } from "next/navigation";
 import { requireSelectedChild } from "@/lib/selected-child";
-import { createClient } from "@/lib/supabase/server";
+import { LookupError, ValueError } from "@/llm/service/step";
+import { openSession } from "@/session/service/open";
 
 /**
- * "이야기 시작하기" — 재생 화면으로 가기 전에 story_sessions 에 흔적을 남긴다.
- * 홈 "이어서 볼까요?" 와 추천 캐시 무효 판정이 이 기록을 읽는다.
- * 같은 이야기의 진행중 세션이 있으면 새로 만들지 않고 활동 시각만 당긴다.
+ * "이야기 시작하기" — 세션 열기(4.1)를 거쳐 재생 화면으로 간다 (이슈 #6).
+ *
+ * 전에는 Supabase 로 `story_sessions` 에 흔적만 남기고 **실패해도 넘어갔다.**
+ * 이제 세션이 이어하기의 근거라서 생성 실패는 막는다 (`docs/이야기_세션_명세.md` 4절
+ * 운영 전제) — `openSession()` 이 세션·회차 동반 생성과 따라잡기까지 다 안다.
  */
 export async function startStory(slug: string) {
   const child = await requireSelectedChild();
-  const supabase = await createClient();
 
-  const { data: story } = await supabase
-    .from("stories")
-    .select("id, status")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (!story || story.status !== "published") redirect(`/stories/${slug}`);
-
-  const { data: existing } = await supabase
-    .from("story_sessions")
-    .select("id")
-    .eq("child_id", child.id)
-    .eq("story_id", story.id)
-    .eq("status", "in_progress")
-    .order("last_activity_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  /* 기록이 실패해도 재생을 막지 않는다 — 에러는 로그만 남기고 이동한다. */
-  const { error } = existing
-    ? await supabase
-        .from("story_sessions")
-        .update({ last_activity_at: new Date().toISOString() })
-        .eq("id", existing.id)
-    : await supabase
-        .from("story_sessions")
-        .insert({ child_id: child.id, story_id: story.id });
-  if (error) console.error("세션 기록 실패:", error.message);
+  try {
+    await openSession({ child_id: child.id, story: slug });
+  } catch (오류) {
+    // 없는 이야기·공개 전 이야기는 인트로로 돌려보낸다 — 전과 같은 흐름이다.
+    if (오류 instanceof LookupError || 오류 instanceof ValueError) redirect(`/stories/${slug}`);
+    throw 오류;
+  }
 
   redirect(`/stories/${slug}/play`);
 }
