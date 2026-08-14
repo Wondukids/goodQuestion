@@ -47,6 +47,10 @@ export default function FartBridePlay({
   const [session, setSession] = useState<OpenedSession | null>(null);
   /* 복귀 진입 한 줄 — 재개 대화 씬에서 서버의 마지막 캐릭터 대사를 튼다 (결정 ⑦ 꼬리) */
   const [resumeLine, setResumeLine] = useState<{ stepId: string; text: string } | null>(null);
+  /* 서버가 지금 기다리는 대화 장면 code — 어긋남 가드의 기준이다. 대화 씬은 자기
+     sceneCode 가 이 값과 같을 때만 서버 턴을 보낸다 (건너뛰기로 어긋나면 그 씬은
+     고정 문구로 돌고, 서버 기록은 그대로라 다음 진입 때 건너뛴 대화로 복귀한다). */
+  const [serverScene, setServerScene] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
 
   /**
@@ -70,6 +74,7 @@ export default function FartBridePlay({
         }
       }
       setSession(opened);
+      setServerScene(opened.status === "in_progress" ? (opened.scene?.code ?? null) : null);
       if (opened.resumed && opened.status === "in_progress" && opened.scene) {
         const scene = opened.scene;
         const target = steps.findIndex(
@@ -159,6 +164,8 @@ export default function FartBridePlay({
                 step={step}
                 childName={childName}
                 sessionId={session?.session_id ?? null}
+                serverScene={serverScene}
+                onServerScene={setServerScene}
                 resumeLine={resumeLine?.stepId === step.id ? resumeLine.text : null}
                 onComplete={() => {
                   setResumeLine(null); // 복귀 한 줄은 한 번만 — 다음 진입은 정상 흐름
