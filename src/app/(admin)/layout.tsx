@@ -36,7 +36,7 @@ const 차림표: readonly (readonly [string, string])[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 text-sm">
-      <header className="mb-6 flex flex-col gap-2 border-b border-zinc-300 pb-3 dark:border-zinc-700">
+      <header className="mb-6 flex flex-col gap-2 border-b border-zinc-300 pb-3">
         <div className="flex items-baseline gap-4">
           <Link href="/runs" className="text-base font-semibold">
             굿퀘스천 관리자

@@ -183,7 +183,7 @@ function 현재장면({ 상세 }: { 상세: RunDetail }) {
   }
   const { session } = 상세
   return (
-    <section className="flex flex-col gap-3 border border-zinc-300 p-3 dark:border-zinc-700">
+    <section className="flex flex-col gap-3 border border-zinc-300 p-3">
       <h3 className="font-semibold">
         장면 {장면.scene_order} · {장면.character_name ?? '(전개)'}{' '}
         <span className="font-mono text-xs text-zinc-500">{장면.code}</span>
@@ -346,7 +346,7 @@ function 판단폼({
         <input type="hidden" name="message_id" value={pending.message_id} />
         <input type="hidden" name="child_intent" value={분석.child_intent} />
         <input type="hidden" name="utterance_validity" value={분석.utterance_validity} />
-        <fieldset className="flex flex-wrap items-center gap-3 border border-zinc-300 p-2 dark:border-zinc-700">
+        <fieldset className="flex flex-wrap items-center gap-3 border border-zinc-300 p-2">
           <legend className="font-mono text-xs text-zinc-500">detected_elements (후처리 뒤)</legend>
           {분석.detected_elements_kept.length === 0 && (
             <span className="font-mono text-xs">[] — 남은 요소가 없다</span>

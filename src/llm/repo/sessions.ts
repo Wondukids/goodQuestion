@@ -471,6 +471,24 @@ export async function updateSession(
 }
 
 /**
+ * 아이가 대화 씬을 건너뛰었다 — 현재 장면을 `SKIPPED` 로 닫는다 (스킵 API).
+ *
+ * 🔴 **판정 칸은 건드리지 않는다.** 누적 요소도 턴 수도 `scene_goal_met` 도 그대로 둔다 —
+ * 건너뛴 것은 아이지 규칙이 아니다. 여기서 `scene_goal_met` 을 켜면 「목표를 채웠다」가
+ * 기록에 거짓으로 남는다. 채워야 하는 것은 **전진을 일으키는 한 칸뿐**이다
+ * (`domain/progress.nextStep()` — 대화 장면인데 이 칸이 차 있으면 다음 장면으로 간다).
+ *
+ * ⚠️ 이 값은 다음 장면에 들어가는 순간 `enterScene()` 이 지운다. 「이 장면을 건너뛰었다」의
+ *    영구 근거는 `messages` 다 — 건너뛴 장면에는 여는 말 한 행만 있고 아이 행이 0개다.
+ */
+export async function markSceneSkipped(conn: Conn, session_id: string): Promise<void> {
+  await conn
+    .update(story_sessions)
+    .set({ scene_end_reason: 'SKIPPED', last_activity_at: sql`now()` })
+    .where(eq(story_sessions.id, session_id))
+}
+
+/**
  * 마지막 장면이 끝났다 (결정 22).
  *
  * `'post_activity'` 로 두지 않는다 — 이 레포에 말하기 후 활동이 없어 영영 안 끝난 세션이 남는다.

@@ -21,7 +21,7 @@ export function 한칸(값: string | string[] | undefined): string | null {
 
 export function 오류띠({ 문구 }: { 문구: string }) {
   return (
-    <p className="border border-red-500 bg-red-50 px-3 py-2 font-mono text-xs text-red-700 dark:border-red-700 dark:bg-red-950 dark:text-red-300">
+    <p className="border border-red-500 bg-red-50 px-3 py-2 font-mono text-xs text-red-700">
       {문구}
     </p>
   )

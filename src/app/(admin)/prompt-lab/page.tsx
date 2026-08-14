@@ -70,7 +70,7 @@ export default async function PromptLabPage({
 function 프롬프트칸({ 프롬프트, run_id }: { 프롬프트: PromptItem; run_id: string | null }) {
   const 고칠_수_있나 = run_id !== null && 프롬프트.editable
   return (
-    <section className="flex flex-col gap-2 border border-zinc-300 p-3 dark:border-zinc-700">
+    <section className="flex flex-col gap-2 border border-zinc-300 p-3">
       <h3 className="font-semibold">
         {프롬프트.name}
         {프롬프트.is_experiment && <span className="ml-2 text-xs text-amber-600">· 실험용</span>}
@@ -79,7 +79,7 @@ function 프롬프트칸({ 프롬프트, run_id }: { 프롬프트: PromptItem; r
       {/* ⭐ 「정본 보기」라고 쓰지 않는다 — 파일이 정본인 것과 회차가 무엇으로 돌았는지는 다른 말이다. */}
       <details>
         <summary className="cursor-pointer text-xs text-zinc-500">▸ 프롬프트 파일 보기</summary>
-        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs dark:bg-zinc-900">
+        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
           {프롬프트.canonical_body}
         </pre>
       </details>
@@ -103,7 +103,7 @@ function 프롬프트칸({ 프롬프트, run_id }: { 프롬프트: PromptItem; r
           </button>
         </form>
       ) : (
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs dark:bg-zinc-900">
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
           {프롬프트.display_body}
         </pre>
       )}

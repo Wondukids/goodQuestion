@@ -12,6 +12,7 @@ import { useStorySequencer } from "./sequencer";
 import {
   openSession,
   resumeSessionTurn,
+  skipSessionSceneWithResume,
   type OpenedSession,
 } from "./session-api";
 import { VIDEO_SUBTITLES } from "./subtitles";
@@ -48,6 +49,13 @@ export default function FartBridePlay({
   const [session, setSession] = useState<OpenedSession | null>(null);
   /* 복귀 진입 한 줄 — 재개 대화 씬에서 서버의 마지막 캐릭터 대사를 튼다 (결정 ⑦ 꼬리) */
   const [resumeLine, setResumeLine] = useState<{ stepId: string; text: string } | null>(null);
+  /* 재개 진입 시작 컷 — 직전 컷 묶음을 통째로 다시 틀지 않고 마지막 컷만 틀기 위한
+     1회용 지시 (결정 ⑦). 그 스텝이 끝나면 소거되어, 다시 보기·정상 진행으로 같은
+     스텝에 들어올 땐 처음 컷부터 나온다. */
+  const [resumeCutStart, setResumeCutStart] = useState<{
+    stepId: string;
+    cutIndex: number;
+  } | null>(null);
   /* 서버가 지금 기다리는 대화 장면 code — 어긋남 가드의 기준이다. 대화 씬은 자기
      sceneCode 가 이 값과 같을 때만 서버 턴을 보낸다 (건너뛰기로 어긋나면 그 씬은
      고정 문구로 돌고, 서버 기록은 그대로라 다음 진입 때 건너뛴 대화로 복귀한다). */
@@ -57,7 +65,7 @@ export default function FartBridePlay({
   /**
    * 이야기 시작 = 세션 열기 (명세 5절). 반복 안전이라 몇 번 눌러도 같은 세션이다.
    * - resumed=false → part1 부터 (지금과 같음)
-   * - resumed=true → pending_turn 있으면 resume 먼저 → 재개 씬 **바로 앞 스텝**부터 (결정 ⑦)
+   * - resumed=true → pending_turn 있으면 resume 먼저 → 직전 컷 묶음의 **마지막 컷**부터 (결정 ⑦)
    * - 열기 실패 → 세션 없이 기존 고정 문구 재생 — 이야기는 멈추지 않는다
    */
   const beginStory = async () => {
@@ -85,7 +93,28 @@ export default function FartBridePlay({
           if (opened.last_character_line) {
             setResumeLine({ stepId: steps[target].id, text: opened.last_character_line.text });
           }
-          goTo(Math.max(target - 1, 0)); // 직전 영상부터 — 아이가 맥락을 되찾는다
+          /* 결정 ⑦: 직전 영상으로 아이가 맥락을 되찾는다 — 다만 직전이 컷 묶음이면
+             통째(사실상 처음부터)가 아니라 **마지막 컷 하나만** 틀고 대화로 들어간다.
+             직전이 컷 묶음이 아니거나 대화가 첫 스텝이면 대화로 바로 간다. */
+          const prev = target > 0 ? steps[target - 1] : null;
+          if (prev?.kind === "cuts") {
+            setResumeCutStart({ stepId: prev.id, cutIndex: prev.cuts.length - 1 });
+            goTo(target - 1);
+          } else {
+            goTo(target);
+          }
+        } else {
+          /* 서버가 기다리는 장면이 앱에 아직 없다(대화 10·16 미연결 — 컷 플랜이 채워지면
+             생긴다). 처음부터 다시 틀면 이어하기가 아닌 것처럼 보인다(2026-08-14 실사용) —
+             이미 지나온 **마지막 대화의 다음 스텝**부터 이어 튼다. 장면 code 는 사전순 =
+             진행순(sc_banggui_03 < 05 < 07)이라 문자열 비교로 충분하다. */
+          let passed = -1;
+          steps.forEach((s, i) => {
+            if (s.kind === "interactive" && s.sceneCode !== "" && s.sceneCode < scene.code) {
+              passed = i;
+            }
+          });
+          if (passed >= 0 && passed + 1 < steps.length) goTo(passed + 1);
         }
       }
     } catch (error) {
@@ -97,14 +126,32 @@ export default function FartBridePlay({
   };
 
   /* 건너뛰기 — 컷 묶음 재생 중에는 스텝째가 아니라 한 컷씩 넘긴다.
-     마지막 컷에서는 cuts-player 가 onEnded 로 다음 스텝을 부른다. */
+     마지막 컷에서는 cuts-player 가 onEnded 로 다음 스텝을 부른다.
+
+     ⭐ 대화 씬을 넘길 때는 **서버도 같이 넘긴다.** 영상 구간은 앱 혼자 하는 일이라 보고가
+     없지만(결정 ⑧), 대화 장면은 서버가 거기서 아이를 계속 기다리고 그 어긋남은 스스로
+     풀리지 않는다 — 남은 대화가 전부 어긋남 가드에 걸려 고정 문구로 떨어진다. */
   const cutsRef = useRef<CutsPlayerHandle | null>(null);
   const skip = () => {
-    if (step?.kind === "cuts" && cutsRef.current) cutsRef.current.skipCut();
-    else {
-      if (step?.kind === "interactive") setResumeLine(null);
-      next();
+    if (step?.kind === "cuts" && cutsRef.current) {
+      cutsRef.current.skipCut();
+      return;
     }
+    if (step?.kind === "interactive") {
+      setResumeLine(null);
+      if (session && step.sceneCode !== "" && step.sceneCode === serverScene) {
+        /* 응답이 오기 전에 이 씬으로 턴이 나가지 않게 추적을 먼저 끊는다 */
+        setServerScene(null);
+        skipSessionSceneWithResume(session.session_id, step.sceneCode, "fart-bride")
+          .then((code) => setServerScene(code))
+          .catch((error: unknown) => {
+            /* 실패해도 이야기는 멈추지 않는다 — 남은 대화는 고정 문구로 돌고,
+               서버 기록은 그대로라 다음 진입 때 건너뛴 대화로 복귀한다. */
+            console.info("[장면] 건너뛰기 알림 실패 — 서버는 그 장면에 남는다", error);
+          });
+      }
+    }
+    next();
   };
 
   /* 미니게임 팝업 테스트 (개발용) — SPACE 를 누를 때마다 다음 미션으로 넘어간다
@@ -155,7 +202,12 @@ export default function FartBridePlay({
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={restart}
+              onClick={() => {
+                /* 다시 보기는 완전한 처음부터 — 남아 있을 수 있는 재개 지시를 소거한다 */
+                setResumeLine(null);
+                setResumeCutStart(null);
+                restart();
+              }}
               className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
             >
               다시 보기
@@ -179,7 +231,18 @@ export default function FartBridePlay({
             {step.kind === "video" ? (
               <PartVideo step={step} onEnded={next} />
             ) : step.kind === "cuts" ? (
-              <CutsPlayer step={step} onEnded={next} ref={cutsRef} />
+              <CutsPlayer
+                step={step}
+                startCut={
+                  resumeCutStart?.stepId === step.id ? resumeCutStart.cutIndex : undefined
+                }
+                onEnded={() => {
+                  /* 재개 시작 컷은 한 번만 — 이 스텝을 떠나면 소거해 다음 진입은 처음 컷부터 */
+                  if (resumeCutStart?.stepId === step.id) setResumeCutStart(null);
+                  next();
+                }}
+                ref={cutsRef}
+              />
             ) : (
               <InteractiveScene
                 step={step}

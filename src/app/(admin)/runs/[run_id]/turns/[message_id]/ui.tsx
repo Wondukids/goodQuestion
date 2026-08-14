@@ -28,7 +28,7 @@ function 토큰(값: number | null): string {
   return 값 === null ? '모름' : String(값)
 }
 
-const 칸 = 'border border-zinc-300 px-2 py-1 align-top dark:border-zinc-700'
+const 칸 = 'border border-zinc-300 px-2 py-1 align-top'
 
 /**
  * 시도 표. 열은 파이썬 `run_calls.html:5` 그대로다 —
@@ -85,7 +85,7 @@ export function 시도표({ 시도들 }: { 시도들: TurnAttemptsView }) {
 function 판정표기(값: number | null): { 글: string; 꾸밈: string } {
   if (값 === null) return { 글: '판정 안 함', 꾸밈: 'text-zinc-500' }
   if (값 === 0) return { 글: '위반', 꾸밈: 'font-bold text-red-600' }
-  return { 글: '지킴', 꾸밈: 'text-green-700 dark:text-green-500' }
+  return { 글: '지킴', 꾸밈: 'text-green-700' }
 }
 
 /**
@@ -214,7 +214,7 @@ function 원문칸({ 이름, 글 }: { 이름: string; 글: string }) {
   return (
     <div className="mt-2 flex flex-col gap-1">
       <h4 className="font-mono text-xs text-zinc-500">{이름}</h4>
-      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs dark:bg-zinc-900">
+      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
         {글}
       </pre>
     </div>
