@@ -302,7 +302,7 @@ export function InteractiveScene({
         src={stage.image}
         alt=""
         fill
-        sizes="100vw"
+        sizes="1366px"
         priority
         className="object-cover"
       />

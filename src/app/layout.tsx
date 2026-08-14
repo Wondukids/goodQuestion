@@ -27,28 +27,51 @@ export const metadata: Metadata = {
   description: "아이가 이야기 속 캐릭터와 대화하며 생각을 말로 표현하는 서비스",
 };
 
-/* 데모 기기는 iPad Air 3세대(1112×834). 시안 1366×1024 와 종횡비가 같은 4:3 이라
-   (1.33333 vs 1.33398) 뷰포트를 1366 으로 고정하면 Safari 가 0.814배로 균일 축소한다.
-   이때 CSS 높이가 834/0.814 = 1024 로 시안 캔버스와 그대로 맞고, 리플로우가 없으니
-   홈 카드 그리드도 4열(48 + 295×4 + 30×3 + 48 = 1366)을 유지한다.
-   device-width 로 두면 1112 에서 3열로 깨지고 오른쪽 131px 이 빈다. */
+/* 축소는 브라우저(width=1366) 가 아니라 CSS 캔버스가 맡는다 — globals.css 의
+   .canvas 참고. 뷰포트를 1366 으로 고정하면 가로만 맞고 세로는 화면 비율에 딸려
+   가서, 4:3 이 아닌 11인치 아이패드에서 시안 아래쪽이 잘렸다.
+   여기서는 화면을 있는 그대로 받아 두고(device-width) 배율 계산은 캔버스에 넘긴다. */
 export const viewport: Viewport = {
-  width: 1366,
-  /* Next 기본값 initial-scale=1 을 반드시 지운다. 배율이 1 로 고정되면
-     축소 대신 가로 스크롤이 생겨 위 계산이 통째로 무의미해진다.
-     키를 명시해야 기본값을 덮어쓰고(resolve-metadata mergeViewport),
-     undefined 면 태그에서 빠진다(metadata.js 의 != null 체크). */
-  initialScale: undefined,
+  width: "device-width",
+  initialScale: 1,
+  /* 아이 손에 들어가는 화면이라 실수로 확대되지 않게 막는다. */
+  maximumScale: 1,
+  userScalable: false,
 };
+
+/* 캔버스 배율 = min(가로비, 세로비). 화면 전체를 채우되 어느 쪽도 잘리지 않는 값이다.
+   하이드레이션을 기다리면 첫 프레임이 100% 로 그려졌다가 튀므로, body 첫 줄에서
+   동기로 실행해 --canvas-scale 을 먼저 채운다.
+   next/script 의 beforeInteractive 는 쓰지 않는다 — App Router 에서 <html> 직계
+   자식으로 주입돼 "In HTML, <script> cannot be a child of <html>" 이 뜬다. */
+const CANVAS_SCALE_SCRIPT = `(function(){
+  var el = document.documentElement;
+  function fit(){
+    el.style.setProperty("--canvas-scale", String(Math.min(innerWidth / 1366, innerHeight / 1024)));
+  }
+  fit();
+  addEventListener("resize", fit);
+  addEventListener("orientationchange", fit);
+})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
       className={`${nanumGothic.variable} ${jua.variable} h-full antialiased`}
+      /* 위 스크립트가 하이드레이션 전에 <html> 의 style 에 --canvas-scale 을 심는다.
+         서버 HTML 에는 없는 속성이라 이걸 붙이지 않으면 불일치로 경고가 뜬다. */
+      suppressHydrationWarning
     >
       {/* 배경색은 body 에 둔다 — 홈의 고정 하늘 배경(-z-10)이 위 레이어 배경에 가려지지 않도록. */}
-      <body className="min-h-full bg-app-bg">{children}</body>
+      <body className="min-h-full bg-app-bg">
+        <script dangerouslySetInnerHTML={{ __html: CANVAS_SCALE_SCRIPT }} />
+        <div className="canvas-stage">
+          <div className="canvas">
+            <div className="canvas-scroll">{children}</div>
+          </div>
+        </div>
+      </body>
     </html>
   );
 }
