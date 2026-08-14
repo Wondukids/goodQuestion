@@ -145,7 +145,7 @@ export default async function RunsPage({
             </thead>
             <tbody>
               {회차들.map((회차) => (
-                <tr key={회차.id} className="border-b border-zinc-200 dark:border-zinc-800">
+                <tr key={회차.id} className="border-b border-zinc-200">
                   <td className="py-1 pr-3">
                     <Link href={`/runs/${회차.id}`} className="underline">
                       {회차.started_at.toISOString().slice(0, 19).replace('T', ' ')}

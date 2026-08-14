@@ -56,7 +56,7 @@ export function LLM칸({
   기본_강도: string
 }) {
   return (
-    <fieldset className="flex flex-col gap-2 border border-zinc-300 px-3 py-2 dark:border-zinc-700">
+    <fieldset className="flex flex-col gap-2 border border-zinc-300 px-3 py-2">
       <legend className="px-1 text-xs font-semibold">{제목}</legend>
       <라벨 이름={`${이름}_model`}>
         <select name={`${이름}_model`} className="border px-2 py-1" defaultValue={기본_모델}>
@@ -222,7 +222,7 @@ export function 로그세줄({
     return <p className="font-mono text-xs text-zinc-500">turn_conditions 스냅샷이 없다</p>
   }
   return (
-    <pre className="overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs dark:bg-zinc-900">
+    <pre className="overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
       {[줄들.분석 ?? '[분석] (분석 행이 없다)', 줄들.상태, 줄들.판정].join('\n')}
     </pre>
   )
@@ -258,7 +258,7 @@ export function 시도링크({ run_id, message_id }: { run_id: string; message_i
 export function 대화줄({ run_id, 행 }: { run_id: string; 행: TurnRow }) {
   const 아이 = 행.speaker_type === 'child'
   return (
-    <li className="border-l-2 border-zinc-300 pl-2 dark:border-zinc-700">
+    <li className="border-l-2 border-zinc-300 pl-2">
       <p className="font-mono text-xs text-zinc-500">
         turn_order={행.turn_order} speaker_type={행.speaker_type}
         {아이 && 행.character_response === null && (

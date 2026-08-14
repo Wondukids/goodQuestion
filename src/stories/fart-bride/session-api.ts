@@ -132,10 +132,101 @@ export async function submitSessionTurn(
   return unwrap<TurnResult>(res);
 }
 
+/** `POST /api/sessions/{id}/scenes/{code}/skip` 의 data. */
+export type SkipResult = {
+  /** 실제로 건너뛴 장면. null 이면 서버는 원래 그 장면을 기다리고 있지 않았다 (반복 안전). */
+  skipped: SessionSceneRef | null;
+  /** 이제 서버가 기다리는 대화 장면. null 이면 서버 대화가 남지 않았다. */
+  scene: SessionSceneRef | null;
+};
+
+/**
+ * 대화 씬을 건너뛴다 — 서버도 같이 넘긴다.
+ *
+ * 영상 구간 건너뛰기는 부르지 않는다 (진행 지휘권은 대화 장면만 서버 · 확정 결정 ⑧).
+ * **도착 장면은 서버가 정해 응답으로 준다** — 앱이 계산하면 장면 순서가 두 벌이 된다.
+ */
+export async function skipSessionScene(
+  sessionId: string,
+  sceneCode: string,
+): Promise<SkipResult> {
+  const res = await fetch(
+    `/api/sessions/${sessionId}/scenes/${encodeURIComponent(sceneCode)}/skip`,
+    { method: "POST" },
+  );
+  return unwrap<SkipResult>(res);
+}
+
 /** 끊긴 턴 이어 돌리기 — body 없음 (대화턴 명세 4.2절). */
 export async function resumeSessionTurn(sessionId: string): Promise<ResumeResult> {
   const res = await fetch(`/api/sessions/${sessionId}/turns/resume`, {
     method: "POST",
   });
   return unwrap<ResumeResult>(res);
+}
+
+/* 회차 잠금(409 TURN_IN_PROGRESS)이 풀릴 때까지 기다리는 한도. 턴 한 번이 실측 ~20초라
+   (LLM 을 분석·대사 두 번 부른다) 그보다 넉넉히 잡는다. 넘기면 포기하고 던진다 — 그래도
+   어긋남 가드가 남은 대화를 고정 문구로 돌리고 다음 진입 때 건너뛴 대화로 복귀한다. */
+const RUN_LOCK_WAIT_MS = 30_000;
+const RUN_LOCK_POLL_MS = 1_500;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** 스킵 한 번 + 미완 턴 복구 — 회차 잠금 재시도는 감싸는 쪽이 한다. */
+async function skipOnce(
+  sessionId: string,
+  sceneCode: string,
+  story: string,
+): Promise<string | null> {
+  try {
+    return (await skipSessionScene(sessionId, sceneCode)).scene?.code ?? null;
+  } catch (error) {
+    if (!(error instanceof SessionApiError) || error.code !== "TURN_INCOMPLETE") {
+      throw error;
+    }
+    const resumed = await resumeSessionTurn(sessionId);
+    if (resumed.next.kind === "장면끝") {
+      /* 이어 돌린 턴이 장면을 끝냈다 — 스킵할 것이 없다. 열기 따라잡기로 대기 장면만 얻는다 */
+      const reopened = await openSession(story);
+      return reopened.status === "in_progress" ? (reopened.scene?.code ?? null) : null;
+    }
+    return (await skipSessionScene(sessionId, sceneCode)).scene?.code ?? null;
+  }
+}
+
+/**
+ * 스킵 + 복구 체인 (명세 4.5절) — 화면이 대화 씬을 혼자 떠나는 모든 지점
+ * (상단 건너뛰기 · 무음 「넘어가기」 · 폴백 「계속하기」 · 오류 「건너뛰고 계속」)이 같이 쓴다.
+ *
+ * 서버가 스킵을 막는 이유는 둘이고, 둘 다 여기서 끝까지 따라간다.
+ *
+ * 1. **409 TURN_INCOMPLETE — 미완 턴이 걸려 있다.** resume 으로 이어 돌린 뒤 한 번만
+ *    재시도한다. resume 이 이미 장면을 끝냈으면(장면끝) 재스킵 없이 다시 열어 따라잡는다
+ *    — 장면 전진은 열기 몫이라 서버는 아직 그 장면에 서 있다 (명세 4.3절).
+ * 2. **409 TURN_IN_PROGRESS — 턴이 지금 돌고 있다.** 거절이 옳다(도는 중 전진하면 그 턴
+ *    대사가 지나간 장면에 쓰인다). 다만 아이는 이미 다음 장면으로 넘어갔으므로 여기서
+ *    포기하면 **앱만 전진하고 서버는 남아 갈린다** — 실기 확인 2026-08-14. 그래서 턴이
+ *    끝날 때까지 짧게 기다렸다가 다시 보낸다. 그 사이 턴이 스스로 장면을 끝냈으면
+ *    스킵은 반복 안전이라 아무것도 안 하고 대기 자리만 돌려준다.
+ *
+ * 반환: 이제 서버가 기다리는 대화 장면 code — null 이면 서버 대화가 남지 않았다.
+ * 실패는 그대로 던진다 — 부르는 쪽이 로그만 남기고 이야기는 계속 진행한다.
+ */
+export async function skipSessionSceneWithResume(
+  sessionId: string,
+  sceneCode: string,
+  story: string,
+): Promise<string | null> {
+  const deadline = Date.now() + RUN_LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      return await skipOnce(sessionId, sceneCode, story);
+    } catch (error) {
+      const runLocked =
+        error instanceof SessionApiError && error.code === "TURN_IN_PROGRESS";
+      if (!runLocked || Date.now() >= deadline) throw error;
+      await sleep(RUN_LOCK_POLL_MS);
+    }
+  }
 }

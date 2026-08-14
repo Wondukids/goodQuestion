@@ -14,8 +14,9 @@
 
 import { readScene } from '@/llm/repo/content'
 import { getDb, type Conn } from '@/llm/repo/db'
+import { markSceneSkipped } from '@/llm/repo/sessions'
 
-import { advanceRun, runState } from './run'
+import { advanceRun, inProgress, runState, TurnInProgress, 진행중_문구 } from './run'
 
 /** 다음 대화 장면 한 쌍 — 앱은 `code` 로 자기 스텝을 찾는다 (명세 3절 매핑표). */
 export interface NextSceneRef {
@@ -31,8 +32,9 @@ export interface NextSceneRef {
  * - 없다 → `null`. 회차는 이 안(`advanceRun`)이나 `submitTurn()` 꼬리가 이미 닫았다 —
  *   부르는 쪽에서 이 `null` 이 곧 `회차끝` 판정이 된다 (`session/domain/progress.ts`).
  *
- * ⚠️ `dialogue.source === 'fixed'` 인 턴 **직후에만** 부른다. 다른 자리에서 부르면
- *    아이가 말하는 중인 장면을 지나쳐 버린다 (전진 조건은 `scene_end_reason` 뿐이다).
+ * ⚠️ **장면이 끝났다고 정해진 뒤에만** 부른다 — 전진 조건은 `scene_end_reason` 하나뿐이라,
+ *    아이가 말하는 중인 장면에서 부르면 그 장면을 지나쳐 버린다. 부르는 자리는 둘이다:
+ *    ① `dialogue.source === 'fixed'` 인 턴 직후 (CLOSING) ② `skipScene()` 이 `SKIPPED` 를 적은 직후.
  */
 export async function advanceAfterClosing(args: {
   run_id: string
@@ -52,4 +54,70 @@ export async function advanceAfterClosing(args: {
 
   const 장면 = await readScene(conn, step.scene_id)
   return { scene_id: 장면.scene_id, code: 장면.code }
+}
+
+/** 스킵이 끝난 뒤의 두 사실 — 무엇을 건너뛰었나, 이제 어디서 기다리나. */
+export interface SkippedScene {
+  /** 실제로 건너뛴 장면. 서버가 그 장면을 기다리는 중이 **아니었으면** `null` 이다. */
+  skipped: NextSceneRef | null
+  /** 전진이 멈춘 자리 — 이제 서버가 기다리는 대화 장면. 회차가 끝났으면 `null`. */
+  waiting: NextSceneRef | null
+}
+
+/**
+ * 아이가 대화 씬을 건너뛰었다 — 그 장면을 `SKIPPED` 로 닫고 다음 대화까지 전진한다.
+ *
+ * ## 왜 앱이 알려야 하나
+ *
+ * 진행 지휘권은 대화 장면만 서버에 있다 (확정 결정 ⑧). 영상 구간을 넘기는 것은 앱 혼자
+ * 하는 일이라 서버가 알 필요가 없지만, **대화 장면을 넘기는 것은 다르다** — 서버는 그
+ * 장면에서 아이를 계속 기다리고, 그 어긋남은 스스로 풀리지 않는다 (남은 대화가 전부
+ * 어긋남 가드에 걸려 고정 문구로 떨어진다).
+ *
+ * ## 「어디에 도착하나」는 앱이 계산하지 않는다
+ *
+ * 전개 장면 몇 개를 지나야 다음 대화인지는 **DB 만 안다.** 앱이 계산하면 장면 순서가
+ * 두 벌이 되고, 그 둘은 반드시 갈라진다. 그래서 앱은 「이 장면을 넘겼다」만 말하고
+ * 도착지는 `waiting` 으로 **받는다** — 턴 API 의 `next_scene` 과 같은 손잡이다.
+ *
+ * ## 반복 안전
+ *
+ * 보낸 `scene_code` 가 서버가 기다리는 장면이 아니면 **아무것도 하지 않고** 대기 자리만
+ * 알려 준다 (세션 열기와 같은 규칙). 두 번 눌러도 두 장면이 날아가지 않는다.
+ *
+ * ⛔ 미완 턴 문지기는 여기 없다 — 그것은 세션 도메인 몫이다 (`sessionPendingTurn()`).
+ *    여기서 막는 것은 **같은 회차에서 도는 중인 호출**뿐이다 (`submitTurn()` 과 같은 잠금).
+ */
+export async function skipScene(args: {
+  run_id: string
+  /** 앱이 건너뛴 대화 씬의 장면 코드. 서버 대기 장면과 다르면 아무 일도 일어나지 않는다. */
+  scene_code: string
+  conn?: Conn
+}): Promise<SkippedScene> {
+  const conn = args.conn ?? getDb()
+
+  if (!inProgress.start(args.run_id, '건너뛰기')) {
+    // 턴이 도는 중에 전진시키면 그 턴의 대사가 이미 지나간 장면에 쓰인다.
+    throw new TurnInProgress(진행중_문구(args.run_id))
+  }
+
+  try {
+    const { run, step } = await runState(conn, args.run_id)
+    // 발화를 기다리는 중이 아니면 건너뛸 대화가 없다 (전개 재생 중이거나 이미 닫힌 회차).
+    if (step.kind !== '발화받기' || step.scene_id === null) return { skipped: null, waiting: null }
+
+    const 대기 = await readScene(conn, step.scene_id)
+    if (대기.code !== args.scene_code) {
+      // 이미 어긋나 있었거나 두 번 눌렀다. 서버 기록은 그대로 두고 대기 자리만 알려 준다.
+      return { skipped: null, waiting: { scene_id: 대기.scene_id, code: 대기.code } }
+    }
+
+    await markSceneSkipped(conn, run.session_id)
+    return {
+      skipped: { scene_id: 대기.scene_id, code: 대기.code },
+      waiting: await advanceAfterClosing({ run_id: args.run_id, conn }),
+    }
+  } finally {
+    inProgress.end(args.run_id)
+  }
 }

@@ -55,7 +55,7 @@ export default async function PendingPage({
           {보기.pending.map((보류) => (
             <li
               key={보류.id}
-              className="flex flex-col gap-2 border border-zinc-300 p-3 dark:border-zinc-700"
+              className="flex flex-col gap-2 border border-zinc-300 p-3"
             >
               <p className="font-mono text-xs text-zinc-500">
                 장면 {보류.scene_order} · 턴 {보류.turn_order} · {보류.target_label} ·{' '}
@@ -92,7 +92,7 @@ export default async function PendingPage({
                     />
                   </라벨>
                   <p className="text-xs text-zinc-500">
-                    <mark className="bg-amber-200 px-1 dark:bg-amber-900">{출처_이름.draft}</mark>
+                    <mark className="bg-amber-200 px-1 text-zinc-900">{출처_이름.draft}</mark>
                     으로만 저장된다.
                   </p>
                   <button
