@@ -76,12 +76,39 @@ process.env.GQ_EXPERIMENT_CHILD_ID ||= '00000000-0000-4000-8000-0000000c8171'
 //    `DATABASE_URL=… npx vitest run` 으로 덮어쓰는 길이 그대로 산다).
 //
 // 담은 `drizzle-kit push` 가 쓰는 것과 **같은 화이트리스트**다. 목록이 둘이면 한쪽만 낡는다.
+//
+// ── 2026-08-14 · 막는 **자리**를 옮겼다 (허용 범위는 한 글자도 안 넓혔다) ──
+//
+// 전에는 이 파일이 읽히는 순간 `검사_대상_가드(process.env.DATABASE_URL)` 를 한 번 불렀다.
+// `setupFiles` 는 **검사 파일 전부**에 걸리므로 DB 를 한 줄도 안 쓰는 검사까지 시작조차
+// 못 했다 — `tests/prompts.test.ts`(프롬프트 md 파서, 순수 함수)가 그 피해자였고, 그 바람에
+// 「보낼 층 자르기」가 진짜 버그를 잡고 있는지 아무도 볼 수 없었다.
+//
+// 이제 F-1(진짜 LLM 금지)과 **같은 모양**으로 막는다 — 클라이언트 생성자를 감싸고,
+// 판정은 **접속을 여는 순간**(`postgres(...)` 호출) 한 자리에서만 한다.
+// `postgres()` 는 이 레포에서 DB 에 붙는 **유일한 문**이라(`repo/db.ts`·`db/seed.ts`) 우회로가
+// 없고, 판정 기준이 「어느 검사 파일인가」에서 **「접속을 여느냐」**로 바뀐다.
+// 자세한 근거와 「안 고른 길 둘」은 `tests/support/db-gate.ts` 머리말에 적었다.
+//
+// 🔴 삼킴 방지가 절반이다. DB 검사 열넷은 첫머리의 「붙어보기」를 `try/catch` 로 감싸
+//    못 붙으면 파일을 통째로 건너뛰는데(도커가 꺼졌을 때를 위한 배려다), 그 catch 는
+//    사유를 안 가려서 **가드가 막은 것까지 삼키고 「34 skipped」로 조용한 초록**이 된다.
+//    그래서 관문이 막은 사실을 아무도 못 잡는 자리에서 다시 던지게 켠다(`삼킴방지_켜기`).
 
-import { 검사_대상_가드 } from '@/llm/db/push-guard'
 import { loadEnvFile } from '@/llm/config'
 
 loadEnvFile()
-검사_대상_가드(process.env.DATABASE_URL)
+
+vi.mock('postgres', async (importOriginal) => {
+  // ⚠️ `postgres` 의 타입은 `export =` 꼴이라 네임스페이스에 `default` 가 **선언돼 있지 않다**
+  //    (CJS 상호운용으로 런타임에만 생긴다). 그래서 여기서만 느슨하게 받는다.
+  const real = (await importOriginal()) as Record<string, unknown>
+  const 진짜 = (real.default ?? real) as (...args: unknown[]) => unknown
+  const { dbGate, 삼킴방지_켜기 } = await import('./support/db-gate')
+
+  삼킴방지_켜기()
+  return { ...real, default: dbGate(진짜) }
+})
 
 import { __testing as rateLimit } from '@/llm/provider/rate-limit'
 import { clearFakeSdks } from './support/sdk-gate'

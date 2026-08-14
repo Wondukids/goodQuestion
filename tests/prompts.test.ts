@@ -23,6 +23,7 @@ import {
   read,
   render,
   sendableBody,
+  프롬프트가_아닌_md,
 } from '@/llm/prompts'
 
 // 재료 틀을 가진 셋. 열쇠 이름은 `runner.py` 가 넘기던 것 그대로다.
@@ -44,9 +45,12 @@ const 틀이_없는_것 = [
   'judge_invented_setting',
 ]
 
+// ⛔ `README.md` 는 프롬프트가 아니라 관리 규칙 문서다. 목록에서 뺀다 —
+//    이름은 `프롬프트가_아닌_md` 한 곳이 갖는다 (여기 베껴 적으면 갈라진다).
 const md들 = readdirSync(promptsDir())
   .filter((이름) => 이름.endsWith('.md'))
   .map((이름) => 이름.slice(0, -'.md'.length))
+  .filter((이름) => !프롬프트가_아닌_md.includes(이름))
   .sort()
 
 describe('prompts/ 찾기', () => {

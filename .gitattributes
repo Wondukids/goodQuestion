@@ -1,0 +1,90 @@
+# 줄바꿈(line ending) 못박기 — 이 레포는 **LF 한 가지**만 쓴다.
+#
+# ## 왜 필요한가
+#
+# 이 레포에는 파일 원문 바이트에 의미를 두는 코드가 둘 있다. 줄바꿈이 OS 마다 달라지면
+# **같은 커밋인데 결과가 달라진다.**
+#
+#  1. `src/llm/prompts/parse.ts` 의 「보낼 층」 정규식이 `-->` 바로 뒤에 `\n` 리터럴을 요구한다.
+#     CRLF 로 체크아웃되면 그 자리가 `\r` 이라 매칭이 실패하고, `sendableBody()` 의 안전장치
+#     (「표식이 없으면 통째로 돌려준다」)가 걸려 **파일 전체가 LLM 에 나간다.**
+#     실측(2026-08-14, 윈도우 작업 트리) — analysis.md 가 6,255자 대신 16,996자로 나갔다.
+#
+#  2. `src/llm/service/goldenset.ts` 의 `fileDigest()` 는 원문 바이트의 SHA-256 이고
+#     **정규화하지 않는다.** `promptDigest()`·`characterPromptDigest()`·`targetJudgeDigest()` 와
+#     정답지 `file_digest` 가 모두 이걸 쓴다. CRLF 면 윈도우와 리눅스가 같은 커밋에서 다른
+#     지문을 내서, 지문으로 프롬프트 판올림을 가리는 일이 성립하지 않는다.
+#
+#  3. `tools/유도셋-기록.ts:239` 는 `.jsonl` 에 `\n` 으로 줄을 덧붙인다. CRLF 로 체크아웃된
+#     파일에 그러면 **섞인 줄바꿈**이 생긴다.
+#
+# ## 왜 레포 전체(`* text=auto eol=lf`)인가 — 프롬프트만이 아니라
+#
+# 새 규칙을 들여오는 게 아니라 **이미 그런 상태를 글로 적는 것**이다. 확인해 보면
+# 추적 중인 텍스트 파일의 인덱스 블롭은 하나도 빠짐없이 LF 다 (`git ls-files --eol` 기준
+# `i/crlf`·`i/mixed` 가 0건). CRLF 는 윈도우 작업 트리에만 있고, 그건 `core.autocrlf=true`
+# 라는 **개인 설정**이 만든 것이라 사람마다 다르다. 범위를 `prompts/` 로만 좁히면 위 2·3번
+# (정답지 지문, 섞인 줄바꿈)이 그대로 남고, `.claude/hooks/*.sh` 도 CRLF 인 채로 남는다
+# (`#!/bin/bash\r` 는 bash 가 못 읽는다).
+#
+# ⚠️ 이 파일을 두는 것만으로 **지금 작업 트리가 바뀌지는 않는다.** git 은 이미 받아 둔 파일을
+#    다시 꺼내지 않는다. 바꾸려면 사람이 `git add --renormalize .` 를 따로 돌려야 하고,
+#    그러면 LLM 에 나가는 프롬프트 크기가 실제로 달라진다 (위 1번). 골든셋 기준선을 먼저
+#    찍을지 정한 다음에 하는 일이다.
+
+# ── 기본값 ────────────────────────────────────────────────────────────────
+# git 이 텍스트라고 판단한 것은 저장할 때 LF 로 넣고, 꺼낼 때도 LF 로 준다.
+# `text=auto` 는 바이너리 판별 heuristic 을 그대로 쓰므로 아래 `-text` 목록은
+# 이중 안전장치다 (heuristic 이 틀리면 파일이 깨진다).
+* text=auto eol=lf
+
+# ── 반드시 LF 여야 하는 것 (위 1·2·3번의 당사자) ──────────────────────────
+*.md      text eol=lf
+*.jsonl   text eol=lf
+*.json    text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.mts     text eol=lf
+*.mjs     text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.sql     text eol=lf
+*.toml    text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.py      text eol=lf
+*.svg     text eol=lf
+*.sh      text eol=lf
+
+# ── 윈도우에서만 도는 것은 CRLF 로 둔다 ───────────────────────────────────
+# Windows PowerShell 5.1 은 LF 스크립트도 읽지만, 이 파일들은 윈도우 도구가
+# 손대는 자리라 굳이 바꿔서 얻을 것이 없다. 지금 작업 트리 모습을 그대로 지킨다.
+*.ps1     text eol=crlf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# ── 바이너리 — 절대 손대지 않는다 ─────────────────────────────────────────
+# `tests/fixtures/*.jsonl.gz` 가 특히 위험하다. 이름이 `.jsonl` 로 끝나 보여서
+# 위의 `*.jsonl text` 규칙에 걸릴 뻔했다 — gz 안의 0x0d 바이트가 지워지면
+# 압축이 깨진다. `*.gz` 규칙이 더 뒤에 있어 이긴다 (뒤에 온 줄이 이긴다).
+*.gz      binary
+*.zip     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.webp    binary
+*.pdf     binary
+*.wav     binary
+*.mp3     binary
+*.mp4     binary
+*.mov     binary
+*.otf     binary
+*.ttf     binary
+*.woff    binary
+*.woff2   binary
+*.fig     binary
+
+# ── diff 에서 접어 두는 것 ────────────────────────────────────────────────
+pnpm-lock.yaml linguist-generated=true -diff

@@ -13,4 +13,11 @@ export {
   sendableBody,
 } from './parse'
 
-export { chooseBody, promptsDir, read, render, type RenderedPrompt } from './render'
+export {
+  chooseBody,
+  promptsDir,
+  read,
+  render,
+  프롬프트가_아닌_md,
+  type RenderedPrompt,
+} from './render'

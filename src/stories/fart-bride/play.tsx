@@ -47,16 +47,19 @@ export default function FartBridePlay({
     else next();
   };
 
-  /* 미니게임 팝업 테스트 (개발용) — 재생 중 SPACE 로 열고 닫는다.
-     아직 빈 껍데기라 이야기 진행과는 연결하지 않는다 (뒤에서 소리는 계속 난다). */
-  const [minigameOpen, setMinigameOpen] = useState(false);
+  /* 미니게임 팝업 테스트 (개발용) — SPACE 를 누를 때마다 다음 미션으로 넘어간다
+     (닫힘 → 미션1 → 미션2 → 닫힘). 열고 닫는 토글로 두면 미션1 만 계속
+     처음부터 다시 뜬다. 아직 이야기 진행과는 연결하지 않아서, 미션을 끝내도
+     팝업만 닫힌다 (뒤에서 이야기 소리는 계속 난다). */
+  const [minigame, setMinigame] = useState<1 | 2 | null>(null);
   useEffect(() => {
     if (!started || finished) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space") return;
-      /* 스크롤·포커스된 버튼의 스페이스 동작을 막고 팝업 토글로만 쓴다 */
+      /* 누르고 있으면 키가 연타로 들어와 미션이 순식간에 지나간다 */
+      if (event.code !== "Space" || event.repeat) return;
+      /* 스크롤·포커스된 버튼의 스페이스 동작을 막고 미션 전환으로만 쓴다 */
       event.preventDefault();
-      setMinigameOpen((open) => !open);
+      setMinigame((mission) => (mission === null ? 1 : mission === 1 ? 2 : null));
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -157,9 +160,11 @@ export default function FartBridePlay({
       )}
 
       <MinigamePopup
-        open={minigameOpen}
-        onClose={() => setMinigameOpen(false)}
-        onComplete={() => setMinigameOpen(false)}
+        open={minigame !== null}
+        mission={minigame ?? 1}
+        childName={childName}
+        onClose={() => setMinigame(null)}
+        onComplete={() => setMinigame(null)}
       />
     </main>
   );
