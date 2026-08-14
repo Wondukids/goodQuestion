@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SlideTransition } from "@/components/ui/slide-transition";
 import { transcribeAudio } from "@/stt/client";
@@ -59,6 +60,10 @@ export function InteractiveScene({
   const [lineIndex, setLineIndex] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [responseUrl, setResponseUrl] = useState<string | null>(null);
+  /* 채팅 패널에 보여 줄 TTS 반응 문구 — 재생되는 음성과 같은 내용 */
+  const [reactionText, setReactionText] = useState("");
+  /* "다시 듣기" — 마지막 질문 음성 재생. n 을 올려 누를 때마다 처음부터 튼다 */
+  const [replay, setReplay] = useState<{ src: string; n: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [remainingSec, setRemainingSec] = useState(STT_DEFAULTS.maxListenSec);
 
@@ -79,11 +84,15 @@ export function InteractiveScene({
     let cancelled = false;
     const blobUrls: string[] = [];
 
-    const tts = async (text: string) => {
+    /* geminiOnly: 말투 지시를 무시하는 Chirp3-HD 로 조용히 떨어지지 않게
+       gemini-2.5-flash-tts 로 고정한다. 실패하면 아래 catch 가 원본 녹음으로 폴백.
+       목소리는 항상 이 씬의 화자(step.speaker.voice) — 호명도 캐릭터가 부른다. */
+    const tts = async (text: string, stylePrompt = step.speaker.stylePrompt) => {
       const speech = await requestSpeech({
         text,
         voice: step.speaker.voice,
-        stylePrompt: step.speaker.stylePrompt,
+        stylePrompt,
+        geminiOnly: true,
       });
       const url = URL.createObjectURL(speech);
       blobUrls.push(url);
@@ -105,8 +114,14 @@ export function InteractiveScene({
         const needsGreeting = !step.question.lines.some((line) =>
           line.text.includes("ㅇㅇ"),
         );
+        /* 이름만 부르는 한마디는 연기가 붕 뜨기 쉬워 호명 전용 지시를 덧붙인다 */
         const [greetingAudio, question, answer] = await Promise.all([
-          needsGreeting ? tts(greetingText) : Promise.resolve(null),
+          needsGreeting
+            ? tts(
+                greetingText,
+                `${step.speaker.stylePrompt} 지금은 아이에게 말을 걸려고 이름을 부르는 짧은 첫마디입니다 — 이름을 반갑고 다정하게, 자연스럽게 불러 주세요.`,
+              )
+            : Promise.resolve(null),
           substitute(step.question.lines),
           substitute(step.answer.lines),
         ]);
@@ -135,6 +150,8 @@ export function InteractiveScene({
 
   const recordingRef = useRef<Recording | null>(null);
   const retriesRef = useRef(0);
+  /* 채팅 패널 스크롤 — 말풍선이 늘어나면 맨 아래로 내린다 */
+  const chatRef = useRef<HTMLDivElement | null>(null);
 
   /* 언마운트 시 마이크·blob URL 정리 */
   useEffect(() => {
@@ -172,11 +189,15 @@ export function InteractiveScene({
 
         setTranscript(text);
 
-        /* TTS 반응 생성 */
+        /* TTS 반응 생성 — 채팅 패널에도 같은 문구를 말풍선으로 보여 준다 */
+        const reaction = buildReaction(text, step.speaker.voice);
+        setReactionText(reaction);
+        /* 반응도 gemini-2.5 고정 — 실패는 error 단계(다시 시도·건너뛰기)로 드러난다 */
         const speech = await requestSpeech({
-          text: buildReaction(text, step.speaker.voice),
+          text: reaction,
           voice: step.speaker.voice,
           stylePrompt: step.speaker.stylePrompt,
+          geminiOnly: true,
         });
         setResponseUrl(URL.createObjectURL(speech));
         setPhase("responding");
@@ -251,6 +272,40 @@ export function InteractiveScene({
     }
   }
 
+  /* 채팅 패널 말풍선 — 자막 대신 재생 진행에 맞춰 대화가 하나씩 쌓인다.
+     캐릭터 질문 → (아이 답변 → TTS 반응) → 캐릭터 답변 순서다. */
+  const bubbles: { from: "character" | "child"; text: string }[] = [];
+  if (preparedLines) {
+    const shownQuestions =
+      phase === "question"
+        ? preparedLines.question.slice(0, lineIndex + 1)
+        : preparedLines.question;
+    for (const l of shownQuestions)
+      if (l.text) bubbles.push({ from: "character", text: l.text });
+    const answered = phase === "responding" || phase === "choice" || phase === "answer";
+    if (answered && transcript) bubbles.push({ from: "child", text: transcript });
+    if (answered && reactionText) bubbles.push({ from: "character", text: reactionText });
+    if (phase === "answer")
+      for (const l of preparedLines.answer.slice(0, lineIndex + 1))
+        if (l.text) bubbles.push({ from: "character", text: l.text });
+  }
+  const questionBubbleCount = preparedLines
+    ? (phase === "question"
+        ? preparedLines.question.slice(0, lineIndex + 1)
+        : preparedLines.question
+      ).filter((l) => l.text).length
+    : 0;
+  const lastQuestionAudio =
+    preparedLines?.question[preparedLines.question.length - 1]?.audio ?? null;
+  /* 다시 듣기는 아이 차례(듣는 중·선택)일 때만 — 질문 음성이 겹쳐 나오지 않게 */
+  const canReplay = phase === "listening" || phase === "choice";
+
+  const bubbleCount = bubbles.length;
+  useEffect(() => {
+    const el = chatRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [bubbleCount]);
+
   return (
     <div className="relative h-full w-full">
       {/* 대화 씬은 책 넘김 없이 진입하는 흐름이라 배경도 은은한 페이드로만 바꾼다 */}
@@ -259,12 +314,15 @@ export function InteractiveScene({
         transitionKey={isQuestion ? "question" : "answer"}
         className="absolute inset-0"
       >
+        {/* video-plan 기반 씬은 dev 에셋 라우트(한글 파일명·no-cache)에서 오므로
+            최적화 프록시를 거치지 않는다 */}
         <Image
           src={stage.image}
           alt=""
           fill
           sizes="100vw"
           priority
+          unoptimized
           className="object-cover"
         />
       </SlideTransition>
@@ -275,57 +333,113 @@ export function InteractiveScene({
       {phase === "responding" && responseUrl && (
         <audio src={responseUrl} autoPlay onEnded={() => setPhase("choice")} />
       )}
+      {replay && (
+        <audio key={replay.n} src={replay.src} autoPlay onEnded={() => setReplay(null)} />
+      )}
 
-      {/* 하단 대사·상태 바 */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/70 to-transparent px-10 pt-16 pb-8">
-        {currentLine && (
-          <p className="max-w-[900px] rounded-2xl bg-black/55 px-6 py-4 text-center text-[22px] font-bold leading-[1.5] text-white">
-            <span className="mr-2 text-[18px] text-amber-300">{step.speaker.label}</span>
-            {currentLine.text}
-          </p>
-        )}
-
-        {phase === "listening" && (
-          <div className="flex flex-col items-center gap-3">
-            <p className="flex items-center gap-2 text-[22px] font-bold text-white">
-              <span className="inline-block size-3 animate-pulse rounded-full bg-red-500" />
-              듣고 있어요… ({remainingSec}초)
-            </p>
-            {retriesRef.current > 0 && (
-              <p className="text-[16px] font-bold text-amber-200">
-                잘 안 들렸어요. 한 번 더 크게 말해 볼까?
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="rounded-xl bg-primary px-8 py-3 text-[18px] font-extrabold text-white"
-            >
-              다 말했어요
-            </button>
+      {/* 오른쪽 채팅 패널 — 자막 대신 대화 내용을 말풍선으로 쌓는다 (시안 106) */}
+      <aside className="absolute bottom-6 right-6 top-24 flex w-[440px] max-w-[45%] flex-col overflow-hidden rounded-3xl bg-white shadow-panel">
+        <div className="flex items-center justify-between border-b border-divider px-6 py-4">
+          <div className="flex flex-col">
+            <span className="text-[18px] font-extrabold text-ink">{step.speaker.label}</span>
+            <span className="text-[12px] font-bold text-ink-muted">오늘의 이야기 친구</span>
           </div>
-        )}
+          <Link
+            href="/stories/fart-bride"
+            className="rounded-full border border-divider px-4 py-1.5 text-[13px] font-bold text-ink-soft"
+          >
+            나가기
+          </Link>
+        </div>
 
-        {phase === "transcribing" && (
-          <p className="text-[22px] font-bold text-white">듣고 생각하는 중…</p>
-        )}
-
-        {phase === "responding" && (
-          <p className="max-w-[900px] rounded-2xl bg-black/55 px-6 py-4 text-center text-[20px] font-bold text-white">
-            내 답변: “{transcript}”
-          </p>
-        )}
-
-        {phase === "choice" && (
-          <div className="flex flex-col items-center gap-3">
-            <p className="max-w-[900px] rounded-2xl bg-black/55 px-6 py-3 text-center text-[18px] font-bold text-white">
-              “{transcript}”
+        <div ref={chatRef} className="flex flex-1 flex-col gap-3 overflow-y-auto bg-chip/40 px-5 py-5">
+          {bubbles.map((bubble, i) =>
+            bubble.from === "character" ? (
+              <div key={i} className="flex max-w-[85%] flex-col gap-1">
+                <div className="flex items-start gap-2.5">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
+                    {step.speaker.label.slice(0, 1)}
+                  </span>
+                  <p className="rounded-2xl rounded-tl-md bg-white px-4 py-3 text-[16px] font-bold leading-[1.55] text-ink shadow-panel">
+                    {bubble.text}
+                  </p>
+                </div>
+                {canReplay && lastQuestionAudio && i === questionBubbleCount - 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReplay((r) => ({ src: lastQuestionAudio, n: (r?.n ?? 0) + 1 }))
+                    }
+                    className="self-end text-[13px] font-bold text-ink-muted"
+                  >
+                    🔊 다시 듣기
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p
+                key={i}
+                className="max-w-[85%] self-end rounded-2xl rounded-tr-md bg-primary px-4 py-3 text-[16px] font-bold leading-[1.55] text-white"
+              >
+                {bubble.text}
+              </p>
+            ),
+          )}
+          {bubbles.length === 0 && (
+            <p className="py-4 text-center text-[14px] font-bold text-ink-muted">
+              이야기 친구가 말을 걸 준비를 하고 있어요…
             </p>
-            <div className="flex gap-4">
+          )}
+        </div>
+
+        {/* 하단 상태 영역 — 단계별 안내와 마이크 */}
+        <div className="flex flex-col items-center gap-2 border-t border-divider bg-white px-6 py-5">
+          {phase === "question" && (
+            <p className="text-[14px] font-bold text-ink-muted">이야기 친구가 말하고 있어요…</p>
+          )}
+
+          {phase === "listening" && (
+            <>
+              <p className="text-[18px] font-extrabold text-ink">네 차례야!</p>
+              <p className="text-[13px] font-bold text-ink-muted">
+                생각이 떠오르면 이야기하고, 다 말했으면 아래 마이크를 눌러줘
+              </p>
+              {retriesRef.current > 0 && (
+                <p className="text-[13px] font-bold text-point-strong">
+                  잘 안 들렸어요. 한 번 더 크게 말해 볼까?
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={stopRecording}
+                aria-label="다 말했어요"
+                className="mt-1 flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-panel"
+              >
+                <MicIcon />
+              </button>
+              <p className="flex items-center gap-1.5 text-[13px] font-bold text-ink-muted">
+                <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
+                듣고 있어요 · {remainingSec}초
+              </p>
+            </>
+          )}
+
+          {phase === "transcribing" && (
+            <p className="text-[15px] font-bold text-ink">듣고 생각하는 중…</p>
+          )}
+
+          {phase === "responding" && (
+            <p className="text-[14px] font-bold text-ink-muted">
+              이야기 친구가 대답하고 있어요…
+            </p>
+          )}
+
+          {phase === "choice" && (
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setPhase("listening")}
-                className="rounded-xl bg-white/90 px-8 py-3 text-[18px] font-extrabold text-ink"
+                className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
               >
                 다시 말하기
               </button>
@@ -335,41 +449,65 @@ export function InteractiveScene({
                   setLineIndex(0);
                   setPhase("answer");
                 }}
-                className="rounded-xl bg-primary px-8 py-3 text-[18px] font-extrabold text-white"
+                className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
               >
                 계속하기
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {phase === "error" && (
-          <div className="flex flex-col items-center gap-3">
-            <p className="max-w-[900px] rounded-2xl bg-red-900/80 px-6 py-3 text-center text-[17px] font-bold text-white">
-              {errorMessage}
-            </p>
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => setPhase("listening")}
-                className="rounded-xl bg-white/90 px-8 py-3 text-[18px] font-extrabold text-ink"
-              >
-                다시 시도
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLineIndex(0);
-                  setPhase("answer");
-                }}
-                className="rounded-xl bg-primary px-8 py-3 text-[18px] font-extrabold text-white"
-              >
-                건너뛰고 계속
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          {phase === "answer" && (
+            <p className="text-[14px] font-bold text-ink-muted">이야기가 이어져요…</p>
+          )}
+
+          {phase === "error" && (
+            <>
+              <p className="text-center text-[14px] font-bold text-point-strong">
+                {errorMessage}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPhase("listening")}
+                  className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
+                >
+                  다시 시도
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLineIndex(0);
+                    setPhase("answer");
+                  }}
+                  className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
+                >
+                  건너뛰고 계속
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
     </div>
+  );
+}
+
+/** 마이크 아이콘 — 에셋 폴더에 없어 인라인 SVG 로 그린다 */
+function MicIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-7"
+      aria-hidden
+    >
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10v1a7 7 0 0 0 14 0v-1" />
+      <path d="M12 18v4" />
+    </svg>
   );
 }
