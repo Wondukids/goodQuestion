@@ -13,6 +13,7 @@ import {
   openSession,
   resumeSessionTurn,
   SessionApiError,
+  skipSessionSceneWithResume,
   submitSessionTurn,
   type TurnNext,
   type TurnResult,
@@ -43,9 +44,6 @@ type Phase =
 function buildReaction(transcript: string) {
   return `"${transcript}"라고 말해 주었구나! 이야기해 줘서 정말 고마워.`;
 }
-
-/* 서버 턴이 죽으면 아이 발화 원문도 없다(STT 가 서버 안이다) — 발화 없이 되받는 폴백 문구 */
-const FALLBACK_REACTION = "그렇구나, 이야기해 줘서 정말 고마워!";
 
 /* TTS 한 번 더 — 씬 진입 준비와 대사 합성이 몰리면 일시 오류(502)가 잦다. 짧게 쉬고
    한 번 재시도하면 대부분 살아나, 멀쩡한 LLM 대답이 고정 문구로 떨어지는 일을 줄인다. */
@@ -290,6 +288,23 @@ export function InteractiveScene({
     setPhase("error");
   }, []);
 
+  /* 화면이 대화를 떠나며 서버도 같이 넘긴다 — 상단 건너뛰기(play.tsx skip)와 같은 스킵
+     통보다. 무음 「넘어가기」·폴백 「계속하기」·오류 「건너뛰고 계속」이 부른다.
+     서버가 지금 이 장면을 기다릴 때(serverMode)만 보낸다 — 이미 어긋난 씬(고정 문구)에서
+     보내면 엉뚱한 대기 장면을 넘기게 된다. fire-and-forget: 화면 진행은 응답을 기다리지
+     않고, 장면 추적(onServerScene)만 응답이 오면 갱신한다. */
+  const notifySkip = useCallback(() => {
+    if (!serverMode) return;
+    /* 응답이 오기 전에 이 씬으로 턴이 나가지 않게 추적을 먼저 끊는다 (play.tsx 와 동일) */
+    onServerScene(null);
+    skipSessionSceneWithResume(sessionId!, step.sceneCode, "fart-bride")
+      .then((code) => onServerScene(code))
+      .catch((error: unknown) => {
+        /* 실패해도 이야기는 멈추지 않는다 — 서버 기록은 그대로라 다음 진입 때 복귀한다 */
+        console.info("[장면] 건너뛰기 알림 실패 — 서버는 그 장면에 남는다", error);
+      });
+  }, [serverMode, sessionId, step.sceneCode, onServerScene]);
+
   /* 무음 — sttDefaults 대로 1회 재시도 후 선택지(다시 말하기/넘어가기)로 (서버 흐름도 같은
      연출 — 명세 4.3절). 예전엔 여기서 바로 정해진 답변으로 넘겼는데, 아이 입장에선 아무
      안내 없이 "내 말을 씹고 지나간" 것으로 보였다 (실사용 신고). */
@@ -389,19 +404,22 @@ export function InteractiveScene({
           { from: "child", text: result.child.text },
           { from: "character", text: result.dialogue.text },
         ]);
-        await speakReaction(result.dialogue.text);
-      } catch (error) {
-        /* 폴백 (이슈 #8 — 502 등) — 서버가 죽어도 고정 문구로 진행은 멈추지 않는다 */
         try {
-          fallbackRef.current = true;
-          setHistory((h) => [...h, { from: "character", text: FALLBACK_REACTION }]);
-          await speakReaction(FALLBACK_REACTION);
+          await speakReaction(result.dialogue.text);
         } catch {
-          fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
+          /* TTS 만 죽었다(429 몰림 등) — 턴은 이미 성공해 대사가 말풍선에 있다. 여기서
+             고정 문구를 틀면 아이에게는 「내 말이 씹혔다」로 보인다(2026-08-14 실사용).
+             음성 없이 responding 종료와 같은 갈림길로 바로 간다. */
+          if (result.next.kind === "발화받기") setPhase("listening");
+          else onComplete();
         }
+      } catch (error) {
+        /* 턴 자체가 죽었다(STT 502·서버 오류) — 저장된 것이 없어 같은 녹음을 다시 보내면
+           된다. 고정 문구 대신 오류 선택지(다시 시도·건너뛰고 계속)로 드러낸다. */
+        fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
       }
     },
-    [serverMode, sessionId, onServerScene, handleSilence, speakReaction, fail],
+    [serverMode, sessionId, onServerScene, handleSilence, speakReaction, fail, onComplete],
   );
 
   const stopRecording = useCallback(() => {
@@ -683,6 +701,7 @@ export function InteractiveScene({
               <button
                 type="button"
                 onClick={() => {
+                  notifySkip(); // 폴백 뒤 진행 — 서버가 이 장면을 기다리고 있으면 같이 넘긴다
                   setLineIndex(0);
                   setPhase("answer");
                 }}
@@ -712,6 +731,7 @@ export function InteractiveScene({
                 <button
                   type="button"
                   onClick={() => {
+                    notifySkip(); // 무음으로 지나감 — 서버도 이 장면을 넘긴다 (안 넘기면 계속 대기)
                     setLineIndex(0);
                     setPhase("answer");
                   }}
@@ -743,6 +763,9 @@ export function InteractiveScene({
                 <button
                   type="button"
                   onClick={() => {
+                    /* 장면끝 뒤의 오류(닫는 말 TTS 실패)면 추적이 이미 다음 장면이라
+                       serverMode 가 꺼져 있어 통보가 안 나간다 — 의도된 동작이다 */
+                    notifySkip();
                     setLineIndex(0);
                     setPhase("answer");
                   }}
