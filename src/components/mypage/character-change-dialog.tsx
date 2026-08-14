@@ -5,7 +5,7 @@ import { updateCharacter } from "@/app/(main)/mypage/actions";
 import { CharacterPicker } from "@/components/onboarding/character-picker";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
 
-/** 프로필 카드의 "캐릭터 바꾸기" 알약 버튼 — 누르면 온보딩의 캐릭터 고르기가 모달로 뜬다. */
+/** 프로필 카드 오른쪽 위의 "캐릭터 변경" 알약(시안 41-1709) — 누르면 온보딩의 캐릭터 고르기가 모달로 뜬다. */
 export function CharacterChangeButton({
   characterId,
 }: {
@@ -18,10 +18,10 @@ export function CharacterChangeButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-primary bg-white px-5 py-[11px] font-gothic text-[16px] font-extrabold text-primary-strong"
+        className="flex cursor-pointer items-center gap-1 rounded-full bg-story-bg/80 p-2.5 text-[12px] font-bold text-ink-strong"
       >
-        <MaterialSymbol name="cached" size={18} />
-        캐릭터 바꾸기
+        <MaterialSymbol name="cached" size={14} />
+        캐릭터 변경
       </button>
 
       {open && (
@@ -61,7 +61,7 @@ function CharacterChangeDialog({
       <form
         action={formAction}
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[calc(100vh-48px)] flex-col gap-5 overflow-y-auto rounded-[24px] bg-white px-9 py-8 shadow-[0_12px_32px_rgb(0_0_0_/_0.18)]"
+        className="flex max-h-[calc(100%-48px)] flex-col gap-5 overflow-y-auto rounded-[24px] bg-white px-9 py-8 shadow-[0_12px_32px_rgb(0_0_0_/_0.18)]"
       >
         <input type="hidden" name="characterId" value={picked} />
 

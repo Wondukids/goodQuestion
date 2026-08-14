@@ -13,6 +13,8 @@ export type SelectedChild = {
   name: string;
   birth_year: number;
   character_id: string;
+  /** 마이페이지의 "함께한 지 N일차" 가 읽는다 */
+  created_at: string;
 };
 
 export async function setSelectedChild(childId: string) {
@@ -46,7 +48,7 @@ export async function getSelectedChild(): Promise<SelectedChild | null> {
   /* RLS(children_own)가 이미 본인 것만 내주지만, 정책이 바뀌어도 새지 않도록 조건을 명시한다. */
   const { data } = await supabase
     .from("children")
-    .select("id, name, birth_year, character_id")
+    .select("id, name, birth_year, character_id, created_at")
     .eq("id", childId)
     .eq("parent_id", user.id)
     .maybeSingle();

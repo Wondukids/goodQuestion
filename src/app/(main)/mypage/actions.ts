@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { markAttendance } from "@/lib/attendance";
 import { isCharacterId } from "@/lib/characters";
 import { requireSelectedChild } from "@/lib/selected-child";
 import { createClient } from "@/lib/supabase/server";
@@ -30,4 +31,11 @@ export async function updateCharacter(
   /* 상단 네비 아바타((main) 레이아웃)와 아이 선택 카드에도 새 캐릭터가 보이도록 한다. */
   revalidatePath("/", "layout");
   return { saved: true };
+}
+
+/** 마이페이지의 "출석하기" — 오늘 도장을 찍고 주간 도트를 다시 그린다. */
+export async function checkInToday() {
+  const child = await requireSelectedChild();
+  await markAttendance(child.id);
+  revalidatePath("/mypage");
 }
