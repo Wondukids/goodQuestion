@@ -119,8 +119,8 @@ const 쓰는_API = [
 const 작업대_소스 = [
   path.join(WEB_ROOT, 'app', '(admin)', 'prompt-lab', 'page.tsx'),
   path.join(WEB_ROOT, 'app', '(admin)', 'prompt-lab', 'actions.ts'),
-  path.join(WEB_ROOT, 'lib', 'service', 'prompt-lab.ts'),
-  path.join(WEB_ROOT, 'lib', 'repo', 'prompt-lab.ts'),
+  path.join(WEB_ROOT, 'llm', 'service', 'prompt-lab.ts'),
+  path.join(WEB_ROOT, 'llm', 'repo', 'prompt-lab.ts'),
 ]
 
 describe('경계 6 — 화면은 prompts/*.md 를 읽기만 한다', () => {

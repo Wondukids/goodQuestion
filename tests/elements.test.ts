@@ -7,9 +7,9 @@
 // 3. 🔴 스키마·시드가 아는 요소 코드와 표가 어긋나지 않는가
 //    — 어긋나면 화면에 이름이 빈 자리로 뜬다(정확히는 코드 글자가 그대로 뜬다).
 //      `sql/001_schema.sql` 의 허용 값 주석, `sql/002_seed_banggui.sql`,
-//      그리고 그 시드를 옮긴 `src/db/seed.ts` 셋을 다 본다.
+//      그리고 그 시드를 옮긴 `src/llm/db/seed.ts` 셋을 다 본다.
 //
-// 시드 파일은 **원문을 읽어 훑는다.** `src/db/seed.ts` 를 import 하면 Drizzle·postgres 가 딸려 와
+// 시드 파일은 **원문을 읽어 훑는다.** `src/llm/db/seed.ts` 를 import 하면 Drizzle·postgres 가 딸려 와
 // DB 없이 도는 검사가 아니게 된다.
 
 import { readFileSync } from 'node:fs'
@@ -142,8 +142,8 @@ describe('스키마·시드와 대조 — 어긋나면 화면에 코드가 그�
     expect(표에_없는(쓴_코드)).toEqual([])
   })
 
-  it('`src/db/seed.ts` 가 쓰는 코드가 모두 표에 있다', () => {
-    const 원문 = 읽기('src/db/seed.ts')
+  it('`src/llm/db/seed.ts` 가 쓰는 코드가 모두 표에 있다', () => {
+    const 원문 = 읽기('src/llm/db/seed.ts')
     const 쓴_코드 = [
       // required_elements: ['PERSPECTIVE', ...]
       ...[...원문.matchAll(/required_elements:\s*\[([^\]]*)\]/g)].flatMap((짝) =>
