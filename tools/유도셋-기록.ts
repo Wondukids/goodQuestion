@@ -30,7 +30,7 @@
 //
 // - user 는 `renderCharacterMaterial()` 하나를 지나간다 — 엔진의 `characterTurn()` 이
 //   지나가는 것과 **같은 함수**다 (`buildCharacterMaterial()` = 묶음 + 이 함수).
-// - system 은 `sendableBody(chooseBody('character', …))` 로 뜬다 — `generateLine()` 과 같은 줄이다.
+// - system 은 `chooseBody('character', …))` 로 뜬다 — `generateLine()` 과 같은 줄이다.
 // - 뽑을 때의 재료 묶음은 `buildCharacterMaterialBundle()` 가 만든다 — 엔진이 만드는 그 dict 다.
 //
 // ## ⛔ 채점 재료는 캐릭터에게 안 간다
@@ -66,7 +66,7 @@ import {
 } from '@/llm/engine/material'
 import type { GuidanceItem, HumanVerdict } from '@/llm/goldenset-guidance'
 import type { CheckResult } from '@/llm/judge'
-import { chooseBody, materialJson, promptsDir, sendableBody } from '@/llm/prompts'
+import { chooseBody, materialJson, promptsDir, 보낼것 } from '@/llm/prompts'
 import { fileDigest } from '@/llm/service/goldenset'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -77,11 +77,11 @@ import { fileDigest } from '@/llm/service/goldenset'
  * 캐릭터 프롬프트 **파일 원문**의 지문 (파이썬 `프롬프트_지문()`).
  *
  * 어느 프롬프트로 낸 대사인지를 `판정대기.프롬프트_지문` 에 박제한다.
- * ⚠️ 보낼 층(`sendableBody()`)이 아니라 파일 통째다 — 사람이 한글 층만 고쳐도 지문이 바뀌어야
+ * ⚠️ `보낼것.md` 만 잰다 — 모델이 실제로 받은 글자가 바뀌었을 때만 지문이 바뀌어야
  * 「그때 그 프롬프트였다」를 말할 수 있다 (분석 쪽 `promptDigest()` 와 같은 판단).
  */
 export function characterPromptDigest(): string {
-  return fileDigest(path.join(promptsDir(), 'character.md'))
+  return fileDigest(path.join(promptsDir(), 'character', 보낼것))
 }
 
 /**
@@ -108,7 +108,7 @@ export interface LineRequest {
  * 엔진과 **같은 (system, user)** 를 만든다 (파이썬 `대사_요청()`).
  *
  * - `user` — `renderCharacterMaterial()`. 엔진의 `buildCharacterMaterial()` 뒷대목과 같은 함수다.
- * - `system` — `sendableBody(chooseBody(...))`. `generateLine()` 이 쓰는 것과 같은 줄이다.
+ * - `system` — `chooseBody(...))`. `generateLine()` 이 쓰는 것과 같은 줄이다.
  *
  * `prompt` 를 주면 그 본문으로 짓는다 — **프롬프트 A 와 B 를 같은 항목에 태워 견주는 자리**다.
  * 그때 본문과 틀은 **같은 출처**여야 하므로 둘 다 같은 값을 받는다.
@@ -118,8 +118,8 @@ export function lineRequest(
   prompt: string | null = null,
 ): LineRequest {
   return {
-    system: sendableBody(chooseBody('character', prompt)),
-    user: renderCharacterMaterial(항목.재료, prompt),
+    system: chooseBody('character', prompt),
+    user: renderCharacterMaterial(항목.재료),
   }
 }
 

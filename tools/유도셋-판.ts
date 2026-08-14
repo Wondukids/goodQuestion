@@ -47,7 +47,7 @@ import path from 'node:path'
 import type { Settings } from '@/llm/config'
 import type { GuidanceItem } from '@/llm/goldenset-guidance'
 import type { CheckResult, JudgeCall } from '@/llm/judge'
-import { promptsDir } from '@/llm/prompts'
+import { promptsDir, 보낼것 } from '@/llm/prompts'
 import { fileDigest } from '@/llm/service/goldenset'
 import { isFunnel, twoJudges } from '@/llm/service/goldenset-guidance'
 import { lineRequest, rewriteLines, type LineMaker } from './유도셋-기록'
@@ -282,7 +282,7 @@ export function tableText(한: Pick<RejudgeResult, '과녁_표' | '답누출_표
  * 숫자가 움직였는지 못 가른다.
  */
 export function targetJudgeDigest(): string {
-  return fileDigest(path.join(promptsDir(), 'judge_guided_toward_target.md'))
+  return fileDigest(path.join(promptsDir(), 'judge_guided_toward_target', 보낼것))
 }
 
 /** 채점 하나의 값을 심판이 쓰는 낱말로 (파이썬 `_판정값()`). `null` 은 **판정불가**다 (결정 29). */

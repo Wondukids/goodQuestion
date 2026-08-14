@@ -229,7 +229,6 @@ export async function runAnalysisStage(args: AnalysisStageArgs): Promise<Analysi
       session_id,
       scene_id: scene.scene_id,
     }),
-    prompt,
   })
 
   notify('분석 시작', '')

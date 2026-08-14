@@ -20,7 +20,7 @@
 //   이 레포는 무엇이 나왔는지 보려고 있다.
 
 import { complete, type LLMResult } from '@/llm/provider'
-import { chooseBody, sendableBody } from '@/llm/prompts'
+import { chooseBody } from '@/llm/prompts'
 import type { Settings } from '@/llm/config'
 
 import {
@@ -55,7 +55,7 @@ export async function generateLine(
   재료: string,
   options: GenerateLineOptions = {},
 ): Promise<GeneratedLine> {
-  const 본문 = sendableBody(chooseBody('character', options.prompt))
+  const 본문 = chooseBody('character', options.prompt)
   const 응답 = await complete(본문, 재료, {
     settings: options.settings,
     // ⚠️ `llm_calls.purpose` 에 그대로 들어간다. 옮겨 담는 표를 두지 않는다 (`analyze.ts` 참고).
@@ -130,7 +130,6 @@ export async function characterTurn(args: CharacterTurnArgs): Promise<CharacterT
     reaction_key: decision.reaction_key,
     guidance_target: decision.guidance_target,
     pastMessages: args.pastMessages,
-    prompt,
   })
 
   const { line, llm } = await generateLine(재료, { prompt, settings, notify })

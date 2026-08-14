@@ -32,7 +32,7 @@
     },
     {
       "id": "n2",
-      "scene": 0,
+      "scene": 1,
       "chapter": "",
       "title": "잘 보이고 싶은 며느리",
       "kind": "linear",
@@ -57,7 +57,7 @@
     },
     {
       "id": "n3",
-      "scene": 0,
+      "scene": 2,
       "chapter": "",
       "title": "걱정하는 며느리",
       "kind": "linear",
@@ -82,7 +82,7 @@
     },
     {
       "id": "n4",
-      "scene": 0,
+      "scene": 3,
       "chapter": "",
       "title": "꾹꾹 참는 며느리",
       "kind": "linear",
@@ -107,7 +107,7 @@
     },
     {
       "id": "n5",
-      "scene": 0,
+      "scene": 4,
       "chapter": "",
       "title": "방귀를 참는 며느리",
       "kind": "linear",
@@ -132,11 +132,11 @@
     },
     {
       "id": "n6",
-      "scene": 0,
+      "scene": 5,
       "chapter": "",
       "title": "참기 힘든 며느리",
       "kind": "linear",
-      "image": "2_전개1.png",
+      "image": "02_방귀를참는며느리_02.png",
       "needsNewImage": false,
       "screenTransition": false,
       "after": null,
@@ -157,12 +157,12 @@
     },
     {
       "id": "n7-1",
-      "scene": 4,
+      "scene": 6,
       "chapter": "",
       "title": "아이와의 대화 · 질문x",
       "kind": "question",
-      "image": "4-1_대화1_질문(이미지 교체 필요).png",
-      "needsNewImage": true,
+      "image": "_8_left.png",
+      "needsNewImage": false,
       "screenTransition": false,
       "after": "stt",
       "effect": {
@@ -182,12 +182,12 @@
     },
     {
       "id": "n7-2",
-      "scene": 4,
+      "scene": 7,
       "chapter": "",
       "title": "아이와의 대화 · 답변",
       "kind": "answer",
-      "image": "4-2_대화1_질문(이미지 교체 필요).png",
-      "needsNewImage": true,
+      "image": "_7_left.png",
+      "needsNewImage": false,
       "screenTransition": false,
       "after": null,
       "effect": {
@@ -207,7 +207,7 @@
     },
     {
       "id": "n8",
-      "scene": 0,
+      "scene": 8,
       "chapter": "",
       "title": "걱정많은 며느리",
       "kind": "linear",
@@ -244,7 +244,7 @@
     },
     {
       "id": "n9",
-      "scene": 0,
+      "scene": 9,
       "chapter": "",
       "title": "못 참은 며느리",
       "kind": "linear",
@@ -275,7 +275,7 @@
     },
     {
       "id": "n10",
-      "scene": 0,
+      "scene": 10,
       "chapter": "",
       "title": "용기 낸 고백",
       "kind": "linear",
@@ -296,7 +296,7 @@
           "durationSec": null
         },
         {
-          "speaker": "내레이션",
+          "speaker": "며느리",
           "text": "저... 사실은 방귀를 너무 오래 참아서 배가 아파요. 조금만 뀌어도 될까요?",
           "audio": "5_전개2_Take4.wav",
           "durationSec": null
@@ -306,7 +306,7 @@
     },
     {
       "id": "n11",
-      "scene": 0,
+      "scene": 11,
       "chapter": "",
       "title": "살짝만 뀌려고 했는데",
       "kind": "linear",
@@ -337,7 +337,7 @@
     },
     {
       "id": "n12",
-      "scene": 0,
+      "scene": 12,
       "chapter": "",
       "title": "방귀 대 폭팔",
       "kind": "linear",
@@ -362,7 +362,7 @@
     },
     {
       "id": "n13",
-      "scene": 0,
+      "scene": 13,
       "chapter": "",
       "title": "화난시아버지",
       "kind": "linear",
@@ -387,12 +387,12 @@
     },
     {
       "id": "n14-1",
-      "scene": 7,
+      "scene": 14,
       "chapter": "",
       "title": "아이와의 대화 · 질문",
       "kind": "question",
-      "image": "7-1_대화2_질문(이미지 교체 필요).png",
-      "needsNewImage": true,
+      "image": "_6_left.png",
+      "needsNewImage": false,
       "screenTransition": false,
       "after": "stt",
       "effect": {
@@ -412,12 +412,12 @@
     },
     {
       "id": "n14-2",
-      "scene": 7,
+      "scene": 15,
       "chapter": "",
       "title": "아이와의 대화 · 답변",
       "kind": "answer",
-      "image": "7-2_대화2_답변(이미지 교체 필요).png",
-      "needsNewImage": true,
+      "image": "_5_left.png",
+      "needsNewImage": false,
       "screenTransition": false,
       "after": null,
       "effect": {
@@ -437,7 +437,7 @@
     },
     {
       "id": "n15",
-      "scene": 0,
+      "scene": 16,
       "chapter": "",
       "title": "고개를 숙인 며느리",
       "kind": "linear",
@@ -486,7 +486,7 @@
     },
     {
       "id": "n16",
-      "scene": 0,
+      "scene": 17,
       "chapter": "",
       "title": "친정으로 가는 며느리",
       "kind": "linear",
@@ -502,14 +502,14 @@
       "lines": [
         {
           "speaker": "내레이션",
-          "text": "하지만 며느리의 방귀가 정말 쓸모없는 것인지는 아직 아무도 알지 못했습니다.",
-          "audio": "8_대화_Take6.wav",
+          "text": "결국 시아버지는 방귀 뀌는 며느리를 데리고 친정에 데려다주러 길을 나섰습니다.",
+          "audio": "8_대화_Take7.wav",
           "durationSec": null
         },
         {
           "speaker": "내레이션",
-          "text": "결국 시아버지는 방귀 뀌는 며느리를 데리고 친정에 데려다주러 길을 나섰습니다.",
-          "audio": "8_대화_Take7.wav",
+          "text": "하지만 며느리의 방귀가 정말 쓸모없는 것인지는 아직 아무도 알지 못했습니다.",
+          "audio": "8_대화_Take6.wav",
           "durationSec": null
         }
       ],
@@ -517,7 +517,7 @@
     },
     {
       "id": "n17",
-      "scene": 0,
+      "scene": 18,
       "chapter": "",
       "title": "배나무를 본 시아버지와 며느리",
       "kind": "linear",
@@ -548,7 +548,7 @@
     },
     {
       "id": "n18",
-      "scene": 0,
+      "scene": 19,
       "chapter": "",
       "title": "높은곳에 있는 나무",
       "kind": "linear",
@@ -557,7 +557,7 @@
       "screenTransition": false,
       "after": null,
       "effect": {
-        "camera": "none",
+        "camera": "zoom-in",
         "enter": "blur",
         "overlay": "vignette-pulse"
       },
@@ -569,7 +569,7 @@
           "durationSec": null
         },
         {
-          "speaker": "내레이션",
+          "speaker": "시아버지",
           "text": "참 맛있어 보이는 배로구나, 그런데 너무 높아서 딸 수가 없겠네.",
           "audio": "9_전개3_Take4.wav",
           "durationSec": null
@@ -584,6 +584,489 @@
           "speaker": "내레이션",
           "text": "긴 장대를 가져와도 닿지 않았고, 나무에 올라가려 해도 가지가 너무 높았습니다.",
           "audio": "9_전개3_Take6.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n19-1",
+      "scene": 20,
+      "chapter": "",
+      "title": "아이와의 대화 · 질문",
+      "kind": "question",
+      "image": "_4_left.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": "stt-minigame",
+      "effect": {
+        "camera": "zoom-in",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "이장님",
+          "text": "이 배나무는 해마다 탐스러운 배가 열리지만, 너무 높아서 아무도 딸 수가 없었단다.",
+          "audio": "10-1_대화3_질문_Take1.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n19-2",
+      "scene": 21,
+      "chapter": "",
+      "title": "아이와의 대화 · 답변",
+      "kind": "answer",
+      "image": "_3_left.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "zoom-in",
+        "enter": "none",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "이장님",
+          "text": "아이고, 방귀 뀌는 며느리 덕분에 온 마을이 배 잔치를 할 수 있겠구려, 고맙소!",
+          "audio": "10-2_대화3_답변_Take1.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n20",
+      "scene": 22,
+      "chapter": "",
+      "title": "설득하는 며느리",
+      "kind": "linear",
+      "image": "12_배나무앞자리잡기_03.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "zoom-in",
+        "enter": "blur",
+        "overlay": "none"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "며느리는 조심스럽게 시아버지에게 말했습니다.",
+          "audio": "11-대화3_Take3.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "며느리",
+          "text": "아버님, 제가 한번 해 볼게요. 대신 사람들이 다치지 않도록 모두 조금 떨어져 주세요.",
+          "audio": "11-대화3_Take4.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "마을 사람들은 처음에는 어리둥절했습니다.",
+          "audio": "12-대화3_Take1.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n21",
+      "scene": 23,
+      "chapter": "",
+      "title": "방귀 준비!",
+      "kind": "linear",
+      "image": "13_대화3.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "zoom-in",
+        "enter": "blur",
+        "overlay": "none"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "하지만 며느리는 나무를 향해 자리를 잡고, 배가 떨어질 곳을 살폈습니다.",
+          "audio": "12-대화3_Take2.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "사람들이 없는 쪽으로 몸을 돌리고, 배나무 위쪽을 향해 힘을 모았습니다.",
+          "audio": "12-대화3_Take3.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "그리고 크게 외쳤습니다.",
+          "audio": "12-대화3_Take4.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n22",
+      "scene": 24,
+      "chapter": "",
+      "title": "방귀 샷",
+      "kind": "linear",
+      "image": "13_방귀나갑니다_01.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "shake-loop",
+        "enter": "iris",
+        "overlay": "vignette-red"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "방귀 나갑니다!",
+          "audio": "13_대화3_Take1.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n23",
+      "scene": 25,
+      "chapter": "",
+      "title": "샤앗!",
+      "kind": "linear",
+      "image": "13_배가쏟아진마을_02.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "shake-loop",
+        "enter": "bounce",
+        "overlay": "flash"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "곧이어 천둥 같은 방귀 소리가 울려 퍼졌습니다.",
+          "audio": "13_대화3_Take2.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "바람이 세차게 불더니 높은 나무에 매달려 있던 배들이 우수수 떨어졌습니다.",
+          "audio": "13_대화3_Take3.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n24",
+      "scene": 26,
+      "chapter": "",
+      "title": "기뻐하는 마을사람들",
+      "kind": "linear",
+      "image": "17_마음이편안해진며느리.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "orbit",
+        "enter": "blur",
+        "overlay": "vignette"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "사람들은 깜짝 놀라면서도 곧 기뻐했습니다.",
+          "audio": "13_대화3_Take4.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "아무도 따지 못했던 배가 마당 가득 떨어졌기 때문입니다.",
+          "audio": "13_대화3_Take5.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n25",
+      "scene": 27,
+      "chapter": "",
+      "title": "배를 먹어보는 시아버지",
+      "kind": "linear",
+      "image": "14_마을배잔치_01.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "tilt-down",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "시아버지도 떨어진 배를 하나 먹어보았습니다.",
+          "audio": "14-대화3_Take1.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "배는 달고 시원했습니다.",
+          "audio": "14-대화3_Take2.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "마을 사람들도 배를 나누어 먹으며 즐거워했습니다.",
+          "audio": "14-대화3_Take3.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n26",
+      "scene": 28,
+      "chapter": "",
+      "title": "며느리를 보는 시아버지",
+      "kind": "linear",
+      "image": "14_시아버지도배를맛봄_03.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "ken-burns-left",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "모두가 배불리 먹고 나자, 시아버지는 며느리를 다시 바라보았습니다.",
+          "audio": "14-대화3_Take4.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "시아버지",
+          "text": "처음에는 시끄럽고 별나다고만 생각했던 며느리의 방귀가, 알고 보니 모두를 도울 수 있는 특별한 힘이었던 것입니다.",
+          "audio": "14-대화3_Take5.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n27",
+      "scene": 29,
+      "chapter": "",
+      "title": "사과하는 시아버지",
+      "kind": "linear",
+      "image": "15-전개4.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "zoom-in",
+        "enter": "fade",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "시아버지는 며느리에게 미안한 마음이 들었습니다.",
+          "audio": "15-전개4_Take1.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "시아버지",
+          "text": "내가 네 모습을 제대로 보지 못했구나. 남들과 다르다고 해서 부끄러운 것이 아닌데, 내가 너무 성급하게 생각했다.",
+          "audio": "15-전개4_Take2.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n28-1",
+      "scene": 30,
+      "chapter": "",
+      "title": "아이와의 대화 · 질문",
+      "kind": "question",
+      "image": "_2_left.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": "stt",
+      "effect": {
+        "camera": "zoom-in",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "며느리",
+          "text": "덕분에 내 방귀가 누군가에게 도움이 될 수 있다는 걸 처음 알았어.",
+          "audio": "16-1_대화4_질문_Take1.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "며느리",
+          "text": "이제는 방귀 소리가 큰 걸 부끄러워하지 않아도 될까?",
+          "audio": "16-1_대화4_질문_Take2.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n28-2",
+      "scene": 31,
+      "chapter": "",
+      "title": "아이와의 대화 · 답변",
+      "kind": "answer",
+      "image": "_1_left.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "none",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "며느리",
+          "text": "이제는 부끄러워하며 숨기지 않고, 조심해서 좋은 일에 써 볼게",
+          "audio": "16-2_대화4_답변_Take1.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n29",
+      "scene": 32,
+      "chapter": "",
+      "title": "며느리의 편안함",
+      "kind": "linear",
+      "image": "19_엔딩_마을과함께.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "orbit",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "며느리는 그 말을 듣고 마음이 조금씩 편안해졌습니다.",
+          "audio": "17_대화4_Take1.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "자신이 숨기고 싶어 했던 특징이 누군가에게 도움이 될 수도 있다는 것을 알게 되었기 때문입니다.",
+          "audio": "17_대화4_Take2.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n30",
+      "scene": 33,
+      "chapter": "",
+      "title": "새 컷",
+      "kind": "linear",
+      "image": "19_엔딩_함께배수확.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "orbit",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "마을 사람들도 며느리를 놀리지 않았습니다.",
+          "audio": "18_대화4_Take1.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "오히려 높은 나무의 열매를 딸 때나, 큰 바람이 필요할 때 며느리에게 도움을 부탁했습니다.",
+          "audio": "18_대화4_Take2.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "며느리는 자신의 방귀를 부끄러운 비밀이 아니라,",
+          "audio": "18_대화4_Take3.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "잘 쓰면 모두에게 도움이 되는 특별한 힘으로 여기게 되었습니다.",
+          "audio": "18_대화4_Take4.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
+      "id": "n31",
+      "scene": 34,
+      "chapter": "",
+      "title": "솔직하게",
+      "kind": "linear",
+      "image": "19_엔딩_특별한힘의좋은사용.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "orbit",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "그 뒤로 며느리는 더 이상 방귀를 무조건 참지 않았습니다.",
+          "audio": "17_대화4_Take3.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "물론 아무 때나 함부로 뀌지는 않았습니다.",
+          "audio": "17_대화4_Take4.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "대신 몸이 힘들 때는 솔직하게 말하고",
+          "audio": "17_대화4_Take5.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "사람들이 놀라지 않도록 미리 알려 주었습니다.",
+          "audio": "17_대화4_Take6.wav",
           "durationSec": null
         }
       ],
