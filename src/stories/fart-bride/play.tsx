@@ -8,6 +8,11 @@ import { CutsPlayer, type CutsPlayerHandle } from "./cuts-player";
 import { InteractiveScene } from "./interactive-scene";
 import { buildPlanSequence } from "./plan-sequence";
 import { useStorySequencer } from "./sequencer";
+import {
+  openSession,
+  resumeSessionTurn,
+  type OpenedSession,
+} from "./session-api";
 import { VIDEO_SUBTITLES } from "./subtitles";
 
 /**
@@ -35,15 +40,65 @@ export default function FartBridePlay({
   /** 선택된 아이 이름 — 대화 씬이 아이를 부를 때 쓴다 (라우트가 채워 준다) */
   childName: string | null;
 }) {
-  const { steps, started, stepIndex, step, finished, turning, start, next, restart } =
+  const { steps, started, stepIndex, step, finished, turning, start, next, goTo, restart } =
     useStorySequencer(PLAN_STEPS);
+
+  /* 서버 세션 (이슈 #8) — 열기 실패·아이 미선택이면 null 로 두고 고정 문구 흐름으로 돈다 */
+  const [session, setSession] = useState<OpenedSession | null>(null);
+  /* 복귀 진입 한 줄 — 재개 대화 씬에서 서버의 마지막 캐릭터 대사를 튼다 (결정 ⑦ 꼬리) */
+  const [resumeLine, setResumeLine] = useState<{ stepId: string; text: string } | null>(null);
+  const [opening, setOpening] = useState(false);
+
+  /**
+   * 이야기 시작 = 세션 열기 (명세 5절). 반복 안전이라 몇 번 눌러도 같은 세션이다.
+   * - resumed=false → part1 부터 (지금과 같음)
+   * - resumed=true → pending_turn 있으면 resume 먼저 → 재개 씬 **바로 앞 스텝**부터 (결정 ⑦)
+   * - 열기 실패 → 세션 없이 기존 고정 문구 재생 — 이야기는 멈추지 않는다
+   */
+  const beginStory = async () => {
+    if (opening) return;
+    setOpening(true);
+    try {
+      let opened = await openSession("fart-bride");
+      if (opened.pending_turn) {
+        try {
+          const resumed = await resumeSessionTurn(opened.session_id);
+          /* 이어 돌린 턴이 장면을 끝냈으면 다시 열어 따라잡는다 (명세 4.3절) */
+          if (resumed.next.kind === "장면끝") opened = await openSession("fart-bride");
+        } catch {
+          /* resume 실패 — 세션은 그대로 진행하고, 다음 턴의 409 처리에 맡긴다 */
+        }
+      }
+      setSession(opened);
+      if (opened.resumed && opened.status === "in_progress" && opened.scene) {
+        const scene = opened.scene;
+        const target = steps.findIndex(
+          (s) => s.kind === "interactive" && s.sceneCode === scene.code,
+        );
+        if (target >= 0) {
+          if (opened.last_character_line) {
+            setResumeLine({ stepId: steps[target].id, text: opened.last_character_line.text });
+          }
+          goTo(Math.max(target - 1, 0)); // 직전 영상부터 — 아이가 맥락을 되찾는다
+        }
+      }
+    } catch (error) {
+      console.warn("세션 열기 실패 — 서버 없이 재생한다", error);
+    } finally {
+      setOpening(false);
+      start();
+    }
+  };
 
   /* 건너뛰기 — 컷 묶음 재생 중에는 스텝째가 아니라 한 컷씩 넘긴다.
      마지막 컷에서는 cuts-player 가 onEnded 로 다음 스텝을 부른다. */
   const cutsRef = useRef<CutsPlayerHandle | null>(null);
   const skip = () => {
     if (step?.kind === "cuts" && cutsRef.current) cutsRef.current.skipCut();
-    else next();
+    else {
+      if (step?.kind === "interactive") setResumeLine(null);
+      next();
+    }
   };
 
   return (
@@ -56,10 +111,11 @@ export default function FartBridePlay({
           </p>
           <button
             type="button"
-            onClick={start}
-            className="rounded-2xl bg-primary px-14 py-5 text-[26px] font-extrabold text-white"
+            onClick={beginStory}
+            disabled={opening}
+            className="rounded-2xl bg-primary px-14 py-5 text-[26px] font-extrabold text-white disabled:opacity-60"
           >
-            이야기 시작
+            {opening ? "이야기 여는 중…" : "이야기 시작"}
           </button>
         </div>
       )}
@@ -99,7 +155,16 @@ export default function FartBridePlay({
             ) : step.kind === "cuts" ? (
               <CutsPlayer step={step} onEnded={next} ref={cutsRef} />
             ) : (
-              <InteractiveScene step={step} childName={childName} onComplete={next} />
+              <InteractiveScene
+                step={step}
+                childName={childName}
+                sessionId={session?.session_id ?? null}
+                resumeLine={resumeLine?.stepId === step.id ? resumeLine.text : null}
+                onComplete={() => {
+                  setResumeLine(null); // 복귀 한 줄은 한 번만 — 다음 진입은 정상 흐름
+                  next();
+                }}
+              />
             )}
             {turning && (
               <div className="page-turn-shade pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />

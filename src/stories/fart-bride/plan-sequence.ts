@@ -11,7 +11,7 @@
  * - 이미지도 대사도 없는 빈 컷은 보여 줄 게 없어 건너뛴다.
  */
 
-import type { CutsStep, InteractiveStep, SpeechLine, Step } from "./data";
+import { SCENE_CODES, type CutsStep, type InteractiveStep, type SpeechLine, type Step } from "./data";
 import { SPEAKER_VOICES, type ScriptSpeaker } from "./script";
 import { assetUrl, VIDEO_PLAN, type PlanCut } from "./video-plan";
 
@@ -66,6 +66,8 @@ function toInteractive(question: PlanCut, answer: PlanCut): InteractiveStep {
     kind: "interactive",
     id: question.id,
     sceneId: question.scene,
+    /* 매핑에 없는 씬 번호면 서버 장면이 없다 — 대화 씬은 기존 고정 문구 흐름으로 돈다 */
+    sceneCode: SCENE_CODES[question.scene] ?? "",
     speaker: pickSpeaker(question),
     question: {
       image: assetUrl("image", question.image),

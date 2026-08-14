@@ -32,6 +32,12 @@ export type InteractiveStep = {
   kind: "interactive";
   id: string;
   sceneId: number;
+  /**
+   * 서버 `story_scenes.code` — 대화 씬을 세션 API 에 잇는 열쇠다
+   * (`docs/이야기_세션_명세.md` 3절 매핑 4쌍). 빈 문자열이면 서버 장면이 없는
+   * 씬이라 세션 턴 대신 기존 고정 문구 흐름으로 돈다.
+   */
+  sceneCode: string;
   speaker: {
     label: string;
     /** Google Gemini 2.5 Flash TTS 보이스 이름 (src/tts/voices.ts) */
@@ -56,6 +62,17 @@ export type CutsStep = {
 
 export type Step = VideoStep | InteractiveStep | CutsStep;
 
+/**
+ * 기획 원본 씬 번호(1~18) → 서버 `story_scenes.code` (명세 3절 — 대화 4쌍이 전부다).
+ * 영상 구간은 프론트 순번으로만 진행하므로 여기 없는 번호는 서버가 모르는 씬이다 (결정 ⑧).
+ */
+export const SCENE_CODES: Record<number, string> = {
+  4: "sc_banggui_03",
+  7: "sc_banggui_05",
+  10: "sc_banggui_07",
+  16: "sc_banggui_09",
+};
+
 /** story_database.json 의 meta.sttDefaults — maxListenSec 만 10→20초로 늘렸다 */
 export const STT_DEFAULTS = {
   maxListenSec: 20,
@@ -74,6 +91,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene4",
     sceneId: 4,
+    sceneCode: SCENE_CODES[4],
     speaker: {
       label: "며느리",
       voice: "Leda",
@@ -109,6 +127,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene7",
     sceneId: 7,
+    sceneCode: SCENE_CODES[7],
     speaker: {
       label: "시아버지",
       voice: "Schedar",
@@ -144,6 +163,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene10",
     sceneId: 10,
+    sceneCode: SCENE_CODES[10],
     speaker: {
       label: "이장님",
       voice: "Sadachbia",
@@ -179,6 +199,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene16",
     sceneId: 16,
+    sceneCode: SCENE_CODES[16],
     speaker: {
       label: "며느리",
       voice: "Leda",
