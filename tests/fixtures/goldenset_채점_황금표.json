@@ -1,0 +1,8036 @@
+{
+ "무엇": "파이썬 goodquestion.goldenset.채점() 이 낸 값. tests/scoring.test.ts 가 대조한다.",
+ "뜬_날": "2026-08-13",
+ "만든_법": "notes/ 아래가 아니라 이 파일 머리말 참고 — LLM 없이 결정적으로 지어낸 라벨이다",
+ "사례들": [
+  {
+   "이름": "빈 판 — 짝이 하나도 없다",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [],
+   "표": {
+    "건수": 0,
+    "초안_건수": 0,
+    "child_intent_정확도": 0.0,
+    "utterance_validity_정확도": 0.0,
+    "요소_정밀도": 0.0,
+    "요소_재현율": 0.0,
+    "요소_F1": 0.0,
+    "믿을_수_있나": false,
+    "항목별": []
+   }
+  },
+  {
+   "이름": "완전 일치 · 검수완료 30건",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "REASON",
+       "SOLUTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "EMPATHY",
+       "SOLUTION",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    }
+   ],
+   "표": {
+    "건수": 30,
+    "초안_건수": 0,
+    "child_intent_정확도": 1.0,
+    "utterance_validity_정확도": 1.0,
+    "요소_정밀도": 1.0,
+    "요소_재현율": 1.0,
+    "요소_F1": 1.0,
+    "믿을_수_있나": true,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     }
+    ]
+   }
+  },
+  {
+   "이름": "완전 일치 · 73건 전체 (초안이 섞였다)",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_001",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_002",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_001",
+     "라벨": {
+      "child_intent": "CHALLENGE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_001",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION",
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_001",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_101",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_102",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_101",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_102",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_101",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_102",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_101",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_102",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [],
+      "utterance_validity": "UNCLEAR"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_201",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_202",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_203",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_204",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_205",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_206",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_207",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_208",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_201",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_202",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_203",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_204",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_205",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_206",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_207",
+     "라벨": {
+      "child_intent": "OFF_TOPIC",
+      "detected_elements": [],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_208",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [],
+      "utterance_validity": "UNCLEAR"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_201",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_202",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_203",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_204",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_205",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_206",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "SOLUTION",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_207",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "SOLUTION"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_201",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_202",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_203",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_204",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_205",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_206",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_207",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "REASON",
+       "SOLUTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "EMPATHY",
+       "SOLUTION",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    }
+   ],
+   "표": {
+    "건수": 73,
+    "초안_건수": 43,
+    "child_intent_정확도": 1.0,
+    "utterance_validity_정확도": 1.0,
+    "요소_정밀도": 1.0,
+    "요소_재현율": 1.0,
+    "요소_F1": 1.0,
+    "믿을_수_있나": false,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_002",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REQUEST"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_208",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON",
+       "REQUEST"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_208",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "REQUEST"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "DECISION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     }
+    ]
+   }
+  },
+  {
+   "이름": "결정적으로 흔든 라벨 · 73건",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_001",
+     "라벨": {
+      "child_intent": "CHALLENGE",
+      "detected_elements": [
+       "RESULT",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_002",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_001",
+     "라벨": {
+      "child_intent": "CHALLENGE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_001",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_001",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_101",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_102",
+     "라벨": {
+      "child_intent": "OFF_TOPIC",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_101",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_102",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "REQUEST",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_101",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_102",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_101",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_102",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_201",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_202",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_203",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_204",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_205",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_206",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_207",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_208",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_201",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_202",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_203",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_204",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [
+       "REASON",
+       "REQUEST",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_205",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_206",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_207",
+     "라벨": {
+      "child_intent": "QUESTION",
+      "detected_elements": [],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_208",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_201",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_202",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "RESULT",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_203",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_204",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_205",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_206",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "SOLUTION",
+       "REQUEST",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_207",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "SOLUTION"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_201",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_202",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_203",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_204",
+     "라벨": {
+      "child_intent": "CHALLENGE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_205",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_206",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_207",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "OFF_TOPIC",
+      "detected_elements": [],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "EMPATHY",
+       "REASON",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMPATHY",
+       "EMOTION",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [
+       "SOLUTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY",
+       "REASON",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "QUESTION",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "PERSPECTIVE",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "EMPATHY",
+       "SOLUTION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    }
+   ],
+   "표": {
+    "건수": 73,
+    "초안_건수": 43,
+    "child_intent_정확도": 0.6712328767123288,
+    "utterance_validity_정확도": 0.7397260273972602,
+    "요소_정밀도": 0.5833333333333334,
+    "요소_재현율": 0.6712328767123288,
+    "요소_F1": 0.6242038216560509,
+    "믿을_수_있나": false,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_001",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_002",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_001",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_102",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "REQUEST"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_101",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_102",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_203",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_206",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_208",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_201",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_204",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "REASON",
+       "REQUEST"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_207",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_208",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_202",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_205",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "REQUEST"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_201",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "DECISION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_204",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_207",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT"
+      ],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "SOLUTION"
+      ],
+      "놓친_요소": [
+       "RESULT"
+      ],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "이름": "결정적으로 흔든 라벨 · 검수완료 30건",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "CHALLENGE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "OFF_TOPIC",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "QUESTION",
+      "detected_elements": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    }
+   ],
+   "표": {
+    "건수": 30,
+    "초안_건수": 0,
+    "child_intent_정확도": 0.6666666666666666,
+    "utterance_validity_정확도": 0.7333333333333333,
+    "요소_정밀도": 0.7142857142857143,
+    "요소_재현율": 0.6818181818181818,
+    "요소_F1": 0.6976744186046512,
+    "믿을_수_있나": true,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     }
+    ]
+   }
+  },
+  {
+   "이름": "요소를 하나도 안 냈다 · 검수완료 30건",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    }
+   ],
+   "표": {
+    "건수": 30,
+    "초안_건수": 0,
+    "child_intent_정확도": 1.0,
+    "utterance_validity_정확도": 1.0,
+    "요소_정밀도": 0.0,
+    "요소_재현율": 0.0,
+    "요소_F1": 0.0,
+    "믿을_수_있나": true,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION",
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "REASON",
+       "SOLUTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION",
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMPATHY",
+       "SOLUTION",
+       "RESULT"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     }
+    ]
+   }
+  },
+  {
+   "이름": "여덟 개를 다 냈다 · 검수완료 30건",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ],
+      "utterance_validity": "SHORT"
+     }
+    }
+   ],
+   "표": {
+    "건수": 30,
+    "초안_건수": 0,
+    "child_intent_정확도": 1.0,
+    "utterance_validity_정확도": 1.0,
+    "요소_정밀도": 0.18333333333333332,
+    "요소_재현율": 1.0,
+    "요소_F1": 0.30985915492957744,
+    "믿을_수_있나": true,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "RESULT",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "PERSPECTIVE",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMOTION",
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "SOLUTION",
+       "RESULT",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "SOLUTION",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "EMOTION",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION",
+       "REASON",
+       "PERSPECTIVE",
+       "SOLUTION",
+       "RESULT",
+       "EMOTION",
+       "EMPATHY",
+       "REQUEST"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "이름": "같은 요소를 두 번 냈다 · 검수완료 30건 (분모는 집합 크기다)",
+   "파일": "banggui_검수전.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_309",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_303",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "PLAYFUL"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_303",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_303",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_302",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_303",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_304",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_305",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_308",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_304",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_305",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_306",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_307",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_308",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_301",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_302",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_304",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_301",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_302",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_305",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_306",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_307",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_308",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_309",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ],
+      "utterance_validity": "SHORT"
+     }
+    }
+   ],
+   "표": {
+    "건수": 30,
+    "초안_건수": 0,
+    "child_intent_정확도": 1.0,
+    "utterance_validity_정확도": 1.0,
+    "요소_정밀도": 0.3333333333333333,
+    "요소_재현율": 0.45454545454545453,
+    "요소_F1": 0.3846153846153846,
+    "믿을_수_있나": true,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "RESULT"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_303",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": [
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY",
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_304",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_301",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_302",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_305",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "EMOTION",
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_306",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_307",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [
+       "SOLUTION",
+       "RESULT"
+      ],
+      "지어낸_요소": [
+       "REASON",
+       "REASON"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_308",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_309",
+      "검수": "검수완료",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "REASON",
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "이름": "말투판 전체 · 흔든 라벨",
+   "파일": "banggui_말투판.jsonl",
+   "짝들": [
+    {
+     "item_id": "gs_banggui_03_001",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_002",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_001",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_001",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION",
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_001",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "SHORT"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_101",
+     "라벨": {
+      "child_intent": "OFF_TOPIC",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_102",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_101",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_102",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_101",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_102",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_101",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_102",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [],
+      "utterance_validity": "UNCLEAR"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_201",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_202",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_203",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "EMOTION",
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_204",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_205",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_206",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_207",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_03_208",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_201",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "EMPATHY",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_202",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_203",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_204",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_205",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_206",
+     "라벨": {
+      "child_intent": "QUESTION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_207",
+     "라벨": {
+      "child_intent": "OFF_TOPIC",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_05_208",
+     "라벨": {
+      "child_intent": "UNCLEAR",
+      "detected_elements": [],
+      "utterance_validity": "UNCLEAR"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_201",
+     "라벨": {
+      "child_intent": "EMOTION",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_202",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "REASON",
+       "RESULT"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_203",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_204",
+     "라벨": {
+      "child_intent": "SHORT_RESPONSE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_205",
+     "라벨": {
+      "child_intent": "SOLUTION",
+      "detected_elements": [
+       "SOLUTION",
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_206",
+     "라벨": {
+      "child_intent": "REQUEST",
+      "detected_elements": [
+       "SOLUTION"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_07_207",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "RESULT"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_201",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_202",
+     "라벨": {
+      "child_intent": "DECISION",
+      "detected_elements": [
+       "DECISION",
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_203",
+     "라벨": {
+      "child_intent": "CHALLENGE",
+      "detected_elements": [],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_204",
+     "라벨": {
+      "child_intent": "OPINION",
+      "detected_elements": [
+       "DECISION"
+      ],
+      "utterance_validity": "OFF_TOPIC"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_205",
+     "라벨": {
+      "child_intent": "PERSPECTIVE",
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_206",
+     "라벨": {
+      "child_intent": "REASONING",
+      "detected_elements": [
+       "EMPATHY"
+      ],
+      "utterance_validity": "VALID"
+     }
+    },
+    {
+     "item_id": "gs_banggui_09_207",
+     "라벨": {
+      "child_intent": "PLAYFUL",
+      "detected_elements": [],
+      "utterance_validity": "PLAYFUL"
+     }
+    }
+   ],
+   "표": {
+    "건수": 43,
+    "초안_건수": 43,
+    "child_intent_정확도": 0.6744186046511628,
+    "utterance_validity_정확도": 0.7906976744186046,
+    "요소_정밀도": 0.5263157894736842,
+    "요소_재현율": 0.6896551724137931,
+    "요소_F1": 0.5970149253731344,
+    "믿을_수_있나": false,
+    "항목별": [
+     {
+      "id": "gs_banggui_03_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_002",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_001",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "SOLUTION",
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_001",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_101",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_102",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "REQUEST"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_101",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_101",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_102",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_202",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [
+       "EMOTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_205",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_03_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_03_208",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "EMOTION"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "EMPATHY"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_203",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE",
+       "REASON"
+      ],
+      "놓친_요소": [
+       "REQUEST"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_206",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "REASON"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_05_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_05_208",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_201",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "RESULT"
+      ],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "REASON",
+       "RESULT"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_203",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_204",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_07_206",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "SOLUTION"
+      ],
+      "놓친_요소": [
+       "REQUEST"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_07_207",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "SOLUTION"
+      ],
+      "지어낸_요소": [
+       "RESULT"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_201",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_202",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "DECISION"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "PERSPECTIVE"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_203",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [
+       "RESULT"
+      ],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_204",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": false,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "DECISION"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_205",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     },
+     {
+      "id": "gs_banggui_09_206",
+      "검수": "초안",
+      "child_intent_맞음": false,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": [
+       "EMPATHY"
+      ]
+     },
+     {
+      "id": "gs_banggui_09_207",
+      "검수": "초안",
+      "child_intent_맞음": true,
+      "utterance_validity_맞음": true,
+      "맞힌_요소": [],
+      "놓친_요소": [],
+      "지어낸_요소": []
+     }
+    ]
+   }
+  }
+ ],
+ "응답사례들": [
+  {
+   "원문": "{\"child_intent\":\"OPINION\",\"main_point\":\"가족이니까\",\"detected_elements\":[{\"type\":\"REASON\",\"evidence\":\"가족이니까\"}],\"utterance_validity\":\"VALID\"}",
+   "라벨": {
+    "child_intent": "OPINION",
+    "detected_elements": [
+     "REASON"
+    ],
+    "utterance_validity": "VALID",
+    "main_point": "가족이니까"
+   }
+  },
+  {
+   "원문": "```json\n{\"child_intent\":\"EMOTION\",\"main_point\":null,\"detected_elements\":[],\"utterance_validity\":\"SHORT\"}\n```",
+   "라벨": {
+    "child_intent": "EMOTION",
+    "detected_elements": [],
+    "utterance_validity": "SHORT",
+    "main_point": null
+   }
+  },
+  {
+   "원문": "  ```\n{\"child_intent\":\"PLAYFUL\",\"main_point\":\"\",\"detected_elements\":[{\"type\":\"EMPATHY\",\"evidence\":\"a\"},{\"type\":\"EMPATHY\",\"evidence\":\"b\"},{\"type\":\"REASON\",\"evidence\":\"c\"}],\"utterance_validity\":\"PLAYFUL\"}\n```  ",
+   "라벨": {
+    "child_intent": "PLAYFUL",
+    "detected_elements": [
+     "EMPATHY",
+     "REASON"
+    ],
+    "utterance_validity": "PLAYFUL",
+    "main_point": ""
+   }
+  },
+  {
+   "원문": "{\"child_intent\":\"UNCLEAR\",\"detected_elements\":[\"REASON\",\"REASON\",\"SOLUTION\"],\"utterance_validity\":\"UNCLEAR\"}",
+   "라벨": {
+    "child_intent": "UNCLEAR",
+    "detected_elements": [
+     "REASON",
+     "SOLUTION"
+    ],
+    "utterance_validity": "UNCLEAR",
+    "main_point": null
+   }
+  },
+  {
+   "원문": "{\"main_point\":\"칸이 셋뿐이다\",\"detected_elements\":[],\"utterance_validity\":\"VALID\"}",
+   "라벨": {
+    "child_intent": "",
+    "detected_elements": [],
+    "utterance_validity": "VALID",
+    "main_point": "칸이 셋뿐이다"
+   }
+  },
+  {
+   "원문": "{\"child_intent\":\"NOT_A_REAL_INTENT\",\"main_point\":null,\"detected_elements\":[{\"type\":\"NOPE\",\"evidence\":\"x\"}],\"utterance_validity\":\"WEIRD\"}",
+   "라벨": {
+    "child_intent": "NOT_A_REAL_INTENT",
+    "detected_elements": [
+     "NOPE"
+    ],
+    "utterance_validity": "WEIRD",
+    "main_point": null
+   }
+  },
+  {
+   "원문": "{\"child_intent\":\"OPINION\",\"main_point\":null,\"detected_elements\":[{\"evidence\":\"type 이 없다\"}],\"utterance_validity\":\"VALID\"}",
+   "라벨": {
+    "child_intent": "OPINION",
+    "detected_elements": [],
+    "utterance_validity": "VALID",
+    "main_point": null
+   }
+  },
+  {
+   "원문": "{\"child_intent\":\"OPINION\",\"main_point\":null,\"detected_elements\":null,\"utterance_validity\":\"VALID\"}",
+   "라벨": {
+    "child_intent": "OPINION",
+    "detected_elements": [],
+    "utterance_validity": "VALID",
+    "main_point": null
+   }
+  }
+ ]
+}
