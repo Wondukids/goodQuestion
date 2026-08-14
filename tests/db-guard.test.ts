@@ -1,16 +1,18 @@
 // 🔴 검사가 남의 DB 를 물지 않는가 (`tests/setup.ts` F-4 · `db/push-guard.ts`)
 //
-// ⚠️ **이 파일은 가드가 붙어 있는지를 못 잰다.** 가드는 `setup.ts` 가 파일을 읽는 순간
-//    한 번 도는데, 그때 이미 통과했으니 이 검사가 도는 것이다. 여기서 재는 것은
-//    **판정 규칙**이고, 「setup 에 실제로 배선됐나」는 진짜 vitest 를 원격 주소로
-//    돌려서 확인했다 (2026-08-13 · `drizzle-kit push` 가드와 같은 방식).
+// ⚠️ **이 파일은 가드가 붙어 있는지를 못 잰다.** 여기서 재는 것은 **판정 규칙**과
+//    **관문 껍데기**(`dbGate`)뿐이고, 「`tests/setup.ts` 에 실제로 배선됐나」는 진짜 vitest 를
+//    원격 주소로 돌려서 확인했다 (2026-08-13 · 2026-08-14 · `drizzle-kit push` 가드와 같은 방식).
 //
-// 🔴 그래서 이 파일만 초록인 것으로 안심하지 마라. `tests/setup.ts` 에서 그 두 줄이
-//    사라져도 **여기는 그대로 초록이다.** 배선을 옮기면 실물로 다시 확인해라.
+// 🔴 그래서 이 파일만 초록인 것으로 안심하지 마라. `tests/setup.ts` 의 `vi.mock('postgres', …)`
+//    가 통째로 사라져도 **여기는 그대로 초록이다.** 배선을 옮기면 실물로 다시 확인해라 —
+//    `DATABASE_URL=<저쪽 주소> npx vitest run tests/repo.test.ts` 가 빨개져야 한다.
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { 검사_대상_가드 } from '@/llm/db/push-guard'
+
+import { dbGate } from './support/db-gate'
 
 const 로컬 = 'postgresql://postgres:pw@localhost:5433/goodquestion_ts'
 
@@ -55,5 +57,45 @@ describe('검사_대상_가드', () => {
     expect(문구).toContain('goodquestion_ts') // 무엇이 허용인가
     expect(문구).toContain('tools/완주-저쪽DB.ts') // 저쪽에 쓰려면 어디로
     expect(문구).toContain('web/.env.local') // 로컬로 되돌리려면
+  })
+})
+
+// ── 관문 껍데기 — `postgres()` 를 부르는 순간 ──────────────────────────────
+//
+// 2겹의 알맹이다. 1겹(`DATABASE_URL` 을 모듈 로드 때 보는 것)을 어떻게 지나가도
+// **접속 문자열은 여기를 지난다.**
+
+describe('dbGate — 접속을 여는 순간', () => {
+  it('로컬 개발 DB 면 진짜 postgres() 로 그대로 흘린다', () => {
+    const 진짜 = vi.fn(() => '연결됨')
+    expect(dbGate(진짜)(로컬, { max: 1 })).toBe('연결됨')
+    expect(진짜).toHaveBeenCalledWith(로컬, { max: 1 }) // 인자를 안 건드린다
+  })
+
+  it('🔴 저쪽 라이브면 진짜 postgres() 를 아예 안 부른다', () => {
+    const 진짜 = vi.fn(() => '연결됨')
+    expect(() =>
+      dbGate(진짜)('postgresql://postgres.x:pw@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres'),
+    ).toThrow(/검사를 막았다/)
+    expect(진짜).not.toHaveBeenCalled()
+  })
+
+  it('🔴 주소가 문자열이 아니면 막는다 — 여기서는 「없으면 통과」가 아니다', () => {
+    // `검사_대상_가드` 는 빈 주소를 보내 준다(DB 를 안 무는 검사 사백여 건 때문이다).
+    // 그런데 이 자리는 이미 접속을 여는 중이라, 인자가 없으면 postgres 가 `PGHOST` 로
+    // 알아서 붙어 버린다 — **어디로 붙는지 이 그물이 못 본다.** 그래서 뒤집는다.
+    const 진짜 = vi.fn(() => '연결됨')
+    expect(() => dbGate(진짜)()).toThrow(/접속 문자열 없이 불렸다/)
+    expect(() => dbGate(진짜)('')).toThrow(/접속 문자열 없이 불렸다/)
+    expect(() => dbGate(진짜)({ host: 'localhost', database: 'goodquestion_ts' })).toThrow(
+      /접속 문자열 없이 불렸다/,
+    )
+    expect(진짜).not.toHaveBeenCalled()
+  })
+
+  it('postgres 의 정적 붙임을 그대로 옮긴다', () => {
+    // 안 옮기면 `postgres.camel` 을 쓰는 코드가 「검사일 때만」 다르게 죽는다.
+    const 진짜 = Object.assign(vi.fn(), { camel: '카멜' })
+    expect((dbGate(진짜) as unknown as { camel: string }).camel).toBe('카멜')
   })
 })
