@@ -32,8 +32,17 @@ const 틀을_가진_것: ReadonlyArray<[이름: string, 자리표시자: string]
   ['child', 'child_material'],
 ]
 
-// 심판 프롬프트 둘은 「받는 것」 절이 없다. 채점기가 사용자 블록을 직접 만들어 붙인다.
-const 틀이_없는_것 = ['judge_gave_away_element', 'judge_invented_setting']
+// 심판 프롬프트 셋은 「받는 것」 절이 없다. 채점기가 사용자 블록을 직접 만들어 붙인다.
+//
+// ⚠️ `judge_guided_toward_target` 은 이슈 #22 가 새로 만든 과녁 심판이다. TS 는 아직
+//    이 심판을 부르지 않지만(`scoring.py` 가 파이썬에만 있다) 프롬프트 정본은 레포 루트
+//    하나이므로 파일은 여기 있다. 아래 단언이 목록을 **정확히 일치**로 보기 때문에
+//    이 줄을 빼면 파일이 늘어난 것만으로 빨개진다.
+const 틀이_없는_것 = [
+  'judge_gave_away_element',
+  'judge_guided_toward_target',
+  'judge_invented_setting',
+]
 
 const md들 = readdirSync(promptsDir())
   .filter((이름) => 이름.endsWith('.md'))
@@ -47,7 +56,7 @@ describe('prompts/ 찾기', () => {
     expect(path.basename(path.dirname(promptsDir()))).not.toBe('web')
   })
 
-  it('정본 다섯 개가 다 읽힌다', () => {
+  it('정본 여섯 개가 다 읽힌다', () => {
     expect(md들).toEqual([...틀이_없는_것, ...틀을_가진_것.map(([이름]) => 이름)].sort())
     for (const 이름 of md들) {
       expect(read(이름).length).toBeGreaterThan(0)

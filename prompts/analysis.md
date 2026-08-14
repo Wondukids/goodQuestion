@@ -38,11 +38,13 @@ JSON 하나만 낸다.
 | `element_criteria` | 요소마다, 이 장면에서 인정하려면 발화에 무엇이 있어야 하는가 |
 | `goal` | **없을 수 있다.** 이 장면에서 아이가 생각하고 표현하도록 유도할 학습 목표 |
 
-`target_elements` 는 **목록일 뿐이다. 있다고 억지로 찾아내지 마라.**
+`target_elements` 는 **목록일 뿐이다. 목록에 있다고 억지로 찾아내지 마라.**
 목록에 없는 요소를 발견하면 그것도 그대로 적는다.
 
 ⚠️ **`goal` 이 와도 그것을 찾아내려고 하지 마라.** 아이가 실제로 말한 것만 적는다.
-목표는 배경이지 채점표가 아니다. 요소를 인정하는 기준은 `element_criteria` 뿐이다.
+목표는 배경이지 채점표가 아니다. **`goal` 을 보고 요소를 인정하거나 빼지 않는다.**
+기준 문장이 **있는** 요소는 `element_criteria` 가 정하고,
+**없는** 요소는 아래 `[E-NOCRIT]` 이 정한다 — 기준이 없다는 것이 빼는 까닭이 되지 않는다.
 
 > 📄 위 다섯은 `docs/기준/대화작동규칙.md:74-79` 의 2.1 표 그대로다. 여기 없는 값은 안 온다.
 >
@@ -129,7 +131,7 @@ JSON 하나만 낸다.
 ### `[E-BARE]` — 막연한 당위는 **어떤 요소로도 세지 않는다**
 
 막연한 당위나 예의 표현만으로는 `REASON`·`PERSPECTIVE`·`SOLUTION`·`DECISION` 을 인정하지 않는다.
-아래 넉 줄은 구체적인 맥락 없이 단독으로 쓰이면 **요소가 아니다.**
+아래 넉 마디는 구체적인 맥락 없이 단독으로 쓰이면 **요소가 아니다.**
 
     잘해줘야 해요 · 도와줘야 해요 · 착하게 해야 해요 · 그러면 안 돼요
 
@@ -173,7 +175,7 @@ JSON 하나만 낸다.
 > ✏️ 2026-08-11 인터뷰 3회차 Q2 로 확정. 추적은 `docs/리포트_근거대장.md`.
 > 🌐 **위 「어미에 숨는다」 세 줄은 2026-08-11 에 한국어판 50건을 다시 세어 넣은 것이다.**
 > ⑤ 9건 중 「만약」이 실제로 쓰인 것은 **1건뿐**이었고 나머지 8건은 `-면` 만으로 조건을 날랐다.
-> ② 10건 중 「왜냐하면」은 3건뿐(`-니까` 6 · `때문` 2 · `-어서/아서` 2).
+> ② 10건 중 「왜냐하면」은 3건뿐(`-니까` 6 · `때문` 2 · `-어서/아서` 2 — 한 발화에 표지가 둘 겹친 것이 있어 합이 10을 넘는다).
 > 영어는 문두 `If` 가 3건이었는데 **한국어는 문두 표지가 0건**이다.
 > ⚠️ ⑤ 는 `[E-RESULT]` 와 겹칠 수 있다. 겹치면 `[E-MULTI]` 대로 **둘 다 적는다.**
 
@@ -284,8 +286,10 @@ Record an element outside the list if the child said it. `element_criteria`
 state what an utterance must show before an element counts in this scene.
 
 `goal` may be absent. When present it is background, not a scoring rubric —
-never treat it as something to find. Record only what the child actually said,
-and judge elements by `element_criteria` alone.
+never treat it as something to find, and never let it add or withhold an
+element. Record only what the child actually said. Where `element_criteria`
+has an entry for a type, that entry decides; where it has none, [E-NOCRIT]
+below decides.
 
 ## child_intent — the single most prominent intent
 
