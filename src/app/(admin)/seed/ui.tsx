@@ -34,7 +34,7 @@ export function 칸머리({ 이름, 출처 }: { 이름: string; 출처: string }
   return (
     <span className="flex items-baseline gap-2">
       <span className="font-semibold">{이름}</span>
-      <mark className="bg-zinc-200 px-1 font-mono text-[11px] dark:bg-zinc-700 dark:text-zinc-100">
+      <mark className="bg-zinc-200 px-1 font-mono text-[11px] text-zinc-900">
         {출처_이름[출처] ?? 출처}
       </mark>
     </span>
@@ -71,7 +71,7 @@ export function 시드파일값({ 값 }: { 값: string | null }) {
   return (
     <details className="text-xs">
       <summary className="cursor-pointer text-zinc-500">▸ 시드 파일 값 보기</summary>
-      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 dark:bg-zinc-900">
+      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 text-zinc-900">
         {값 ?? '값 없음'}
       </pre>
     </details>

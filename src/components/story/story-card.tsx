@@ -115,8 +115,15 @@ export function RecommendedStoryCard({
   );
 }
 
-/** 홈 이어하기 카드(시안 21-480) — 300×297, 썸네일 밑에 제목·정보와 이어서 보기 버튼. */
-export function ContinueStoryCard({ story }: { story: ContinueStory }) {
+/** 홈 이어하기 카드(시안 21-480) — 300×297, 썸네일 밑에 제목·정보와 이어서 보기 버튼.
+    href 를 주면 그리로 간다 — 세션이 있으면 재생 화면 직접 진입 (이슈 #8). */
+export function ContinueStoryCard({
+  story,
+  href,
+}: {
+  story: ContinueStory;
+  href?: string;
+}) {
   return (
     <div className="flex h-[297px] w-[300px] shrink-0 flex-col items-center gap-6 rounded-[20px] border-[3px] border-primary-line bg-white px-4 pt-5 pb-4 drop-shadow-[0_0_15px_rgb(0_0_0_/_0.1)]">
       <div className="relative h-[105px] w-full shrink-0 overflow-hidden rounded-xl">
@@ -149,7 +156,7 @@ export function ContinueStoryCard({ story }: { story: ContinueStory }) {
       </div>
 
       <Link
-        href={`/stories/${story.id}`}
+        href={href ?? `/stories/${story.id}`}
         className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-[11px] font-gothic text-[15px] font-extrabold text-white"
       >
         <MaterialSymbol name="play_arrow" size={15} />

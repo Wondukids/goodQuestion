@@ -51,7 +51,7 @@ vi.mock('@/llm/repo/db', async (importOriginal) => {
 
 import { 옮긴다 } from '@/llm/controller/envelope'
 import { loadSettings, WEB_ROOT, 고를_수_있는_강도 } from '@/llm/config'
-import { read, sendableBody } from '@/llm/prompts'
+import { read } from '@/llm/prompts'
 import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import { readAttempts, readRun } from '@/llm/repo/runs'
 import { insertMessage, sessionTranscript } from '@/llm/repo/sessions'
@@ -755,8 +755,8 @@ DB검사('화면이 부르는 자리 × 진짜 DB', () => {
 
       await 한턴(run.session_id, '며느리가 창피했을 것 같아')
 
-      expect(기록.분석_system).toEqual([sendableBody(read('analysis'))])
-      expect(기록.대사_system).toEqual([sendableBody(read('character'))])
+      expect(기록.분석_system).toEqual([read('analysis')])
+      expect(기록.대사_system).toEqual([read('character')])
     })
   })
 })

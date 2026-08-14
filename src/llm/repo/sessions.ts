@@ -124,6 +124,57 @@ export async function lastCharacterMessage(
   return 행들.length === 0 ? null : 행들[0].text
 }
 
+/**
+ * `(child_id, story_id)` 의 **진행 중** 세션 중 가장 최근 것. 세션 열기(4.1)의 검색이다.
+ *
+ * 중복 in_progress 가 있으면 — 옛 `startStory()` 는 유니크 인덱스 없이 넣었다 — 최근 활동
+ * 것을 하나 고른다. 경쟁 자체를 막는 부분 유니크 인덱스는 스키마 이슈 #5 몫이다.
+ */
+export async function latestInProgressSession(
+  conn: Conn,
+  { child_id, story_id }: { child_id: string; story_id: string },
+): Promise<SessionRow | null> {
+  const 행들 = await conn
+    .select()
+    .from(story_sessions)
+    .where(
+      and(
+        eq(story_sessions.child_id, child_id),
+        eq(story_sessions.story_id, story_id),
+        eq(story_sessions.status, 'in_progress'),
+      ),
+    )
+    .orderBy(desc(story_sessions.last_activity_at), desc(story_sessions.id))
+    .limit(1)
+  return 행들.length === 0 ? null : 행들[0]
+}
+
+/**
+ * 현재 장면의 마지막 캐릭터 행 — **id 까지**. 아이 앱의 `last_character_line` 재료다
+ * (재개 지점 = 그 장면의 마지막 캐릭터 `messages` 행 — rev.2 결정 ③).
+ *
+ * `lastCharacterMessage()` 와 다른 점은 id 하나다 — 그쪽은 LLM 재료라 글만 쓰고,
+ * 반환 모양을 바꾸면 엔진 조립이 흔들려 따로 둔다.
+ */
+export async function lastCharacterLine(
+  conn: Conn,
+  { session_id, scene_id }: { session_id: string; scene_id: string },
+): Promise<{ message_id: string; text: string } | null> {
+  const 행들 = await conn
+    .select({ message_id: messages.id, text: messages.text })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.session_id, session_id),
+        eq(messages.scene_id, scene_id),
+        eq(messages.speaker_type, 'character'),
+      ),
+    )
+    .orderBy(desc(messages.turn_order), desc(messages.id))
+    .limit(1)
+  return 행들.length === 0 ? null : 행들[0]
+}
+
 /** 이 세션의 마지막 아이 발화 id. 끝나지 않은 턴을 잇는 자리가 쓴다. */
 export async function lastChildMessageId(
   conn: Conn,
@@ -416,6 +467,24 @@ export async function updateSession(
       scene_end_reason: decision.scene_end_reason,
       last_activity_at: sql`now()`,
     })
+    .where(eq(story_sessions.id, session_id))
+}
+
+/**
+ * 아이가 대화 씬을 건너뛰었다 — 현재 장면을 `SKIPPED` 로 닫는다 (스킵 API).
+ *
+ * 🔴 **판정 칸은 건드리지 않는다.** 누적 요소도 턴 수도 `scene_goal_met` 도 그대로 둔다 —
+ * 건너뛴 것은 아이지 규칙이 아니다. 여기서 `scene_goal_met` 을 켜면 「목표를 채웠다」가
+ * 기록에 거짓으로 남는다. 채워야 하는 것은 **전진을 일으키는 한 칸뿐**이다
+ * (`domain/progress.nextStep()` — 대화 장면인데 이 칸이 차 있으면 다음 장면으로 간다).
+ *
+ * ⚠️ 이 값은 다음 장면에 들어가는 순간 `enterScene()` 이 지운다. 「이 장면을 건너뛰었다」의
+ *    영구 근거는 `messages` 다 — 건너뛴 장면에는 여는 말 한 행만 있고 아이 행이 0개다.
+ */
+export async function markSceneSkipped(conn: Conn, session_id: string): Promise<void> {
+  await conn
+    .update(story_sessions)
+    .set({ scene_end_reason: 'SKIPPED', last_activity_at: sql`now()` })
     .where(eq(story_sessions.id, session_id))
 }
 

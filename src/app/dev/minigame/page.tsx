@@ -13,10 +13,11 @@ import { MinigamePopup } from "@/stories/fart-bride/minigame-popup";
 const MISSIONS = [
   { id: 1 as const, title: "미션1 · 배나무 아래 소품 고르기" },
   { id: 2 as const, title: "미션2 · 며느리 친구들의 고민 다시 보기" },
+  { id: 3 as const, title: "마무리 · 순서 맞추고 줄거리 들려주기" },
 ];
 
 export default function MinigameDevPage() {
-  const [open, setOpen] = useState<1 | 2 | null>(null);
+  const [open, setOpen] = useState<1 | 2 | 3 | null>(null);
   const [childName, setChildName] = useState("지훈");
   const [log, setLog] = useState<string[]>([]);
 
@@ -24,7 +25,7 @@ export default function MinigameDevPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-warm p-10">
-      <h1 className="text-[28px] font-extrabold text-ink">미니게임 미리보기</h1>
+      <h1 className="text-[28px] font-extrabold text-ink">미니게임·마무리 미리보기</h1>
       <p className="text-[15px] font-bold text-ink-mid">마이크 권한이 필요해요</p>
 
       <label className="flex items-center gap-3 text-[15px] font-bold text-ink-mid">
@@ -45,7 +46,7 @@ export default function MinigameDevPage() {
               setLog([]);
               setOpen(mission.id);
             }}
-            className="rounded-2xl bg-primary px-8 py-4 text-[17px] font-extrabold text-white"
+            className="rounded-2xl bg-primary px-7 py-4 text-[16px] font-extrabold text-white"
           >
             {mission.title}
           </button>

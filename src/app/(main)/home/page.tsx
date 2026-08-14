@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ContinueStoryCard } from "@/components/story/story-card";
+import { ContinueStoryLive } from "@/components/story/continue-story-live";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
 import { requireSelectedChild } from "@/lib/selected-child";
 import { listStories } from "@/lib/stories";
-import { listChildSessions } from "@/lib/story-sessions";
+import { listChildSessions, type ChildStorySession } from "@/lib/story-sessions";
 import type { Story } from "@/lib/story-types";
 import {
   PersonalizedSections,
@@ -21,12 +21,18 @@ export default async function HomePage() {
     listChildSessions(child.id),
   ]);
 
-  /* 진행 중 세션(최근 활동 순) → 이야기. 장면 데이터가 아직 없어
-     진행률은 못 구하므로 카드의 진행바만 생략된다. */
+  /* 진행 중 세션(최근 활동 순) → 이야기. 진행률은 카드가 세션 API
+     (GET /api/sessions/{id})로 채운다 — 이슈 #8. */
   const continueStories = sessions
     .filter((session) => session.status === "in_progress")
-    .map((session) => stories.find((story) => story.id === session.slug))
-    .filter((story): story is Story => Boolean(story))
+    .map((session) => ({
+      session,
+      story: stories.find((story) => story.id === session.slug),
+    }))
+    .filter(
+      (pair): pair is { session: ChildStorySession; story: Story } =>
+        Boolean(pair.story),
+    )
     .slice(0, CONTINUE_COUNT);
 
   return (
@@ -37,10 +43,11 @@ export default async function HomePage() {
         </h2>
         {continueStories.length > 0 ? (
           <div className="flex flex-wrap gap-[23px]">
-            {continueStories.map((story) => (
-              <ContinueStoryCard
-                key={story.id}
-                story={{ ...story, progress: null }}
+            {continueStories.map(({ session, story }) => (
+              <ContinueStoryLive
+                key={session.id}
+                story={story}
+                sessionId={session.id}
               />
             ))}
           </div>

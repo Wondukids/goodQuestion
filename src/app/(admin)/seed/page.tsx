@@ -56,7 +56,7 @@ export default async function SeedPage({
       )}
 
       {자료.file_differs && (
-        <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <strong>화면 값과 시드 파일 값이 다릅니다.</strong>{' '}
           <a href="/seed/export" className="underline">
             현재 작업값 내보내기
@@ -65,7 +65,7 @@ export default async function SeedPage({
       )}
 
       {자료.file_read_error !== null && (
-        <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <strong>시드 파일을 못 읽었습니다.</strong> 아래 「시드 파일 값 보기」가 전부 비어
           있습니다 — {자료.file_read_error}
         </p>
@@ -88,7 +88,7 @@ export default async function SeedPage({
         <h3 className="mb-2 font-semibold">캐릭터 {자료.characters.length}명</h3>
         <div className="flex flex-col gap-4">
           {자료.characters.map((캐릭터) => (
-            <article key={캐릭터.id} className="border border-zinc-300 p-3 dark:border-zinc-700">
+            <article key={캐릭터.id} className="border border-zinc-300 p-3">
               <h4 className="mb-2 font-semibold">
                 {캐릭터.name} <span className="font-mono text-xs text-zinc-500">{캐릭터.code}</span>
               </h4>
@@ -152,7 +152,7 @@ export default async function SeedPage({
         </h3>
         <div className="flex flex-col gap-4">
           {자료.scenes.map((장면) => (
-            <article key={장면.id} className="border border-zinc-300 p-3 dark:border-zinc-700">
+            <article key={장면.id} className="border border-zinc-300 p-3">
               <h4 className="mb-2 font-semibold">
                 장면 {장면.scene_order} · {장면.character_name}{' '}
                 <span className="font-mono text-xs text-zinc-500">{장면.code}</span>
@@ -298,7 +298,7 @@ export default async function SeedPage({
               </thead>
               <tbody>
                 {자료.revisions.map((개정) => (
-                  <tr key={개정.id} className="border-b border-zinc-200 dark:border-zinc-800">
+                  <tr key={개정.id} className="border-b border-zinc-200">
                     <td className="py-1 pr-3 font-mono">
                       {개정.created_at.toISOString().slice(0, 19).replace('T', ' ')}
                     </td>

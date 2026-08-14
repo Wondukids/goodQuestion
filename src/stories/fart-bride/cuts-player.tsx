@@ -35,14 +35,24 @@ export type CutsPlayerHandle = {
 export function CutsPlayer({
   step,
   onEnded,
+  startCut,
   ref,
 }: {
   step: CutsStep;
   onEnded: () => void;
+  /**
+   * 재생을 시작할 컷 번호(0부터) — 세션 재개(play.tsx)가 직전 컷 묶음의
+   * 마지막 컷만 틀 때 쓴다. 첫 렌더에서만 읽고, 범위 밖 값은 안전하게 잘라낸다.
+   */
+  startCut?: number;
   /** 건너뛰기 버튼(play.tsx)이 컷 단위로 넘길 수 있게 여는 핸들 */
   ref?: Ref<CutsPlayerHandle>;
 }) {
-  const [position, setPosition] = useState({ cut: 0, line: 0 });
+  const [position, setPosition] = useState(() => ({
+    /* 빈 묶음이면 min 이 -1 이 되니 max 로 0 을 보장한다 */
+    cut: Math.max(0, Math.min(startCut ?? 0, step.cuts.length - 1)),
+    line: 0,
+  }));
   const cut = step.cuts[position.cut] ?? null;
   const line = cut?.lines[position.line] ?? null;
 

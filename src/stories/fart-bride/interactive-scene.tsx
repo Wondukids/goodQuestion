@@ -9,78 +9,165 @@ import { startRecording, type Recording } from "@/stt/record";
 import { requestSpeech } from "@/tts/client";
 import { STT_DEFAULTS, type InteractiveStep, type SpeechLine } from "./data";
 import { fillChildName, vocative } from "./name";
+import {
+  openSession,
+  resumeSessionTurn,
+  SessionApiError,
+  skipSessionSceneWithResume,
+  submitSessionTurn,
+  type TurnNext,
+  type TurnResult,
+} from "./session-api";
 
 /**
- * 인터랙티브 씬 하나: 질문(녹음 음성) → 아이 답변 녹음 → STT → TTS 반응
- * → [다시 말하기 순환 | 계속하기] → 정해진 답변(녹음 음성) → 다음 파트.
+ * 인터랙티브 씬 하나 (이슈 #8 — `docs/이야기_세션_명세.md` 5절):
+ * 질문(녹음 음성) → 아이 답변 녹음 → 턴 API(서버가 STT→분석→판단→대사) →
+ * 캐릭터 대사 TTS 재생 → next.kind 분기(발화받기 → 다시 마이크 · 장면끝/회차끝 → 다음 스텝).
  *
- * STT-TTS 순환 구조가 아직 미정이라, 지금은 "다시 말하기" 버튼으로
- * 원하는 만큼 반복할 수 있게만 해 뒀다 (기능 테스트용).
+ * 세션이 없거나(401·열기 실패) 이 씬에 서버 장면이 없으면(sceneCode 없음), 그리고
+ * 턴 API 가 죽으면(502) **기존 고정 문구 흐름**으로 떨어진다 — 진행은 멈추지 않는다.
  */
 
 type Phase =
+  | "resume" // 복귀 진입 — 서버의 마지막 캐릭터 대사 재생 중 (결정 ⑦ 꼬리)
   | "question" // 질문 음성 재생 중
   | "listening" // 마이크 녹음 중
-  | "transcribing" // STT 호출 중
+  | "transcribing" // 턴 처리 중 (서버 STT→분석→판단→대사, 폴백이면 STT 만)
   | "responding" // TTS 반응 재생 중
-  | "choice" // 다시 말하기 / 계속하기
-  | "answer" // 정해진 답변 재생 중
+  | "choice" // 다시 말하기 / 계속하기 — 폴백·비서버 흐름에서만
+  | "silent" // 무음 한도 초과 — 다시 말하기 / 넘어가기 선택 대기 (서버·비서버 공통)
+  | "answer" // 정해진 답변 재생 중 — 폴백·비서버 흐름에서만
   | "error";
 
-/* LLM 연결 지점 — 순환 구조가 정해지면 여기를 LLM 호출로 바꾼다.
-   지금은 화자별 말투로 아이 답변을 되받아 주는 고정 문구다. */
-const REACTIONS: Record<string, (transcript: string) => string> = {
-  /* 며느리 — 다정하고 조심스러운 말투 */
-  Leda: (t) =>
-    `"${t}"라고 말해 줬구나. 네 생각을 들으니 마음이 한결 가벼워졌어. 정말 고마워!`,
-  /* 시아버지 — 근엄한 하게체 */
-  Schedar: (t) =>
-    `"${t}"라... 흠, 그렇게 생각하느냐. 네 이야기를 들으니 나도 생각이 많아지는구나.`,
-  /* 이장님 — 너털웃음 섞인 하오체 */
-  Sadachbia: (t) => `"${t}"라고 했구나? 허허, 그것 참 기특한 생각이구려!`,
-};
-
-function buildReaction(transcript: string, voice: string) {
-  //const build = REACTIONS[voice];
-  //if (build) return build(transcript);
+/* 고정 문구 폴백 — 세션이 없거나 턴 API 가 죽었을 때(502)만 쓴다 (이슈 #8).
+   LLM 대사는 이제 서버 턴 API(POST /api/sessions/{id}/turns)가 만든다. */
+function buildReaction(transcript: string) {
   return `"${transcript}"라고 말해 주었구나! 이야기해 줘서 정말 고마워.`;
+}
+
+/**
+ * `?debug=scene` 일 때만 진단 배지를 켠다.
+ *
+ * 🔴 **배포에서 지울 것이 없다.** 아이 앱이 여는 URL 에는 이 쿼리가 없어 아이 화면에는
+ * 절대 안 뜨고, 꺼져 있으면 DOM 이 아예 안 생긴다. 지우는 방식은 지울 것을 기억해야 하고
+ * 급할 때 잊는다 — 무엇보다 **배포된 실기기에서 켤 수 없다.**
+ *
+ * ⚠️ 첫 렌더에서 `window` 를 읽어도 안전하다 — 이 씬은 「이야기 시작」을 누른 **뒤에만**
+ *    붙으므로(`play.tsx` 의 `started`) 서버 렌더에 한 번도 안 들어간다. 그래서 수화 어긋남이
+ *    생길 자리가 없고, 효과에서 setState 하는 모양(층 규칙상 lint 오류)을 피할 수 있다.
+ */
+function useSceneDebug(): boolean {
+  const [on] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("debug") === "scene",
+  );
+  return on;
+}
+
+/* TTS 한 번 더 — 씬 진입 준비와 대사 합성이 몰리면 일시 오류(502)가 잦다. 짧게 쉬고
+   한 번 재시도하면 대부분 살아나, 멀쩡한 LLM 대답이 고정 문구로 떨어지는 일을 줄인다. */
+async function requestSpeechWithRetry(request: Parameters<typeof requestSpeech>[0]) {
+  try {
+    return await requestSpeech(request);
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return requestSpeech(request);
+  }
 }
 
 export function InteractiveScene({
   step,
   childName,
+  sessionId,
+  serverScene,
+  onServerScene,
+  resumeLine,
   onComplete,
 }: {
   step: InteractiveStep;
   /** 선택된 아이 이름 — 있으면 질문할 때 이름을 부른다 */
   childName: string | null;
+  /** 세션 열기(POST /api/sessions)의 id — null 이면 서버 없이 고정 문구 흐름 */
+  sessionId: string | null;
+  /** 서버가 지금 기다리는 대화 장면 code — 이 씬과 다르면(건너뛰기로 어긋남) 서버 턴을 안 보낸다 */
+  serverScene: string | null;
+  /** 턴 응답이 장면을 옮기면(장면끝·회차끝) 추적을 갱신한다 — play.tsx 의 state 다 */
+  onServerScene: (code: string | null) => void;
+  /** 복귀 진입이면 서버의 마지막 캐릭터 대사 — 여는 말 연출 대신 이 한 줄을 튼다 */
+  resumeLine: string | null;
   onComplete: () => void;
 }) {
-  const [phase, setPhase] = useState<Phase>("question");
+  /* 고정 문구로 떨어지는 사유 — **셋뿐이다.** 서버 대화가 도는 조건은 이 셋이 다 아닌
+     것이고, 그래서 `serverMode` 도 여기서 나온다 (조건을 두 번 적으면 갈라진다).
+
+     🔴 화면 결과는 셋 다 똑같이 「고정 문구」라, 사유를 안 남기면 사람이 「LLM 이 이상하다」로만
+     본다 — 원인은 서버 로그로만 갈렸다. 그래서 아래 배지·로그가 이 값을 그대로 쓴다. */
+  const fallbackReason =
+    sessionId === null
+      ? "세션없음 (아이 미선택·열기 실패)"
+      : step.sceneCode === ""
+        ? "이 씬에 서버 장면이 없다"
+        : step.sceneCode !== serverScene
+          ? `장면어긋남 — 서버 대기 ${serverScene ?? "없음"}`
+          : null;
+
+  /* 서버 대화 모드 — 세션이 열려 있고 이 씬이 **서버가 기다리는 바로 그 장면**일 때만
+     (명세 3절 매핑 + 어긋남 가드). 다르면 잘못된 캐릭터가 대답하게 되므로 고정 문구로
+     돌리고, 서버 기록은 그대로 둔다 — 건너뛰기는 스킵 API 가 서버도 같이 넘긴다. */
+  const serverMode = fallbackReason === null;
+  const resumeMode = serverMode && resumeLine !== null;
+  /* 진입 시점의 모드 — TTS 준비량을 정하는 데만 쓴다. 장면 도중 추적 갱신(장면끝)으로
+     serverMode 가 변해도 준비를 다시 돌리지 않기 위해 처음 값을 붙잡아 둔다.
+     진단 로그도 이 값을 쓴다 — 알고 싶은 것은 **진입 시점**의 모드다. */
+  const [entryMode] = useState(() => ({
+    server: serverMode,
+    resume: resumeMode,
+    reason: fallbackReason,
+  }));
+  const debug = useSceneDebug();
+
+  /* 씬마다 한 줄 — 늘 켜 둔다. 폴백이 조용히 일어나는 것이 이 레포의 오랜 사각이었다. */
+  useEffect(() => {
+    console.info(
+      entryMode.server
+        ? `[장면] ${step.id} · 서버 대화 ${step.sceneCode}`
+        : `[장면] ${step.id} · 고정 문구 — ${entryMode.reason}`,
+    );
+  }, [entryMode, step.id, step.sceneCode]);
+
+  const [phase, setPhase] = useState<Phase>(resumeMode ? "resume" : "question");
   const [lineIndex, setLineIndex] = useState(0);
-  const [transcript, setTranscript] = useState("");
+  /* 채팅 패널 말풍선 이력 — 턴마다 아이 발화·캐릭터 대사가 쌓인다 (멀티턴) */
+  const [history, setHistory] = useState<{ from: "character" | "child"; text: string }[]>([]);
   const [responseUrl, setResponseUrl] = useState<string | null>(null);
-  /* 채팅 패널에 보여 줄 TTS 반응 문구 — 재생되는 음성과 같은 내용 */
-  const [reactionText, setReactionText] = useState("");
+  /* 복귀 한 줄의 TTS — 준비되면 resume 단계에서 재생한다 */
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   /* "다시 듣기" — 마지막 질문 음성 재생. n 을 올려 누를 때마다 처음부터 튼다 */
   const [replay, setReplay] = useState<{ src: string; n: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [remainingSec, setRemainingSec] = useState(STT_DEFAULTS.maxListenSec);
 
   /* 이름이 들어간 대사 준비 — 채워지기 전에는 음성을 재생하지 않는다.
-     이름이 없으면 원본 녹음을 그대로 쓴다. */
+     이름이 없으면 원본 녹음을 그대로 쓴다. 복귀 진입도 원본 그대로다 — 질문 연출을
+     건너뛰므로 준비 TTS 를 아예 안 부른다 (진입 때 호출이 몰리면 정작 대사 TTS 가
+     502 로 튕겨 고정 문구로 떨어진다). 폴백으로 정해진 답변을 틀게 되면 원본 녹음이
+     나간다 — 이름만 못 부를 뿐이다. */
   const [preparedLines, setPreparedLines] = useState<{
     question: SpeechLine[];
     answer: SpeechLine[];
   } | null>(
-    childName ? null : { question: step.question.lines, answer: step.answer.lines },
+    childName && !entryMode.resume
+      ? null
+      : { question: step.question.lines, answer: step.answer.lines },
   );
 
   /* "ㅇㅇ" 자리 표시자가 있는 대사는 이름을 넣어 캐릭터 목소리로 TTS 하고,
      질문에 자리 표시자가 없으면 짧은 호명("지훈아!")을 앞에 붙인다.
      TTS 실패 시 원본 녹음으로 폴백 — 이름만 못 부를 뿐 진행은 된다. */
   useEffect(() => {
-    if (!childName) return;
+    /* 복귀 진입은 초기 상태가 이미 원본으로 차 있다 (위 preparedLines 주석) */
+    if (!childName || entryMode.resume) return;
     let cancelled = false;
     const blobUrls: string[] = [];
 
@@ -99,20 +186,14 @@ export function InteractiveScene({
       return url;
     };
 
-    /* 병렬로 몰아 부르면 구글 분당 한도(429)에 걸리기 쉬워 한 건씩 순차 합성한다.
-       서버가 같은 문장을 캐시하므로 씬 재진입 때는 구글 호출 없이 바로 온다. */
-    const substitute = async (lines: SpeechLine[]) => {
-      const result: SpeechLine[] = [];
-      for (const line of lines) {
-        if (!line.text.includes("ㅇㅇ")) {
-          result.push(line);
-          continue;
-        }
-        const text = fillChildName(line.text, childName);
-        result.push({ text, audio: await tts(text) });
-      }
-      return result;
-    };
+    const substitute = (lines: SpeechLine[]) =>
+      Promise.all(
+        lines.map(async (line) => {
+          if (!line.text.includes("ㅇㅇ")) return line;
+          const text = fillChildName(line.text, childName);
+          return { text, audio: await tts(text) };
+        }),
+      );
 
     (async () => {
       try {
@@ -128,7 +209,11 @@ export function InteractiveScene({
             )
           : null;
         const question = await substitute(step.question.lines);
-        const answer = await substitute(step.answer.lines);
+        /* 서버 모드에선 정해진 답변이 재생되지 않는다(502 폴백 전용) — 준비 TTS 절약.
+           순차 합성이라 부르는 개수가 곧 진입 대기 시간이다 — 이 절약을 빼면 씬 진입이 느려진다. */
+        const answer = entryMode.server
+          ? step.answer.lines
+          : await substitute(step.answer.lines);
         if (cancelled) return;
         setPreparedLines({
           question: greetingAudio
@@ -150,12 +235,42 @@ export function InteractiveScene({
       cancelled = true;
       for (const url of blobUrls) URL.revokeObjectURL(url);
     };
-  }, [childName, step]);
+  }, [childName, step, entryMode]);
 
   const recordingRef = useRef<Recording | null>(null);
   const retriesRef = useRef(0);
+  /* 방금 턴의 next — 대사 재생이 끝난 뒤 분기한다 (발화받기 / 장면끝 / 회차끝) */
+  const nextRef = useRef<TurnNext | null>(null);
+  /* 이번 응답이 폴백(고정 문구)이었나 — 폴백이면 기존 선택 버튼 흐름으로 간다 */
+  const fallbackRef = useRef(false);
   /* 채팅 패널 스크롤 — 말풍선이 늘어나면 맨 아래로 내린다 */
   const chatRef = useRef<HTMLDivElement | null>(null);
+
+  /* 복귀 한 줄 TTS 준비 — 실패해도 말풍선은 보이니 바로 아이 차례로 넘어간다 */
+  useEffect(() => {
+    if (!resumeMode || resumeLine === null) return;
+    let cancelled = false;
+    let url: string | null = null;
+    (async () => {
+      try {
+        const speech = await requestSpeechWithRetry({
+          text: resumeLine,
+          voice: step.speaker.voice,
+          stylePrompt: step.speaker.stylePrompt,
+          geminiOnly: true,
+        });
+        if (cancelled) return;
+        url = URL.createObjectURL(speech);
+        setResumeUrl(url);
+      } catch {
+        if (!cancelled) setPhase("listening");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [resumeMode, resumeLine, step]);
 
   /* 언마운트 시 마이크·blob URL 정리 */
   useEffect(() => {
@@ -174,47 +289,138 @@ export function InteractiveScene({
     setPhase("error");
   }, []);
 
-  const sendToStt = useCallback(
+  /* 화면이 대화를 떠나며 서버도 같이 넘긴다 — 상단 건너뛰기(play.tsx skip)와 같은 스킵
+     통보다. 무음 「넘어가기」·폴백 「계속하기」·오류 「건너뛰고 계속」이 부른다.
+     서버가 지금 이 장면을 기다릴 때(serverMode)만 보낸다 — 이미 어긋난 씬(고정 문구)에서
+     보내면 엉뚱한 대기 장면을 넘기게 된다. fire-and-forget: 화면 진행은 응답을 기다리지
+     않고, 장면 추적(onServerScene)만 응답이 오면 갱신한다. */
+  const notifySkip = useCallback(() => {
+    if (!serverMode) return;
+    /* 응답이 오기 전에 이 씬으로 턴이 나가지 않게 추적을 먼저 끊는다 (play.tsx 와 동일) */
+    onServerScene(null);
+    skipSessionSceneWithResume(sessionId!, step.sceneCode, "fart-bride")
+      .then((code) => onServerScene(code))
+      .catch((error: unknown) => {
+        /* 실패해도 이야기는 멈추지 않는다 — 서버 기록은 그대로라 다음 진입 때 복귀한다 */
+        console.info("[장면] 건너뛰기 알림 실패 — 서버는 그 장면에 남는다", error);
+      });
+  }, [serverMode, sessionId, step.sceneCode, onServerScene]);
+
+  /* 무음 — sttDefaults 대로 1회 재시도 후 선택지(다시 말하기/넘어가기)로 (서버 흐름도 같은
+     연출 — 명세 4.3절). 예전엔 여기서 바로 정해진 답변으로 넘겼는데, 아이 입장에선 아무
+     안내 없이 "내 말을 씹고 지나간" 것으로 보였다 (실사용 신고). */
+  const handleSilence = useCallback(() => {
+    if (retriesRef.current < STT_DEFAULTS.retryCount) {
+      retriesRef.current += 1;
+      setPhase("listening");
+    } else {
+      setPhase("silent");
+    }
+  }, []);
+
+  /* 캐릭터 반응 하나를 TTS 로 준비해 재생 단계로 — 서버 대사와 폴백 문구가 같이 쓴다.
+     gemini-2.5 고정 — 실패는 error 단계(다시 시도·건너뛰기)로 드러난다 */
+  const speakReaction = useCallback(
+    async (text: string) => {
+      const speech = await requestSpeechWithRetry({
+        text,
+        voice: step.speaker.voice,
+        stylePrompt: step.speaker.stylePrompt,
+        geminiOnly: true,
+      });
+      setResponseUrl(URL.createObjectURL(speech));
+      setPhase("responding");
+    },
+    [step.speaker.voice, step.speaker.stylePrompt],
+  );
+
+  const handleUtterance = useCallback(
     async (blob: Blob, channelCount: number) => {
       setPhase("transcribing");
+
+      /* ── 비서버 흐름 (세션 없음·서버 장면 없음) — 기존 고정 문구 그대로 ── */
+      if (!serverMode) {
+        try {
+          const text = await transcribeAudio(blob, channelCount);
+          if (!text) return handleSilence();
+          const reaction = buildReaction(text);
+          fallbackRef.current = true;
+          setHistory((h) => [
+            ...h,
+            { from: "child", text },
+            { from: "character", text: reaction },
+          ]);
+          await speakReaction(reaction);
+        } catch (error) {
+          fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
+        }
+        return;
+      }
+
+      /* ── 서버 턴 — 녹음 하나로 STT→분석→판단→대사 (명세 4.3절) ── */
       try {
-        const text = await transcribeAudio(blob, channelCount);
-        if (!text) {
-          /* 무음 — sttDefaults 대로 1회 재시도 후 그냥 진행 */
-          if (retriesRef.current < STT_DEFAULTS.retryCount) {
-            retriesRef.current += 1;
-            setPhase("listening");
-          } else {
-            setLineIndex(0);
-            setPhase("answer");
+        const result: TurnResult = await submitSessionTurn(
+          sessionId!,
+          blob,
+          channelCount,
+        ).catch(async (error: unknown) => {
+          /* 미완 턴(409 TURN_INCOMPLETE) — 걸려 있던 턴을 이어 돌려 그 결과를 쓴다 */
+          if (error instanceof SessionApiError && error.code === "TURN_INCOMPLETE") {
+            const resumed = await resumeSessionTurn(sessionId!);
+            /* 이어 돌린 턴이 장면을 끝냈으면 서버는 아직 그 장면에 서 있다(전진은 열기 몫).
+               다시 열어 따라잡고(명세 4.3절) 장면 추적을 그 결과로 갱신한다. */
+            if (resumed.next.kind === "장면끝") {
+              try {
+                const reopened = await openSession("fart-bride");
+                onServerScene(
+                  reopened.status === "in_progress" ? (reopened.scene?.code ?? null) : null,
+                );
+              } catch {
+                onServerScene(null); // 따라잡기 실패 — 남은 씬은 고정 문구로, 다음 진입 때 복귀
+              }
+            }
+            return {
+              child: resumed.child,
+              dialogue: resumed.dialogue,
+              next: resumed.next,
+            } satisfies TurnResult;
           }
-          return;
+          throw error;
+        });
+
+        if (result.empty) return handleSilence();
+
+        /* 장면 추적 갱신 — 턴 API 의 장면끝은 next_scene 을 항상 싣는다 (없으면 회차끝이다).
+           next_scene 없는 장면끝은 위 resume 경로뿐이고, 그쪽은 재열기가 이미 갱신했다. */
+        if (result.next.kind === "회차끝") onServerScene(null);
+        else if (result.next.kind === "장면끝" && result.next.next_scene) {
+          onServerScene(result.next.next_scene.code);
         }
 
-        setTranscript(text);
-
-        /* TTS 반응 생성 — 채팅 패널에도 같은 문구를 말풍선으로 보여 준다 */
-        const reaction = buildReaction(text, step.speaker.voice);
-        setReactionText(reaction);
-        /* 반응도 gemini-2.5 고정. 합성이 실패(한도 초과 등)해도 흐름을 막지
-           않는다 — 반응은 글 말풍선으로만 보여 주고 바로 선택 단계로 간다. */
+        nextRef.current = result.next;
+        fallbackRef.current = false;
+        retriesRef.current = 0;
+        setHistory((h) => [
+          ...h,
+          { from: "child", text: result.child.text },
+          { from: "character", text: result.dialogue.text },
+        ]);
         try {
-          const speech = await requestSpeech({
-            text: reaction,
-            voice: step.speaker.voice,
-            stylePrompt: step.speaker.stylePrompt,
-            geminiOnly: true,
-          });
-          setResponseUrl(URL.createObjectURL(speech));
-          setPhase("responding");
+          await speakReaction(result.dialogue.text);
         } catch {
-          setPhase("choice");
+          /* TTS 만 죽었다(429 몰림 등) — 턴은 이미 성공해 대사가 말풍선에 있다. 여기서
+             고정 문구를 틀면 아이에게는 「내 말이 씹혔다」로 보인다(2026-08-14 실사용).
+             음성 없이 responding 종료와 같은 갈림길로 바로 간다. */
+          if (result.next.kind === "발화받기") setPhase("listening");
+          else onComplete();
         }
       } catch (error) {
+        /* 턴 자체가 죽었다(STT 502·서버 오류) — 저장된 것이 없어 같은 녹음을 다시 보내면
+           된다. 고정 문구 대신 오류 선택지(다시 시도·건너뛰고 계속)로 드러낸다. */
         fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
       }
     },
-    [fail, step.speaker.voice, step.speaker.stylePrompt],
+    [serverMode, sessionId, onServerScene, handleSilence, speakReaction, fail, onComplete],
   );
 
   const stopRecording = useCallback(() => {
@@ -230,7 +436,7 @@ export function InteractiveScene({
 
     (async () => {
       try {
-        const recording = await startRecording(sendToStt);
+        const recording = await startRecording(handleUtterance);
         /* 녹음 준비 중에 씬을 떠났으면 결과 없이 바로 정리 */
         if (cancelled) {
           recording.dispose();
@@ -256,7 +462,7 @@ export function InteractiveScene({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [phase, fail, sendToStt, stopRecording]);
+  }, [phase, fail, handleUtterance, stopRecording]);
 
   const isQuestion = phase !== "answer";
   const stage = isQuestion ? step.question : step.answer;
@@ -281,33 +487,35 @@ export function InteractiveScene({
     }
   }
 
-  /* 채팅 패널 말풍선 — 자막 대신 재생 진행에 맞춰 대화가 하나씩 쌓인다.
-     캐릭터 질문 → (아이 답변 → TTS 반응) → 캐릭터 답변 순서다. */
+  /* 채팅 패널 말풍선 — 여는 말(복귀 한 줄 또는 질문 연출) → 턴 이력 → 정해진 답변 순.
+     턴 이력은 서버 대화의 멀티턴이 그대로 쌓인 것이다 (이슈 #8). */
   const bubbles: { from: "character" | "child"; text: string }[] = [];
-  if (preparedLines) {
+  if (resumeMode && resumeLine !== null) {
+    bubbles.push({ from: "character", text: resumeLine });
+  } else if (preparedLines) {
     const shownQuestions =
       phase === "question"
         ? preparedLines.question.slice(0, lineIndex + 1)
         : preparedLines.question;
     for (const l of shownQuestions)
       if (l.text) bubbles.push({ from: "character", text: l.text });
-    const answered = phase === "responding" || phase === "choice" || phase === "answer";
-    if (answered && transcript) bubbles.push({ from: "child", text: transcript });
-    if (answered && reactionText) bubbles.push({ from: "character", text: reactionText });
-    if (phase === "answer")
-      for (const l of preparedLines.answer.slice(0, lineIndex + 1))
-        if (l.text) bubbles.push({ from: "character", text: l.text });
   }
-  const questionBubbleCount = preparedLines
-    ? (phase === "question"
-        ? preparedLines.question.slice(0, lineIndex + 1)
-        : preparedLines.question
-      ).filter((l) => l.text).length
-    : 0;
+  bubbles.push(...history);
+  if (phase === "answer" && preparedLines)
+    for (const l of preparedLines.answer.slice(0, lineIndex + 1))
+      if (l.text) bubbles.push({ from: "character", text: l.text });
+
+  /* 다시 듣기 — 마지막 캐릭터 말풍선 밑에. 턴이 쌓이면 마지막 대사 TTS 를 다시 튼다 */
+  let lastCharacterIndex = -1;
+  bubbles.forEach((b, i) => {
+    if (b.from === "character") lastCharacterIndex = i;
+  });
   const lastQuestionAudio =
     preparedLines?.question[preparedLines.question.length - 1]?.audio ?? null;
-  /* 다시 듣기는 아이 차례(듣는 중·선택)일 때만 — 질문 음성이 겹쳐 나오지 않게 */
-  const canReplay = phase === "listening" || phase === "choice";
+  const replaySrc =
+    history.length > 0 ? responseUrl : resumeMode ? resumeUrl : lastQuestionAudio;
+  /* 다시 듣기는 아이 차례(듣는 중·선택·무음 안내)일 때만 — 음성이 겹쳐 나오지 않게 */
+  const canReplay = phase === "listening" || phase === "choice" || phase === "silent";
 
   const bubbleCount = bubbles.length;
   useEffect(() => {
@@ -339,11 +547,50 @@ export function InteractiveScene({
       {currentLine && (
         <audio key={`${phase}-${lineIndex}`} src={currentLine.audio} autoPlay onEnded={handleLineEnded} />
       )}
+      {phase === "resume" && resumeUrl && (
+        <audio src={resumeUrl} autoPlay onEnded={() => setPhase("listening")} />
+      )}
       {phase === "responding" && responseUrl && (
-        <audio src={responseUrl} autoPlay onEnded={() => setPhase("choice")} />
+        <audio
+          src={responseUrl}
+          autoPlay
+          onEnded={() => {
+            /* 폴백·비서버 흐름은 기존 선택 버튼으로, 서버 턴은 next.kind 가 정한다 (명세 5절).
+               ⚠️ 여기서 serverMode 를 다시 보면 안 된다 — 장면끝이면 추적(onServerScene)이
+               이미 다음 장면을 가리켜 false 가 된 뒤다. 이 턴이 서버 턴이었다는 사실은
+               nextRef 가 안다 (폴백·비서버 턴은 nextRef 를 채우지 않는다). */
+            if (fallbackRef.current || nextRef.current === null) {
+              setPhase("choice");
+              return;
+            }
+            if (nextRef.current?.kind === "발화받기") {
+              setPhase("listening");
+              return;
+            }
+            /* 장면끝·회차끝 — 닫는 말은 방금 재생했다. 다음 스텝(영상·엔딩)으로 */
+            onComplete();
+          }}
+        />
       )}
       {replay && (
         <audio key={replay.n} src={replay.src} autoPlay onEnded={() => setReplay(null)} />
+      )}
+
+      {/* 진단 배지 — `?debug=scene` 에서만. 아이 화면에는 뜨지 않는다 */}
+      {debug && (
+        <div className="pointer-events-none absolute left-4 top-24 rounded-lg bg-black/70 px-3 py-2 font-mono text-[12px] leading-[1.6] text-emerald-200">
+          <div>
+            서버모드 <b className="text-amber-300">{serverMode ? "ON" : "OFF"}</b> ·{" "}
+            {step.sceneCode || "장면없음"}
+          </div>
+          {!serverMode && <div className="text-amber-300">사유: {fallbackReason}</div>}
+          <div>
+            서버 대기 {serverScene ?? "없음"} · 세션 {sessionId?.slice(0, 8) ?? "없음"}
+          </div>
+          <div>
+            단계 {phase} · 턴 {Math.floor(history.length / 2)}
+          </div>
+        </div>
       )}
 
       {/* 오른쪽 채팅 패널 — 자막 대신 대화 내용을 말풍선으로 쌓는다 (시안 106) */}
@@ -373,11 +620,11 @@ export function InteractiveScene({
                     {bubble.text}
                   </p>
                 </div>
-                {canReplay && lastQuestionAudio && i === questionBubbleCount - 1 && (
+                {canReplay && replaySrc && i === lastCharacterIndex && (
                   <button
                     type="button"
                     onClick={() =>
-                      setReplay((r) => ({ src: lastQuestionAudio, n: (r?.n ?? 0) + 1 }))
+                      setReplay((r) => ({ src: replaySrc, n: (r?.n ?? 0) + 1 }))
                     }
                     className="self-end text-[13px] font-bold text-ink-muted"
                   >
@@ -403,7 +650,7 @@ export function InteractiveScene({
 
         {/* 하단 상태 영역 — 단계별 안내와 마이크 */}
         <div className="flex flex-col items-center gap-2 border-t border-divider bg-white px-6 py-5">
-          {phase === "question" && (
+          {(phase === "question" || phase === "resume") && (
             <p className="text-[14px] font-bold text-ink-muted">이야기 친구가 말하고 있어요…</p>
           )}
 
@@ -455,6 +702,7 @@ export function InteractiveScene({
               <button
                 type="button"
                 onClick={() => {
+                  notifySkip(); // 폴백 뒤 진행 — 서버가 이 장면을 기다리고 있으면 같이 넘긴다
                   setLineIndex(0);
                   setPhase("answer");
                 }}
@@ -463,6 +711,37 @@ export function InteractiveScene({
                 계속하기
               </button>
             </div>
+          )}
+
+          {phase === "silent" && (
+            <>
+              <p className="text-center text-[14px] font-bold text-point-strong">
+                목소리가 잘 안 들렸어요. 한 번 더 말해 볼까?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    retriesRef.current = 0;
+                    setPhase("listening");
+                  }}
+                  className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
+                >
+                  다시 말하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    notifySkip(); // 무음으로 지나감 — 서버도 이 장면을 넘긴다 (안 넘기면 계속 대기)
+                    setLineIndex(0);
+                    setPhase("answer");
+                  }}
+                  className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
+                >
+                  넘어가기
+                </button>
+              </div>
+            </>
           )}
 
           {phase === "answer" && (
@@ -485,6 +764,9 @@ export function InteractiveScene({
                 <button
                   type="button"
                   onClick={() => {
+                    /* 장면끝 뒤의 오류(닫는 말 TTS 실패)면 추적이 이미 다음 장면이라
+                       serverMode 가 꺼져 있어 통보가 안 나간다 — 의도된 동작이다 */
+                    notifySkip();
                     setLineIndex(0);
                     setPhase("answer");
                   }}

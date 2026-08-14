@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 
 /** 아이 한 명의 이야기 세션 — 홈(이어보기)과 추천 캐시 무효 판정이 읽는다. */
 export type ChildStorySession = {
+  /** story_sessions.id — 세션 API(GET /api/sessions/{id}) 조회 키 (이슈 #8) */
+  id: string;
   /** stories.slug — 앱 전역 키 */
   slug: string;
   status: "in_progress" | "post_activity" | "completed" | "stopped";
@@ -12,6 +14,7 @@ export type ChildStorySession = {
 };
 
 type SessionRow = {
+  id: string;
   status: ChildStorySession["status"];
   started_at: string;
   last_activity_at: string;
@@ -25,7 +28,7 @@ export async function listChildSessions(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("story_sessions")
-    .select("status, started_at, last_activity_at, stories(slug)")
+    .select("id, status, started_at, last_activity_at, stories(slug)")
     .eq("child_id", childId)
     .order("last_activity_at", { ascending: false });
 
@@ -34,6 +37,7 @@ export async function listChildSessions(
   return ((data ?? []) as unknown as SessionRow[])
     .filter((row) => row.stories?.slug)
     .map((row) => ({
+      id: row.id,
       slug: row.stories!.slug,
       status: row.status,
       startedAt: row.started_at,

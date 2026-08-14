@@ -51,7 +51,7 @@ import {
   type JudgeCall,
   type JudgeInput,
 } from '@/llm/judge'
-import { read, sendableBody } from '@/llm/prompts'
+import { read } from '@/llm/prompts'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. 황금표 대조 — 파이썬이 낸 값과 글자 그대로
@@ -682,7 +682,7 @@ describe('boundaryChecks', () => {
     expect(답누출?.system).toBe('실험용 심판 프롬프트')
     // 안 준 심판은 여전히 파일을 읽는다.
     const 지어냄 = 가짜.부른_것.find((것) => 것.purpose === 'judge:invented_setting')
-    expect(지어냄?.system).toBe(sendableBody(read('judge_invented_setting')))
+    expect(지어냄?.system).toBe(read('judge_invented_setting'))
   })
 
   it('판정하지 않은 항목은 위반으로 세지 않는다', async () => {
@@ -740,7 +740,7 @@ describe('심판 프롬프트', () => {
       'judge:invented_setting',
     ])
     expect(가짜.부른_것.map((것) => 것.system)).toEqual(
-      심판_프롬프트들.map((이름) => sendableBody(read(이름))),
+      심판_프롬프트들.map((이름) => read(이름)),
     )
   })
 })

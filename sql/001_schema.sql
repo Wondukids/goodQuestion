@@ -221,8 +221,10 @@ CREATE TABLE story_sessions (
     -- SHORT/UNCLEAR/OFF_TOPIC 연속 횟수. 2번 연속이면 유도.
     consecutive_low_information_turns smallint    NOT NULL DEFAULT 0,
     scene_goal_met                    boolean     NOT NULL DEFAULT false,
+    -- SKIPPED 는 규칙 함수가 내지 않는다 — 아이가 대화 씬을 건너뛰었다고 앱이 알린 자리다
+    -- (스킵 API · sql/004_scene_skipped.sql 로 기존 DB 에도 넣는다).
     scene_end_reason                  varchar
-        CHECK (scene_end_reason IN ('GOAL_MET', 'MAX_TURNS')),
+        CHECK (scene_end_reason IN ('GOAL_MET', 'MAX_TURNS', 'SKIPPED')),
     status                            varchar     NOT NULL
         CHECK (status IN ('in_progress', 'post_activity', 'completed', 'stopped')),
     started_at                        timestamptz NOT NULL DEFAULT now(),

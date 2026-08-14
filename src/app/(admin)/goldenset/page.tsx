@@ -197,17 +197,17 @@ export default async function GoldensetPage({
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200">
                 <td className="py-1 pr-3">맞음</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.맞은_수}</td>
                 <td className="py-1 pr-3">의도·유효성·요소가 전부 기대와 같다</td>
               </tr>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200">
                 <td className="py-1 pr-3">틀림</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.틀린_수}</td>
                 <td className="py-1 pr-3">답은 왔는데 기대와 다르다</td>
               </tr>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800">
+              <tr className="border-b border-zinc-200">
                 <td className="py-1 pr-3">판정 불가</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.판정불가_수}</td>
                 <td className="py-1 pr-3">대조하지 못함</td>
@@ -239,7 +239,7 @@ export default async function GoldensetPage({
                       ['detected_elements F1', 결과.표.요소_F1],
                     ] as const
                   ).map(([이름, 값]) => (
-                    <tr key={이름} className="border-b border-zinc-200 dark:border-zinc-800">
+                    <tr key={이름} className="border-b border-zinc-200">
                       <td className="py-1 pr-3 font-mono">{이름}</td>
                       <td className="py-1 pr-3 font-mono">{소수셋(값)}</td>
                     </tr>
@@ -276,7 +276,7 @@ export default async function GoldensetPage({
             </thead>
             <tbody>
               {바탕.items.map((항목) => (
-                <tr key={항목.id} className="border-b border-zinc-200 align-top dark:border-zinc-800">
+                <tr key={항목.id} className="border-b border-zinc-200 align-top">
                   <td className="py-1 pr-3">
                     <code>{항목.id}</code>
                     <br />
@@ -285,8 +285,8 @@ export default async function GoldensetPage({
                     <span
                       className={
                         항목.검수 === '검수완료'
-                          ? 'text-green-700 dark:text-green-400'
-                          : 'text-amber-700 dark:text-amber-400'
+                          ? 'text-green-700'
+                          : 'text-amber-700'
                       }
                     >
                       {항목.검수}
@@ -355,7 +355,7 @@ export default async function GoldensetPage({
             </thead>
             <tbody>
               {바탕.recent_runs.map((판) => (
-                <tr key={판.id} className="border-b border-zinc-200 dark:border-zinc-800">
+                <tr key={판.id} className="border-b border-zinc-200">
                   <td className="py-1 pr-3">
                     <Link
                       href={`/goldenset?file=${encodeURIComponent(판.file_name)}&run=${판.id}`}

@@ -33,7 +33,7 @@ import { z } from 'zod'
 
 import { ValueError } from '@/llm/domain/progress'
 import { complete, type LLMResult } from '@/llm/provider'
-import { chooseBody, sendableBody } from '@/llm/prompts'
+import { chooseBody } from '@/llm/prompts'
 import type { Settings } from '@/llm/config'
 
 /** `docs/기준/대화작동규칙.md:311` · `sql/001_schema.sql:232` 의 CHECK 와 같은 목록이다. */
@@ -240,7 +240,7 @@ export interface AnalyzeResult {
  * 준 본문이 어디서 왔는지 이 함수는 알지 못한다 (결정 41·42 와 같은 주입).
  */
 export async function analyze(재료: string, options: AnalyzeOptions = {}): Promise<AnalyzeResult> {
-  const 본문 = sendableBody(chooseBody('analysis', options.prompt))
+  const 본문 = chooseBody('analysis', options.prompt)
   const 응답 = await complete(본문, 재료, {
     json_schema: 분석_스키마,
     settings: options.settings,

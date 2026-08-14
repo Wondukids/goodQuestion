@@ -45,7 +45,7 @@ export default async function CharactersPage() {
             ))}
         </p>
         {본것.file_differs && (
-          <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <strong>아래 값은 시드 파일 값과 다릅니다.</strong>
           </p>
         )}
@@ -54,7 +54,7 @@ export default async function CharactersPage() {
       <section className="flex flex-col gap-4">
         <h3 className="font-semibold">캐릭터 {본것.characters.length}명</h3>
         {본것.characters.map((캐릭터) => (
-          <article key={캐릭터.id} className="border border-zinc-300 p-3 dark:border-zinc-700">
+          <article key={캐릭터.id} className="border border-zinc-300 p-3">
             <h4 className="mb-2 font-semibold">
               {캐릭터.name}{' '}
               <small className="font-mono text-xs font-normal text-zinc-500">
@@ -69,7 +69,7 @@ export default async function CharactersPage() {
       <section className="flex flex-col gap-4">
         <h3 className="font-semibold">대화 장면 {본것.scenes.length}개</h3>
         {본것.scenes.map((장면) => (
-          <article key={장면.id} className="border border-zinc-300 p-3 dark:border-zinc-700">
+          <article key={장면.id} className="border border-zinc-300 p-3">
             <h4 className="mb-2 font-semibold">
               장면 {장면.scene_order} · {장면.character_name}{' '}
               <small className="font-mono text-xs font-normal text-zinc-500">
@@ -91,8 +91,8 @@ export default async function CharactersPage() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const 배지색: Record<Origin, string> = {
-  canon: 'border-emerald-600 text-emerald-700 dark:text-emerald-400',
-  draft: 'border-amber-600 text-amber-700 dark:text-amber-400',
+  canon: 'border-emerald-600 text-emerald-700',
+  draft: 'border-amber-600 text-amber-700',
   unmarked: 'border-zinc-500 text-zinc-500',
 }
 
@@ -173,7 +173,7 @@ function 걱정표({
           </thead>
           <tbody>
             {줄들.map(([요소, 걱정]) => (
-              <tr key={요소} className="border-b border-zinc-200 dark:border-zinc-800">
+              <tr key={요소} className="border-b border-zinc-200">
                 <td className="py-1 pr-3">
                   <code className="font-mono">{elementName(요소)}</code>
                 </td>

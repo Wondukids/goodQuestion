@@ -58,7 +58,7 @@ export default async function TurnLogPage({
         {상세.messages.map((행) => (
           <article
             key={행.id}
-            className="border border-zinc-300 p-3 dark:border-zinc-700"
+            className="border border-zinc-300 p-3"
           >
             <p className="font-mono text-xs text-zinc-500">
               scene_order={행.scene_order} turn_order={행.turn_order} speaker_type=
@@ -113,7 +113,7 @@ function 쪽목록({ 상세 }: { 상세: RunDetail }) {
       <h3 className="font-semibold">장면 쪽 {상세.scene_pages.length}개</h3>
       <ol className="flex flex-wrap gap-2 font-mono text-xs">
         {상세.scene_pages.map((쪽) => (
-          <li key={쪽.scene_order} className="border border-zinc-300 px-2 py-1 dark:border-zinc-700">
+          <li key={쪽.scene_order} className="border border-zinc-300 px-2 py-1">
             {쪽.scene_order} · {표기(쪽.character_name)} ·{' '}
             {표기(쪽.scenes.map((장면) => 장면.scene_order))}
           </li>
