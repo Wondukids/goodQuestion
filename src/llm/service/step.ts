@@ -51,6 +51,7 @@ import {
   runOfSession,
   runSettings,
   runState,
+  TurnIncomplete,
   TurnInProgress,
   진행중_문구,
   TurnNotAllowed,
@@ -249,11 +250,13 @@ export async function analysisStep(
     const scene_id = await 발화받을_차례인가(conn, run.id)
 
     // 끝나지 않은 턴이 있으면 새 발화를 받지 않는다 (FR-035 · 계약 8절).
-    // 그 턴은 ②③ 재호출로만 이어진다.
+    // 그 턴은 ②③ 재호출로만 이어진다. `TurnIncomplete` 는 `TurnNotAllowed` 의 하위라
+    // v1 봉투는 그대로 409 `TURN_NOT_ALLOWED` 고, 아이 앱 봉투만 `pending` 을 꺼내 싣는다.
     const 미완 = await pendingTurn(conn, { session_id: args.session_id })
     if (미완 !== null) {
-      throw new TurnNotAllowed(
+      throw new TurnIncomplete(
         `끝나지 않은 턴이 있다 (${미완.stage}). 그 턴을 이어서 돌려라: ${미완.message_id}`,
+        미완,
       )
     }
 
@@ -568,5 +571,5 @@ export { LookupError, ValueError } from '@/llm/domain/progress'
 export { AnalysisResponseError } from '@/llm/engine/analyze'
 export { LLMError } from '@/llm/provider'
 export { SceneNotFound } from '@/llm/repo/content'
-export { TurnInProgress, TurnNotAllowed } from './run'
+export { TurnIncomplete, TurnInProgress, TurnNotAllowed } from './run'
 export { TurnFailed } from './turn'
