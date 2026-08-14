@@ -8,7 +8,6 @@ import { STT_DEFAULTS } from "../data";
 import { MissionCanvas } from "./canvas";
 import { DialoguePanel, type MicState } from "./mission1-panel";
 import { CHIEF, GUIDE_TEXT, LINES, PROPS, SCENE, type MissionProp } from "./mission1-script";
-import { useNpcVoice } from "./use-npc-voice";
 
 /**
  * 미니게임 미션1 — 배나무 아래에서 소품을 골라 보고, 왜 골랐는지 말하는 씬.
@@ -18,7 +17,11 @@ import { useNpcVoice } from "./use-npc-voice";
  *   02·03·04     소품 설명 + "선택하기" — 다른 소품을 눌러 옮겨 볼 수 있다.
  *   06 선택      고른 소품만 빛나고 나머지는 흐려진다. 아이가 이유를 말한다.
  *   07·08 대화   이장님이 한 번 더 묻고, 아이가 답한다.
- *   09 마무리    이장님 마지막 대사 + "다음으로".
+ *   09 마무리    이장님 마지막 대사 — 음성이 끝나고 3초 뒤 저절로 닫힌다.
+ *
+ * 이장님 목소리는 사전 녹음(mission1-script.ts 의 audio)을 그대로 튼다.
+ * 아이 답에 이장님이 되받는 LLM 대화는 아직 이어지지 않았다 — 지금은 어떤
+ * 답이든 다음 녹음 질문으로 넘어간다.
  *
  * 정답을 가리지 않는다 — 어떤 소품을 골라도 그 소품이 빛나고 이야기가 이어진다.
  * 아이에게 묻는 건 "무엇이 맞느냐" 가 아니라 "왜 그렇게 생각했느냐" 라서다.
@@ -43,6 +46,9 @@ const CHIEF_CENTER = { left: 399.876, top: 171.819, width: 292.248, height: 439.
 /** 알아들은 말을 눈으로 확인할 틈 (ms) */
 const HEARD_LINGER_MS = 1600;
 
+/** 결론 음성이 끝나고 팝업이 닫히기까지의 틈 (ms) */
+const FINISH_CLOSE_MS = 3000;
+
 type Phase = "explore" | "inspect" | "reveal" | "talk" | "finish";
 
 /**
@@ -58,12 +64,15 @@ export function Mission1({ onComplete }: { onComplete: () => void }) {
   /* 재생이 끝난 이장님 대사 — 지금 대사와 같아야 아이 차례가 된다.
      단계가 넘어가 대사가 바뀌면 저절로 어긋나므로 따로 되돌릴 필요가 없다. */
   const [spokenLine, setSpokenLine] = useState("");
+  /* 녹음 파일을 못 불러온 대사 — spokenLine 과 같은 요령으로 지금 대사와 비교한다 */
+  const [failedLine, setFailedLine] = useState("");
   const [childTurn, setChildTurn] = useState<ChildTurn>("idle");
   const [heard, setHeard] = useState("");
   const [micError, setMicError] = useState("");
   const [replayCount, setReplayCount] = useState(0);
 
-  /* 단계마다 이장님 대사 한 줄. inspect 와 reveal 은 같은 문장이라
+  /* 단계마다 이장님 대사 한 줄 — 사전 녹음 음성과 자막 텍스트 묶음.
+     inspect 와 reveal 은 고른 소품의 같은 질문(ask)이라
      소품을 고르는 사이에 음성이 다시 나오지 않는다 (시안 02 = 06). */
   const line =
     phase === "explore"
@@ -72,12 +81,11 @@ export function Mission1({ onComplete }: { onComplete: () => void }) {
         ? LINES.talk
         : phase === "finish"
           ? LINES.finish
-          : LINES.inspect;
+          : (prop?.ask ?? LINES.explore);
 
-  const voice = useNpcVoice(line, CHIEF);
-  /* 대사가 끝났거나, 합성이 실패해 기다릴 음성이 아예 없거나 —
+  /* 대사가 끝났거나, 녹음을 못 불러와 기다릴 음성이 아예 없거나 —
      둘 다 아이에게 차례를 넘겨도 되는 상태다 (실패해도 대사는 글로 남는다) */
-  const npcDone = spokenLine === line || voice.failed;
+  const npcDone = spokenLine === line.text || failedLine === line.text;
 
   const advance = useCallback(() => {
     setHeard("");
@@ -92,6 +100,13 @@ export function Mission1({ onComplete }: { onComplete: () => void }) {
     const timer = setTimeout(advance, HEARD_LINGER_MS);
     return () => clearTimeout(timer);
   }, [childTurn, advance]);
+
+  /* 결론 음성이 끝나고 3초 뒤 미션이 저절로 끝난다 */
+  useEffect(() => {
+    if (phase !== "finish" || !npcDone) return;
+    const timer = setTimeout(onComplete, FINISH_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [phase, npcDone, onComplete]);
 
   /* ── 아이 목소리 받기 ─────────────────────────────────────────── */
 
@@ -294,31 +309,28 @@ export function Mission1({ onComplete }: { onComplete: () => void }) {
           />
         )}
 
-        {voice.url && (
-          <audio
-            key={`${line}|${replayCount}`}
-            src={voice.url}
-            autoPlay
-            onEnded={() => setSpokenLine(line)}
-          />
-        )}
+        <audio
+          key={`${line.audio}|${replayCount}`}
+          src={line.audio}
+          autoPlay
+          onEnded={() => setSpokenLine(line.text)}
+          onError={() => setFailedLine(line.text)}
+        />
 
         <DialoguePanel
           speaker={{ name: CHIEF.name, avatar: CHIEF.avatar }}
-          line={line}
-          /* 재생 중에는 겹쳐 들리지 않게 잠가 둔다 */
+          line={line.text}
+          /* 재생 중에는 겹쳐 들리지 않게 잠근다. 결론에서는 곧 닫히므로 아예 뺀다 */
           onReplay={
-            voice.url && npcDone ? () => setReplayCount((n) => n + 1) : undefined
+            phase !== "finish" && npcDone
+              ? () => setReplayCount((n) => n + 1)
+              : undefined
           }
           mic={phase === "finish" ? undefined : { state: micState, onToggle: toggleMic }}
           transcript={heard}
           hint={micError}
           next={
-            phase === "finish"
-              ? { label: "다음으로", onClick: onComplete }
-              : childTurn === "failed"
-                ? { label: "다음으로", onClick: advance }
-                : undefined
+            childTurn === "failed" ? { label: "다음으로", onClick: advance } : undefined
           }
         />
       </>

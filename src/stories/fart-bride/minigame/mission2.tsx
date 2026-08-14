@@ -9,7 +9,6 @@ import { fillChildName } from "../name";
 import { MissionCanvas } from "./canvas";
 import { Mission2Panel, type MicState, type PanelChoice } from "./mission2-panel";
 import {
-  BRIDE,
   BRIDE_POSE,
   FRIENDS,
   GUIDE_TEXT,
@@ -18,8 +17,8 @@ import {
   SCENE,
   SHORT_ANSWER_CHARS,
   type Friend,
+  type MissionLine,
 } from "./mission2-script";
-import { useNpcVoice } from "./use-npc-voice";
 
 /**
  * 미니게임 미션2 — 며느리의 친구들이 가진 고민을 아이가 다시 보게 해 주는 씬.
@@ -34,6 +33,10 @@ import { useNpcVoice } from "./use-npc-voice";
  *                    "다른 친구도 도와줄래요" / "이제 괜찮아요" 를 고른다.
  *   06 2회차         더 돕겠다면 도운 친구에 ✓ 가 붙은 채로 다시 고른다.
  *   07 완료          며느리가 인사하고 "다음으로".
+ *
+ * 며느리 목소리는 사전 녹음(mission2-script.ts 의 audio)을 그대로 튼다.
+ * 되묻기(08)만은 녹음이 없어 글로만 보여 준다. 아이 답에 며느리가 되받는
+ * LLM 대화는 아직 이어지지 않았다 — 지금은 어떤 답이든 다음으로 넘어간다.
  *
  * 좌표·크기는 전부 시안 캔버스(1366×1024) 기준 값을 그대로 쓴다.
  */
@@ -85,26 +88,30 @@ export function Mission2({
   const [childTurn, setChildTurn] = useState<ChildTurn>("idle");
   const [micError, setMicError] = useState("");
   const [spokenLine, setSpokenLine] = useState("");
+  /* 녹음 파일을 못 불러온 대사 — spokenLine 과 같은 요령으로 지금 대사와 비교한다 */
+  const [failedLine, setFailedLine] = useState("");
   const [replayCount, setReplayCount] = useState(0);
 
-  const line = fillChildName(
+  /* 단계마다 며느리 대사 한 줄 — 사전 녹음 음성과 자막 텍스트 묶음.
+     카드를 고른 뒤의 질문(ask)은 친구마다 녹음이 따로 있고,
+     되묻기(again)는 녹음이 없어 글로만 보여 준다. */
+  const line: MissionLine =
     phase === "pick"
       ? helped.length === 0
         ? LINES.intro
         : LINES.more
       : phase === "ask"
-        ? LINES.ask
+        ? (friend?.ask ?? LINES.intro)
         : phase === "again"
-          ? (friend?.reask ?? LINES.ask)
+          ? { text: friend?.reask ?? "" }
           : phase === "result"
             ? LINES.react
-            : LINES.done,
-    kid,
-  );
+            : LINES.done;
+  const lineText = fillChildName(line.text, kid);
 
-  const voice = useNpcVoice(line, BRIDE);
-  /* 대사가 끝났거나, 합성이 실패해 기다릴 음성이 아예 없거나 */
-  const npcDone = spokenLine === line || voice.failed;
+  /* 대사가 끝났거나, 녹음이 아예 없거나 못 불러왔거나 —
+     어느 쪽이든 아이에게 차례를 넘겨도 되는 상태다 (대사는 글로 남는다) */
+  const npcDone = !line.audio || spokenLine === lineText || failedLine === lineText;
 
   /* ── 아이 목소리 받기 ─────────────────────────────────────────── */
 
@@ -322,19 +329,20 @@ export function Mission2({
           />
         )}
 
-        {voice.url && (
+        {line.audio && (
           <audio
-            key={`${line}|${replayCount}`}
-            src={voice.url}
+            key={`${line.audio}|${replayCount}`}
+            src={line.audio}
             autoPlay
-            onEnded={() => setSpokenLine(line)}
+            onEnded={() => setSpokenLine(lineText)}
+            onError={() => setFailedLine(lineText)}
           />
         )}
 
         <Mission2Panel
-          line={line}
+          line={lineText}
           /* 재생 중에는 겹쳐 들리지 않게 잠가 둔다 */
-          onReplay={voice.url && npcDone ? () => setReplayCount((n) => n + 1) : undefined}
+          onReplay={line.audio && npcDone ? () => setReplayCount((n) => n + 1) : undefined}
           mic={choices ? undefined : { state: micState, label: micLabel, onToggle: toggleMic }}
           choices={choices}
           hint={childTurn === "failed" ? micError : undefined}
