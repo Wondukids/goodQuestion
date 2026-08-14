@@ -63,6 +63,10 @@ import {
   type TurnResult,
 } from './turn'
 
+// 세션 도메인(`src/session`)은 repo 를 직접 import 하지 못한다 (이슈 #4 경계 — eslint 가
+// 막는다). 연결 타입은 이 문(service 층)을 거쳐 나간다.
+export type { Conn } from '@/llm/repo/db'
+
 /** 파이썬 `회차.기본_발화_출처`. 회차에 저장되고 아이 메시지에 그대로 붙는다. */
 export const 기본_발화_출처 = 'synthetic_adult'
 /** 파이썬 `회차.기본_프롬프트_버전`. `turn_conditions` 에 베껴 박제한다. */
@@ -384,6 +388,31 @@ export async function pendingTurn(
   return null
 }
 
+/**
+ * 세션 id 하나로 「이어 돌릴 것이 있나」까지 — **세션 도메인이 부르는 문**이다 (이슈 #4).
+ *
+ * 세션 도메인은 repo 를 직접 물지 않는다 (eslint 가 막아 뒀다 — 경계는 service 층이다).
+ * 그래서 404/409 를 가르는 읽기 셋(세션 → 회차 → 미완 턴)을 여기서 한 번에 준다:
+ *
+ * - 세션이 없다 → `LookupError` (404 `SESSION_NOT_FOUND` — `readSessionWithStory` 가 던진다)
+ * - 회차가 없다 → `TurnNotAllowed` (409 — 라우트는 세션을 만들지 않는다. `started_by='app'`
+ *   회차 동반 생성은 세션 열기 이슈 #6 몫이다)
+ * - 미완 턴이 없다 → `pending: null`. 세션 조회에 미완 턴을 싣는 자리(대화턴 명세 4.3절)도
+ *   이 값을 그대로 쓰게 된다 — 「없다」는 여기서는 오류가 아니다.
+ */
+export async function sessionPendingTurn(args: {
+  session_id: string
+  conn?: Conn
+}): Promise<{ run: RunRow; pending: PendingTurn | null }> {
+  const conn = args.conn ?? getDb()
+  await readSessionWithStory(conn, args.session_id)
+  const run = await runOfSession(conn, args.session_id)
+  if (run === null) {
+    throw new TurnNotAllowed(`이 세션에는 회차가 없다: ${args.session_id}`)
+  }
+  return { run, pending: await pendingTurn(conn, { session_id: args.session_id }) }
+}
+
 export interface TurnFailureState extends PendingTurn {
   /** **이 단계 용도의 실패만** 담는다 (다른 단계에서 이어진 실패는 안 섞는다). */
   reasons: Awaited<ReturnType<typeof failureReasons>>
@@ -611,6 +640,10 @@ export interface ResumeTurnArgs {
 export interface ResumedTurn {
   resumed_from: PendingStage
   child_message_id: string
+  /** 저장돼 있던 아이 발화 그대로 — 아이 앱 응답이 「오디오를 다시 받지 않았다」의 증거로 싣는다. */
+  child_text: string
+  /** 이 턴이 속한 대화 장면. 아이 메시지 행의 것이다. */
+  scene_id: string
   decision: Decision
   dialogue: DialogueStage
 }
@@ -691,6 +724,8 @@ export async function resumeTurn(args: ResumeTurnArgs): Promise<ResumedTurn> {
       return {
         resumed_from: 미완.stage,
         child_message_id,
+        child_text: 아이.text,
+        scene_id: 아이.scene_id,
         decision: 결과.decision,
         dialogue: 결과.dialogue,
       }
@@ -746,7 +781,14 @@ export async function resumeTurn(args: ResumeTurnArgs): Promise<ResumedTurn> {
     if (dialogue.source === 'fixed') printLine(sceneEndLine(장면, 판정))
 
     await 끝났으면_닫는다(conn, run_id)
-    return { resumed_from: 미완.stage, child_message_id, decision: 판정, dialogue }
+    return {
+      resumed_from: 미완.stage,
+      child_message_id,
+      child_text: 아이.text,
+      scene_id: 아이.scene_id,
+      decision: 판정,
+      dialogue,
+    }
   } finally {
     inProgress.end(run_id)
   }

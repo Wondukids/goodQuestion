@@ -70,6 +70,29 @@ const eslintConfig = defineConfig([
     },
   },
 
+  // 세션 도메인 — llm 은 **service 층으로만** 부른다 (이슈 #4 · 이야기_세션_명세.md 1절 ①).
+  // 이 도메인에는 repo 가 없다(새 표 0개). 조회가 더 필요하면 llm/service 에 함수를 늘린다.
+  {
+    files: ["src/session/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: 갈래("llm/repo"),
+              message: "세션 도메인은 repo 를 직접 물지 않는다 — 조회는 llm/service 에 함수를 늘려 받아라 (이슈 #4)",
+            },
+            {
+              group: 갈래("llm/engine"),
+              message: "세션 도메인은 엔진 내부를 모른다 — llm/service 층만 부른다 (이슈 #4)",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
