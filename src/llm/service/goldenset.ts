@@ -83,15 +83,45 @@ export { GoldensetError, reviewedOnly } from '@/llm/scoring'
  */
 export const GOLDENSET_DIR = path.join(PROJECT_ROOT, 'goldenset')
 
-/** `goldenset/*.jsonl` 의 파일 이름들. 건수도 파일 수도 코드에 박지 않는다. */
-export function goldensetFiles(): string[] {
-  if (!existsSync(GOLDENSET_DIR)) return []
-  return readdirSync(GOLDENSET_DIR)
-    .filter((이름) => 이름.endsWith('.jsonl'))
-    .sort()
+/**
+ * `goldenset/**\/*.jsonl` 의 **상대경로**들 (`유도/검수전.jsonl` 처럼).
+ *
+ * 건수도 파일 수도 코드에 박지 않는다. 하위 폴더까지 훑는다 — 사람이 정답지를 갈래별
+ * 폴더에 넣으므로, 한 겹만 보면 넣어도 목록에 안 뜬다.
+ *
+ * ⭐ **이름이 아니라 상대경로다.** 같은 파일 이름이 두 폴더에 있어도 안 섞이게 하려는 것이고,
+ *    이 값이 그대로 폼 값·`?file=`·`goldenset_runs.file_name` 으로 나간다.
+ *    구분자는 언제나 `/` 다 (주소와 DB 에 남는 값이 OS 마다 달라지면 안 된다).
+ *
+ * @param 뿌리 훑을 폴더. 기본은 `GOLDENSET_DIR` 이고, **검사만 다른 곳을 준다.**
+ */
+export function goldensetFiles(뿌리: string = GOLDENSET_DIR): string[] {
+  if (!existsSync(뿌리)) return []
+  const 모은다 = (폴더: string, 앞: string): string[] =>
+    readdirSync(폴더, { withFileTypes: true }).flatMap((것) => {
+      const 상대 = 앞 === '' ? 것.name : `${앞}/${것.name}`
+      if (것.isDirectory()) return 모은다(path.join(폴더, 것.name), 상대)
+      return 것.isFile() && 것.name.endsWith('.jsonl') ? [상대] : []
+    })
+  return 모은다(뿌리, '').sort()
 }
 
-/** 이름을 실제 경로로 바꾼다. **폴더 밖으로 나가는 이름은 받지 않는다.** */
+/**
+ * 상대경로를 실제 파일 경로로 푼다. **정규화한 뒤 골든셋 폴더 안인지 확인한다.**
+ *
+ * 목록에 있는 값만 여기까지 오지만 그것에 기대지 않는다 — 이 자리가 문자열을 파일로
+ * 바꾸는 유일한 곳이라, `..` 로 폴더 밖을 가리키는 것을 막는 자리도 여기여야 한다.
+ */
+function 폴더_안의_경로(상대: string): string {
+  const 뿌리 = path.resolve(GOLDENSET_DIR)
+  const 실제 = path.resolve(뿌리, 상대)
+  if (실제 !== 뿌리 && !실제.startsWith(뿌리 + path.sep)) {
+    throw new GoldensetError(`골든셋 폴더 밖을 가리킨다: ${JSON.stringify(상대)}`)
+  }
+  return 실제
+}
+
+/** 이름(상대경로)을 실제 경로로 바꾼다. **폴더 밖으로 나가는 이름은 받지 않는다.** */
 export function goldensetPath(이름: string | null): string {
   const 파일들 = goldensetFiles()
   if (파일들.length === 0) {
@@ -101,12 +131,60 @@ export function goldensetPath(이름: string | null): string {
   if (!파일들.includes(고른_것)) {
     throw new GoldensetError(`골든셋 폴더에 없는 파일이다: ${JSON.stringify(고른_것)}`)
   }
-  return path.join(GOLDENSET_DIR, 고른_것)
+  return 폴더_안의_경로(고른_것)
 }
 
-/** 정답지 한 파일을 읽는다. 오류에는 `파일:줄번호` 가 붙는다. */
+/**
+ * 실제 경로를 목록에 뜨는 이름(`goldenset/` 기준 상대경로)으로 되돌린다.
+ *
+ * `path.basename()` 이면 안 된다 — 하위 폴더가 지워져 `?file=` 으로 다시 못 찾는다.
+ */
+export function goldensetName(경로: string): string {
+  return path.relative(GOLDENSET_DIR, path.resolve(경로)).split(path.sep).join('/')
+}
+
+/**
+ * 정답지 한 파일을 읽는다. 오류에는 `파일:줄번호` 가 붙는다.
+ *
+ * ⚠️ **유도 정답지는 이 화면이 못 읽는다.** `goldensetFiles()` 가 하위 폴더까지 훑으므로
+ *    `유도/검수전.jsonl` 이 목록에 뜨는데, 그 줄은 스키마가 아예 다르다 —
+ *    `재료`·`채점` 묶음이 있고 `정답` 이 없다 (`lib/goldenset-guidance.ts` 머리말).
+ *    그냥 두면 「'정답' 가 없다」가 떠서 **파일이 깨진 것처럼** 보인다. 깨진 것이 아니라
+ *    다른 판이므로, 여기서 먼저 가려 그렇게 말한다.
+ */
 export function readGoldensetFile(경로: string): GoldenItem[] {
-  return parseGoldenset(readFileSync(경로, 'utf-8'), 경로)
+  const 원문 = readFileSync(경로, 'utf-8')
+  if (유도_정답지인가(원문)) {
+    throw new GoldensetError(
+      `${goldensetName(경로)} 는 **유도 정답지**라 이 화면이 못 읽는다 — ` +
+        `이 화면은 분석 LLM 의 라벨을 재는 정답지만 읽고, 저것은 캐릭터 LLM 의 유도를 재는 판이라 ` +
+        `한 줄의 모양이 다르다 (읽는 코드: lib/goldenset-guidance.ts)`,
+    )
+  }
+  return parseGoldenset(원문, 경로)
+}
+
+/**
+ * 유도 정답지인가. **첫 데이터 줄 하나만** 본다 — 갈래를 가리는 데 그 이상이 필요 없고,
+ * 진짜 형식 검사는 각자의 파서가 줄번호와 함께 한다.
+ *
+ * JSON 이 깨진 줄이면 `false` 를 돌려 파서에게 넘긴다. 「어느 줄이 왜 깨졌나」를 말할 수 있는
+ * 자리는 거기지 여기가 아니다.
+ */
+function 유도_정답지인가(원문: string): boolean {
+  for (const 원문줄 of 원문.split('\n')) {
+    const 줄 = 원문줄.trim()
+    if (줄 === '' || 줄.startsWith('//')) continue
+    let 읽은것: unknown
+    try {
+      읽은것 = JSON.parse(줄)
+    } catch {
+      return false
+    }
+    if (typeof 읽은것 !== 'object' || 읽은것 === null || Array.isArray(읽은것)) return false
+    return '재료' in 읽은것 && '채점' in 읽은것 && !('정답' in 읽은것)
+  }
+  return false
 }
 
 /** 파일 원문 bytes 의 SHA-256 지문 (정규화하지 않는다) — 파이썬 `파일_지문()`. */
@@ -387,7 +465,8 @@ export async function runFileGoldenset({
 
   const 연결 = conn ?? getDb()
   const 판 = await createGoldensetRun(연결, {
-    file_name: path.basename(경로),
+    // 하위 폴더까지 남긴다 — 「최근 판」 줄의 `?file=` 이 이 값으로 다시 파일을 찾는다.
+    file_name: goldensetName(경로),
     file_digest: fileDigest(경로),
     file_item_count: 전체_항목들.length,
     prompt_digest: promptDigest(),
@@ -679,7 +758,9 @@ export async function goldensetRunView(
 
 /** 골든셋 화면 하나를 그리는 데 필요한 것 전부 (파이썬 `routes/goldenset._바탕()`). */
 export interface GoldensetScreen {
+  /** 고를 수 있는 정답지들. **`goldenset/` 기준 상대경로**다 (하위 폴더 포함). */
   files: readonly string[]
+  /** 지금 보고 있는 정답지의 상대경로. 폼 값·`?file=` 으로 그대로 나간다. */
   file: string
   file_path: string
   items: readonly GoldenItem[]
@@ -700,7 +781,7 @@ export async function goldensetScreen(
 ): Promise<GoldensetScreen> {
   const 경로 = goldensetPath(file)
   const 항목들 = readGoldensetFile(경로)
-  const 이름 = path.basename(경로)
+  const 이름 = goldensetName(경로)
 
   const 연결 = conn ?? getDb()
   const 판들 = await listGoldensetRuns(연결, 20)

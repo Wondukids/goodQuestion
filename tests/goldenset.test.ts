@@ -6,7 +6,8 @@
 // DB 가 필요한 것과 아닌 것을 갈라 뒀다. 앞쪽(러너·자르기·키)은 값만 다루므로 DB 없이 돈다.
 
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { sql } from 'drizzle-orm'
@@ -29,6 +30,7 @@ import {
   analyzeGoldenItem,
   fileDigest,
   goldensetFiles,
+  goldensetName,
   goldensetPath,
   goldensetRunView,
   readGoldensetFile,
@@ -184,7 +186,38 @@ describe('정답지 파일', () => {
   it('골든셋 폴더 밖의 파일은 안 읽는다', () => {
     expect(() => goldensetPath('../prompts/analysis.md')).toThrow(/골든셋 폴더에 없는 파일/)
     expect(() => goldensetPath('/etc/passwd')).toThrow(/골든셋 폴더에 없는 파일/)
+    expect(() => goldensetPath('유도/../../prompts/analysis.md')).toThrow(
+      /골든셋 폴더에 없는 파일/,
+    )
     expect(goldensetFiles()).toContain('banggui_검수전.jsonl')
+  })
+
+  // ⭐ 사람이 정답지를 갈래별 폴더에 넣는다. 한 겹만 훑으면 넣어도 화면에 안 뜬다.
+  //    실제 `goldenset/` 에 폴더를 만들지 않고 임시 폴더로 훑는 규칙만 잰다.
+  it('하위 폴더의 .jsonl 도 목록에 뜬다', () => {
+    const 임시 = mkdtempSync(path.join(tmpdir(), 'goldenset-'))
+    try {
+      mkdirSync(path.join(임시, '유도갈래', '더깊이'), { recursive: true })
+      writeFileSync(path.join(임시, '맨위.jsonl'), '')
+      writeFileSync(path.join(임시, '유도갈래', '검수전.jsonl'), '')
+      writeFileSync(path.join(임시, '유도갈래', '더깊이', '검수전.jsonl'), '')
+      writeFileSync(path.join(임시, '유도갈래', '읽지마.md'), '')
+
+      // 같은 파일 이름이 두 폴더에 있어도 안 섞인다 — 이름이 아니라 상대경로이기 때문이다.
+      expect(goldensetFiles(임시)).toEqual([
+        '맨위.jsonl',
+        '유도갈래/검수전.jsonl',
+        '유도갈래/더깊이/검수전.jsonl',
+      ])
+    } finally {
+      rmSync(임시, { recursive: true, force: true })
+    }
+  })
+
+  it('이름은 goldenset/ 기준 상대경로이고 실제 경로와 왕복한다', () => {
+    for (const 이름 of goldensetFiles()) {
+      expect(goldensetName(goldensetPath(이름))).toBe(이름)
+    }
   })
 })
 

@@ -38,11 +38,13 @@ JSON 하나만 낸다.
 | `element_criteria` | 요소마다, 이 장면에서 인정하려면 발화에 무엇이 있어야 하는가 |
 | `goal` | **없을 수 있다.** 이 장면에서 아이가 생각하고 표현하도록 유도할 학습 목표 |
 
-`target_elements` 는 **목록일 뿐이다. 있다고 억지로 찾아내지 마라.**
+`target_elements` 는 **목록일 뿐이다. 목록에 있다고 억지로 찾아내지 마라.**
 목록에 없는 요소를 발견하면 그것도 그대로 적는다.
 
 ⚠️ **`goal` 이 와도 그것을 찾아내려고 하지 마라.** 아이가 실제로 말한 것만 적는다.
-목표는 배경이지 채점표가 아니다. 요소를 인정하는 기준은 `element_criteria` 뿐이다.
+목표는 배경이지 채점표가 아니다. **`goal` 을 보고 요소를 인정하거나 빼지 않는다.**
+기준 문장이 **있는** 요소는 `element_criteria` 가 정하고,
+**없는** 요소는 아래 `[E-NOCRIT]` 이 정한다 — 기준이 없다는 것이 빼는 까닭이 되지 않는다.
 
 > 📄 위 다섯은 `docs/기준/대화작동규칙.md:74-79` 의 2.1 표 그대로다. 여기 없는 값은 안 온다.
 >
@@ -103,10 +105,33 @@ JSON 하나만 낸다.
 
 > 📄 "같은 표현이 여러 사고 요소를 직접 충족하면 복수 탐지가 가능합니다" — `발화분석:159`
 
+### `[E-NOCRIT]` — `element_criteria` 에 없는 요소는 **일반 정의로 판정한다**
+
+`element_criteria` 는 그 장면의 `required_elements` 넷만 덮는다. **거기 없는 `type` 은
+아래 여덟 가지 정의로 판정하고, 발화에 담겼으면 그대로 적는다.** 기준 문장이 없다는 것이
+그 요소를 빼는 까닭이 되지 않는다.
+
+> 🔴 **2026-08-12 사람 결정 ⓒ.** 물은 것과 고른 것은 `docs/질문_기준없는요소.md`.
+> 📏 **재고 나서 정했다** — 검수완료 30줄의 정답 요소 44개 중 **14개(32%)** 가 기준 없는
+> 요소인데(`EMOTION` 11 · `EMPATHY` 2 · `REASON` 1), 근거까지 남긴 판에서 그쪽이
+> **더 못 맞히지 않았다**(재현 0.786 · 정밀 0.846 대 0.867 · 0.722).
+> 그래서 **장면마다 기준을 여덟 개 더 쓰는 대신 이 한 줄로 잇는다.**
+>
+> ⭐ **`EMOTION` 이 이 규칙의 주된 손님이다.** 네 장면 어디에도 기준이 없다.
+> 가리키는 대상은 아래 `[E-EMOTION]` 이고 **장면마다 다시 쓰지 않는다** —
+> 「아이 자기 마음」은 장면에 따라 달라지는 것이 아니기 때문이다.
+> ⚠️ 2026-08-13 에 기준 16문장을 다시 쓰면서 03·09 의 `EMPATHY` 기준에 있던
+> 「(그건 EMOTION)」 꼬리가 빠졌다. 그 자리를 지금은 이 규칙이 혼자 진다.
+>
+> ⚠️ **`DECISION` 은 골든셋에 정답이 사실상 없다**(검수완료 30줄에 0건 · 초안에 `09_202` 1건).
+> 🔴 **그래도 빼지 않는다** (2026-08-12 사람 결정) — 정본이 정의한 여덟을 그대로 둔다.
+> **초안 43줄을 검수할 때 `09_202` 를 올려 정답을 만든다.** 그전까지 `DECISION` 은
+> 채점에서 **지어냄으로만 잡힌다** — 알고 받아들인 것이다.
+
 ### `[E-BARE]` — 막연한 당위는 **어떤 요소로도 세지 않는다**
 
 막연한 당위나 예의 표현만으로는 `REASON`·`PERSPECTIVE`·`SOLUTION`·`DECISION` 을 인정하지 않는다.
-아래 넉 줄은 구체적인 맥락 없이 단독으로 쓰이면 **요소가 아니다.**
+아래 넉 마디는 구체적인 맥락 없이 단독으로 쓰이면 **요소가 아니다.**
 
     잘해줘야 해요 · 도와줘야 해요 · 착하게 해야 해요 · 그러면 안 돼요
 
@@ -132,6 +157,10 @@ JSON 하나만 낸다.
 
 - ⑤ 는 **「만약」이 없어도 어미 `-면` 하나로 성립한다** — "계속 참으면 배가 더 아파요".
   거꾸로 `-면` 이 있다고 다 ⑤ 는 아니다. **뜻을 보고 판정한다.**
+  🔴 **`-면` 앞이 지금 제안하는 방법 그 자체이면 ⑤ 가 아니다** —
+  "며느리 방귀 뀌면 배 다 떨어져요"는 `SOLUTION`(방귀를 쓴다)과 `RESULT`(배가 떨어진다)이지
+  `REASON` 이 아니다. 까닭은 **왜 그 방법이면 되는지**를 따로 말했을 때 센다.
+  (2026-08-13 사람 결정 · 판정 규칙 6·13 · `07_301`)
 - ② 는 **「왜냐하면」이 없어도 `-니까`·`-어서/아서`·`때문에` 로 성립하고**, 그것마저 없어도
   앞 판단의 까닭이면 성립한다 — "며느리가 아팠어요" 한 마디도 앞에 판단이 있으면 ② 다.
 - **표지가 문장 첫머리에 안 온다.** 조건·까닭은 문장 중간이나 끝의 어미에 있다.
@@ -146,7 +175,7 @@ JSON 하나만 낸다.
 > ✏️ 2026-08-11 인터뷰 3회차 Q2 로 확정. 추적은 `docs/리포트_근거대장.md`.
 > 🌐 **위 「어미에 숨는다」 세 줄은 2026-08-11 에 한국어판 50건을 다시 세어 넣은 것이다.**
 > ⑤ 9건 중 「만약」이 실제로 쓰인 것은 **1건뿐**이었고 나머지 8건은 `-면` 만으로 조건을 날랐다.
-> ② 10건 중 「왜냐하면」은 3건뿐(`-니까` 6 · `때문` 2 · `-어서/아서` 2).
+> ② 10건 중 「왜냐하면」은 3건뿐(`-니까` 6 · `때문` 2 · `-어서/아서` 2 — 한 발화에 표지가 둘 겹친 것이 있어 합이 10을 넘는다).
 > 영어는 문두 `If` 가 3건이었는데 **한국어는 문두 표지가 0건**이다.
 > ⚠️ ⑤ 는 `[E-RESULT]` 와 겹칠 수 있다. 겹치면 `[E-MULTI]` 대로 **둘 다 적는다.**
 
@@ -257,8 +286,10 @@ Record an element outside the list if the child said it. `element_criteria`
 state what an utterance must show before an element counts in this scene.
 
 `goal` may be absent. When present it is background, not a scoring rubric —
-never treat it as something to find. Record only what the child actually said,
-and judge elements by `element_criteria` alone.
+never treat it as something to find, and never let it add or withhold an
+element. Record only what the child actually said. Where `element_criteria`
+has an entry for a type, that entry decides; where it has none, [E-NOCRIT]
+below decides.
 
 ## child_intent — the single most prominent intent
 
@@ -291,6 +322,10 @@ Copy the exact characters. Never paraphrase, correct, or summarize.
 
 [E-MULTI] One utterance may satisfy several types. Record each. Same type once.
 
+[E-NOCRIT] `element_criteria` covers only some of the types. When it holds no
+entry for a type, judge that type by its general definition below and record it
+just the same. A missing criterion is never a reason to withhold an element.
+
 [E-BARE] Bare obligation or politeness, standing alone with no ground and no
 action, counts as NOTHING — not REASON, PERSPECTIVE, SOLUTION, or DECISION:
 잘해줘야 해요 · 도와줘야 해요 · 착하게 해야 해요 · 그러면 안 돼요
@@ -310,6 +345,9 @@ In Korean these six live in verb endings, not in separate words. Judge by
 meaning, never by scanning for a marker word:
   (5) needs no 만약 — the ending -면 alone carries it ("계속 참으면 배가 더 아파요").
       An ending -면 does not by itself make it (5); read the meaning.
+      When the -면 clause names the very method being proposed, that is the
+      SOLUTION and its RESULT, not a REASON ("며느리 방귀 뀌면 배 다 떨어져요").
+      A ground counts only when the child separately says why the method works.
   (2) needs no 왜냐하면 — -니까 / -어서 / -아서 / 때문에 all carry it, and even
       with none of them a clause can be the ground for the claim beside it
       ("며느리가 아팠어요" after a judgment is (2)).

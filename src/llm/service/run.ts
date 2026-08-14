@@ -31,6 +31,7 @@ import { getDb, type Conn } from '@/llm/repo/db'
 import {
   createRun,
   endRun,
+  markRunScored,
   failureReasons,
   readAttempts,
   readRun,
@@ -266,8 +267,9 @@ export async function runOfSession(conn: Conn, session_id: string): Promise<RunR
 /**
  * 회차를 닫는다 (파이썬 `_회차_완료()`).
  *
- * ⚠️ 파이썬은 여기서 `회차_채점완료()` 도 불렀다. **채점기는 이식 범위 밖이라**
- *    (`이식_전수목록.md` 3절 — `채점.py` 보류) `runs.scored_at` 을 여기서 찍지 않는다.
+ * ✅ `runs.scored_at` 을 여기서 찍는다. 그전에는 「채점기가 이식 범위 밖」이라 비워 뒀는데,
+ *    경계 채점기(`lib/judge.ts`)가 들어오고 턴마다 실제로 돌게 되면서 찍을 것이 생겼다
+ *    (이슈 #26 일감 10). 파이썬 `저장.회차_채점완료()` 자리다.
  */
 export async function completeRun(
   conn: Conn,
@@ -276,6 +278,7 @@ export async function completeRun(
   await conn.transaction(async (tx) => {
     if (session.status === 'in_progress') await completeSession(tx, run.session_id)
     await endRun(tx, run.id)
+    await markRunScored(tx, run.id)
   })
   printLine('[세션] status=completed')
 }
