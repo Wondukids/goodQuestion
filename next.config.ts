@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
+/* 이야기 이미지(썸네일·히어로)는 Supabase Storage 의 story-assets public 버킷에서 온다.
+   next.config 평가 전에 .env.local 이 로드되므로 process.env 를 바로 쓸 수 있다. */
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: supabaseUrl
+      ? [new URL(`${supabaseUrl}/storage/v1/object/public/story-assets/**`)]
+      : [],
+  },
+
   /* 런타임에 **디스크에서 읽는** 자산 넷을 배포본에 싣는다 (이슈 #26 착지 ⑤).
      넷 다 `readFileSync`·`readdirSync` 에 **런타임에 계산한 경로**를 넘기므로
      import 그래프에 안 잡히고, 적어 두지 않으면 서버리스 번들 밖에 남는다.

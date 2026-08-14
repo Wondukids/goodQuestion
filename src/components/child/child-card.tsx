@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { selectChild } from "@/app/children/actions";
 import { CharacterAvatar } from "@/components/child/character-avatar";
 
 /**
@@ -26,21 +27,21 @@ function CardShell({ children }: { children: ReactNode }) {
 const CARD_CLASS =
   "relative z-10 flex h-[401px] w-full flex-col items-center gap-6 overflow-hidden rounded-[28px] border-2 border-primary-soft bg-surface pt-9 pb-8 shadow-card";
 
+/* 카드를 누르면 고른 아이를 쿠키에 남겨야 해서 링크가 아니라 폼으로 보낸다. */
 export function ChildCard({
+  id,
   name,
   age,
   characterId,
-  action,
 }: {
+  id: string;
   name: string;
   age: number;
   characterId: string;
-  /** 서버 액션 — 이 아이를 선택하고 홈으로 이동한다 */
-  action: (formData: FormData) => Promise<void>;
 }) {
   return (
     <CardShell>
-      <form action={action}>
+      <form action={selectChild.bind(null, id)}>
         <button type="submit" className={`${CARD_CLASS} cursor-pointer`}>
           <CharacterAvatar characterId={characterId} size={185} />
           <span className="flex flex-col items-center gap-2">

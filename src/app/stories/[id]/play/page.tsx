@@ -1,6 +1,5 @@
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { SELECTED_CHILD_COOKIE } from "@/lib/selected-child";
+import { getSelectedChild } from "@/lib/selected-child";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayScreen } from "@/stories";
 
@@ -19,22 +18,14 @@ import { getPlayScreen } from "@/stories";
 
 /** 선택된 아이(쿠키) 이름. 쿠키가 없거나 남의 아이면 첫 아이로, 그마저 없으면 null. */
 async function getChildName(): Promise<string | null> {
+  const selected = await getSelectedChild();
+  if (selected) return selected.name;
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-
-  const selectedId = (await cookies()).get(SELECTED_CHILD_COOKIE)?.value;
-  if (selectedId) {
-    const { data } = await supabase
-      .from("children")
-      .select("name")
-      .eq("id", selectedId)
-      .eq("parent_id", user.id)
-      .single();
-    if (data?.name) return data.name;
-  }
 
   const { data } = await supabase
     .from("children")

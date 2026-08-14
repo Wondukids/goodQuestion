@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { AddChildCard, ChildCard } from "@/components/child/child-card";
 import { createClient } from "@/lib/supabase/server";
-import { selectChild } from "./actions";
 
 export default async function ChildrenPage() {
   const supabase = await createClient();
@@ -47,10 +46,10 @@ export default async function ChildrenPage() {
           {children?.map((child) => (
             <ChildCard
               key={child.id}
+              id={child.id}
               name={child.name}
               age={thisYear - child.birth_year}
               characterId={child.character_id}
-              action={selectChild.bind(null, child.id)}
             />
           ))}
           <AddChildCard href="/onboarding/child" />

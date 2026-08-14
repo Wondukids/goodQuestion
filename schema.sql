@@ -193,3 +193,15 @@ create table wordbook (
     created_at      timestamptz not null default now()
 );
 create index idx_wordbook_child_id on wordbook (child_id);
+
+-- 13. child_recommendations — 홈 추천 캐시 (LLM 큐레이션 결과) -----------------
+create table child_recommendations (
+    id           uuid primary key default gen_random_uuid(),
+    child_id     uuid not null references children (id) on delete cascade,
+    story_id     uuid not null references stories (id) on delete cascade,
+    reason       text not null,
+    rank         smallint not null,
+    generated_at timestamptz not null default now(),
+    unique (child_id, rank)
+);
+create index idx_child_recommendations_child on child_recommendations (child_id);

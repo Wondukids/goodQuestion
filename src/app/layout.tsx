@@ -47,7 +47,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${nanumGothic.variable} ${jua.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      {/* 배경색은 body 에 둔다 — 홈의 고정 하늘 배경(-z-10)이 위 레이어 배경에 가려지지 않도록. */}
+      <body className="min-h-full bg-app-bg">{children}</body>
     </html>
   );
 }
