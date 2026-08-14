@@ -45,8 +45,6 @@ function buildReaction(transcript: string) {
   return `"${transcript}"라고 말해 주었구나! 이야기해 줘서 정말 고마워.`;
 }
 
-/* TTS 한 번 더 — 씬 진입 준비와 대사 합성이 몰리면 일시 오류(502)가 잦다. 짧게 쉬고
-   한 번 재시도하면 대부분 살아나, 멀쩡한 LLM 대답이 고정 문구로 떨어지는 일을 줄인다. */
 /**
  * `?debug=scene` 일 때만 진단 배지를 켠다.
  *
@@ -67,6 +65,8 @@ function useSceneDebug(): boolean {
   return on;
 }
 
+/* TTS 한 번 더 — 씬 진입 준비와 대사 합성이 몰리면 일시 오류(502)가 잦다. 짧게 쉬고
+   한 번 재시도하면 대부분 살아나, 멀쩡한 LLM 대답이 고정 문구로 떨어지는 일을 줄인다. */
 async function requestSpeechWithRetry(request: Parameters<typeof requestSpeech>[0]) {
   try {
     return await requestSpeech(request);
@@ -186,20 +186,14 @@ export function InteractiveScene({
       return url;
     };
 
-    /* 병렬로 몰아 부르면 구글 분당 한도(429)에 걸리기 쉬워 한 건씩 순차 합성한다.
-       서버가 같은 문장을 캐시하므로 씬 재진입 때는 구글 호출 없이 바로 온다. */
-    const substitute = async (lines: SpeechLine[]) => {
-      const result: SpeechLine[] = [];
-      for (const line of lines) {
-        if (!line.text.includes("ㅇㅇ")) {
-          result.push(line);
-          continue;
-        }
-        const text = fillChildName(line.text, childName);
-        result.push({ text, audio: await tts(text) });
-      }
-      return result;
-    };
+    const substitute = (lines: SpeechLine[]) =>
+      Promise.all(
+        lines.map(async (line) => {
+          if (!line.text.includes("ㅇㅇ")) return line;
+          const text = fillChildName(line.text, childName);
+          return { text, audio: await tts(text) };
+        }),
+      );
 
     (async () => {
       try {
