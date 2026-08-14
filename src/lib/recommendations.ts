@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
  * 결과는 child_recommendations 에 캐시한다. 홈은 캐시를 읽고, 캐시가 없거나
  * 낡았을 때만(새 세션이 생긴 뒤) 다시 생성한다.
  *
- * GEMINI_API_KEY(Google AI Studio 무료 발급)가 없으면 규칙 기반으로 고르고
+ * GEMINI_RECOMMEND_API_KEY(Google AI Studio 무료 발급)가 없으면 규칙 기반으로 고르고
  * 이유는 템플릿으로 만든다 — 화면은 똑같이 동작하고, 키를 넣는 순간 LLM 경로가 우선한다.
  */
 export type Recommendation = {
@@ -168,7 +168,8 @@ async function generateWithGemini(
   sessions: ChildStorySession[],
   storyBySlug: Map<string, Story>,
 ): Promise<CachedItem[] | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  /* TTS 가 쓰는 GEMINI_API_KEY 와 별개 키 — 이름이 겹쳐 용도별로 분리했다. */
+  const apiKey = process.env.GEMINI_RECOMMEND_API_KEY;
   if (!apiKey) return null;
 
   const age = new Date().getFullYear() - child.birth_year;

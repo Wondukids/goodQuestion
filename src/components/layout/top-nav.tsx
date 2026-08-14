@@ -10,7 +10,8 @@ export function TopNav({
   characterId: string;
 }) {
   return (
-    <header className="relative h-[140px] w-full overflow-hidden bg-surface">
+    /* 배경을 칠하지 않는다 — 홈은 하늘 배경이 비치고, 다른 화면은 body 의 app-bg 가 그대로다. */
+    <header className="relative h-[140px] w-full overflow-hidden">
       <Link href="/home" className="absolute top-[30px] left-12">
         <Logo />
       </Link>
