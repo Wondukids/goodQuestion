@@ -1,8 +1,10 @@
 /**
  * 굿퀘스천 스키마 (Drizzle · Postgres 16)
  *
- * 근거: sql/001_schema.sql (엔진) · sql/003_admin.sql (관리 도구) 를 옮긴 것이다.
- * 그 두 파일의 근거 문서는 docs/기준/db구조.md (원본 PDF 전사본) 이다.
+ * 근거: sql/001_schema.sql (엔진) · sql/003_admin.sql (관리 도구) ·
+ * sql/005_missions.sql (미션 — 이슈 #17) 를 옮긴 것이다.
+ * 앞 두 파일의 근거 문서는 docs/기준/db구조.md (원본 PDF 전사본),
+ * 005 의 근거 문서는 docs/미션_명세.md 6절이다.
  *
  * ⚠️ 원본 SQL 의 주석을 통째로 옮겼다. 원본 문서에서 무엇을 왜 바꿨는지가
  *    그 주석에만 적혀 있기 때문이다 (docs/설계/이식목록.md 3절).
@@ -58,6 +60,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core'
@@ -424,6 +427,138 @@ export const post_activity_results = pgTable('post_activity_results', {
 })
 
 // ═════════════════════════════════════════════════════════════
+// 미션(미니게임) 세 표 (sql/005_missions.sql · 이슈 #17)
+//
+// 정본 문서는 docs/미션_명세.md 6절이다. 미션 대화는 `messages` 에 섞지 않는다 —
+// 미완 턴 판정 `pendingTurn()` 의 「마지막 아이 발화의 바로 다음 한 행」 규칙이
+// 깨지기 때문이다 (확정 결정 M5). 본 대화로 넘어가는 것은 종료 요약 행 하나뿐이다.
+// ═════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────
+// story_missions — 미션 정의
+//
+// 대화 씬에 끼어드는 미니게임 1종이 한 행이다. 값은 db/seed.ts 가 넣는다
+// (`ms_banggui_pear` · `ms_banggui_friend` 2행). 미션 없는 씬(대화1·2)은 행이 없어
+// 미션 명세의 어떤 경로도 타지 않는다.
+// ─────────────────────────────────────────────────────────────
+export const story_missions = pgTable(
+  'story_missions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    story_id: uuid('story_id')
+      .notNull()
+      .references(() => stories.id, { onDelete: 'cascade' }),
+    scene_id: uuid('scene_id').notNull().references(() => story_scenes.id),
+    // 콘텐츠 문서가 쓰는 사람이 읽는 식별자. 'ms_banggui_pear' / 'ms_banggui_friend'
+    code: varchar('code').notNull(),
+    title: varchar('title').notNull(),
+    mission_type: varchar('mission_type').notNull(),
+    // LLM 재료용 미션 목적 한 문장
+    mission_goal: text('mission_goal').notNull(),
+    // 트리거·소품/카드·스텝·고정 대사. **모양의 정본은 docs/미션_명세.md 6절 config 예시다** —
+    // 여기 임의 키를 더하지 말 것 (#18 도메인·#20 프론트가 같은 모양을 본다).
+    config: jsonb('config').$type<Record<string, unknown>>().notNull(),
+  },
+  (t) => [
+    unique('story_missions_story_id_code_key').on(t.story_id, t.code),
+    // 씬당 미션 1개 (MVP)
+    unique('story_missions_scene_id_key').on(t.scene_id),
+    check(
+      'story_missions_mission_type_check',
+      sql`${t.mission_type} IN ('prop_choice', 'card_help')`,
+    ),
+  ],
+)
+
+// ─────────────────────────────────────────────────────────────
+// mission_sessions — 미션 시도
+//
+// 한 플레이에서 미션 1회 시도가 한 행이다. 도중 이탈하면 `abandoned` 로 남고
+// 복귀 시 **새 행으로 처음부터** 한다 (확정 결정 M4 — 미션 턴의 이어 돌리기는 없다).
+// ─────────────────────────────────────────────────────────────
+export const mission_sessions = pgTable(
+  'mission_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    session_id: uuid('session_id')
+      .notNull()
+      .references(() => story_sessions.id, { onDelete: 'cascade' }),
+    mission_id: uuid('mission_id')
+      .notNull()
+      .references(() => story_missions.id),
+    status: varchar('status').notNull().default('in_progress'),
+    // 관찰용. 재개엔 쓰지 않는다 (M4)
+    current_step: varchar('current_step'),
+    // 말이 아닌 입력(소품·친구 카드 탭, 계속/그만, 무음 건너뜀)의 기록
+    selections: jsonb('selections')
+      .$type<{ step: string; kind: string; value: string; at: string }[]>()
+      .notNull()
+      .default([]),
+    // 종료 요약 (LLM 결과 원문)
+    summary_text: text('summary_text'),
+    started_at: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    completed_at: timestamp('completed_at', { withTimezone: true }),
+  },
+  (t) => [
+    check(
+      'mission_sessions_status_check',
+      sql`${t.status} IN ('in_progress', 'completed', 'abandoned')`,
+    ),
+    // 같은 미션의 진행 중 시도는 세션당 1개 (부분 유니크 인덱스)
+    uniqueIndex('ux_mission_sessions_active')
+      .on(t.session_id, t.mission_id)
+      .where(sql`${t.status} = 'in_progress'`),
+  ],
+)
+
+// ─────────────────────────────────────────────────────────────
+// mission_messages — 미션 안 대화
+//
+// 아이 발화·캐릭터 대사·system(무음 건너뜀)이 미션 순번대로 쌓인다.
+// 분석은 `utterance_analyses` 로 가지 않고 아이 행 안에 jsonb 사본으로 남는다
+// (관리자 채점 연동은 비스코프 — 명세 13절).
+// ─────────────────────────────────────────────────────────────
+export const mission_messages = pgTable(
+  'mission_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mission_session_id: uuid('mission_session_id')
+      .notNull()
+      .references(() => mission_sessions.id, { onDelete: 'cascade' }),
+    // 미션 안 순번
+    turn_order: integer('turn_order').notNull(),
+    speaker_type: varchar('speaker_type').notNull(),
+    // 'use' | 'request' | 친구 id …
+    step: varchar('step'),
+    text: text('text').notNull(),
+    stt_raw_text: text('stt_raw_text'),
+    // 아이 행만. `utterance_analyses` 와 같은 모양의 사본 (분석 LLM 이 채우는 네 칸)
+    analysis: jsonb('analysis').$type<{
+      child_intent: string
+      main_point: string | null
+      detected_elements: { type: string; evidence: string | null }[]
+      utterance_validity: string
+    }>(),
+    line_source: varchar('line_source'),
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('mission_messages_mission_session_id_turn_order_key').on(
+      t.mission_session_id,
+      t.turn_order,
+    ),
+    check(
+      'mission_messages_speaker_type_check',
+      sql`${t.speaker_type} IN ('child', 'character', 'system')`,
+    ),
+    check(
+      'mission_messages_line_source_check',
+      sql`${t.line_source} IN ('fixed', 'generated', 'summary')`,
+    ),
+  ],
+)
+
+// ═════════════════════════════════════════════════════════════
 // 관리 도구 전용 (sql/003_admin.sql). 본 제품으로 이식되지 않는다.
 //
 // 🔴 **원본 11개를 다 옮긴다** (2026-08-13). 그전 판정(`docs/설계/이식목록.md` 1절)은
@@ -524,7 +659,12 @@ export const llm_calls = gq_admin.table(
     created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    check('llm_calls_purpose_check', sql`${t.purpose} IN ('analysis', 'character')`),
+    // 미션 호출 둘(mission_reply·mission_summary)은 이슈 #17 로 넓혔다.
+    // 이미 선 DB 에는 sql/005_missions.sql 이 같은 모양으로 바꿔 넣는다.
+    check(
+      'llm_calls_purpose_check',
+      sql`${t.purpose} IN ('analysis', 'character', 'mission_reply', 'mission_summary')`,
+    ),
     check('llm_calls_attempt_no_check', sql`${t.attempt_no} >= 1`),
     check('llm_calls_duration_ms_check', sql`${t.duration_ms} >= 0`),
     index('idx_llm_calls_run_id').on(t.run_id),

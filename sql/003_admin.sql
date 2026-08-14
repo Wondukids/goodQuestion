@@ -74,7 +74,10 @@ CREATE TABLE gq_admin.llm_calls (
     ok              boolean     NOT NULL,
     error           text,
     created_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT llm_calls_purpose_check CHECK (purpose IN ('analysis', 'character')),
+    -- 미션 호출 둘(mission_reply·mission_summary)은 이슈 #17 로 넓혔다.
+    -- 이미 선 DB 에는 sql/005_missions.sql 이 같은 모양으로 바꿔 넣는다 (004 와 같은 갈래).
+    CONSTRAINT llm_calls_purpose_check CHECK (
+        purpose IN ('analysis', 'character', 'mission_reply', 'mission_summary')),
     CONSTRAINT llm_calls_attempt_no_check CHECK (attempt_no >= 1),
     CONSTRAINT llm_calls_duration_ms_check CHECK (duration_ms >= 0)
 );

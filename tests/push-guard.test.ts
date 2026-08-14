@@ -9,7 +9,7 @@
 //
 // ⚠️ 이 검사가 지키는 것이 셋이다. 담이 두 겹이고, 거기에 「눈」이 하나 붙는다.
 //   1. 화이트리스트 — 아는 대상이 아니면 터진다 (`푸시_가드`)
-//   2. `tablesFilter` — 그 담을 지나가도 우리 18표 밖을 안 본다 (`우리_표_이름들`)
+//   2. `tablesFilter` — 그 담을 지나가도 우리 21표 밖을 안 본다 (`우리_표_이름들`)
 //   3. `schemaFilter` — 반대쪽이다. 드리즐킷은 기본으로 `public` 만 보므로,
 //      `gq_admin` 이 목록에서 빠지면 관리 11표가 `generate` 에서 **통째로 빠진다**
 //      (`우리_스키마들`)
@@ -172,12 +172,12 @@ const 관리_11표 = [
 ]
 
 /**
- * `public` 에 남는 엔진 7표.
+ * `public` 에 남는 엔진 10표 (미션 3표는 sql/005 · 이슈 #17 로 들어왔다).
  *
  * ⚠️ 표 이름은 `story_characters` 다 — `schema.ts` 의 내보내는 이름(`characters`)과 다르다.
  * 여기서 재는 것은 **DB 에 찍히는 이름**이라 선언 쪽 이름을 쓰면 안 된다.
  */
-const 엔진_7표 = [
+const 엔진_10표 = [
   'stories',
   'story_characters',
   'story_scenes',
@@ -185,6 +185,9 @@ const 엔진_7표 = [
   'messages',
   'utterance_analyses',
   'post_activity_results',
+  'story_missions',
+  'mission_sessions',
+  'mission_messages',
 ]
 
 describe('우리_스키마들 (schemaFilter)', () => {
@@ -219,13 +222,13 @@ describe('표가 어느 스키마에 사는가 (이름만으로는 못 잡는다
     }
   })
 
-  it('엔진 7표는 `public` 에 남는다 — 같이 끌려가지 않았는지', () => {
-    for (const 표 of 엔진_7표) {
+  it('엔진 10표는 `public` 에 남는다 — 같이 끌려가지 않았는지', () => {
+    for (const 표 of 엔진_10표) {
       expect(표별_스키마.get(표), `${표} 가 사는 스키마`).toBe('public')
     }
   })
 
-  it('⚠️ 18표가 이 둘로 다 갈린다 — 어느 쪽에도 안 든 새 표가 있으면 빨개진다', () => {
-    expect([...표별_스키마.keys()].sort()).toEqual([...관리_11표, ...엔진_7표].sort())
+  it('⚠️ 21표가 이 둘로 다 갈린다 — 어느 쪽에도 안 든 새 표가 있으면 빨개진다', () => {
+    expect([...표별_스키마.keys()].sort()).toEqual([...관리_11표, ...엔진_10표].sort())
   })
 })
