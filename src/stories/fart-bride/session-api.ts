@@ -132,6 +132,31 @@ export async function submitSessionTurn(
   return unwrap<TurnResult>(res);
 }
 
+/** `POST /api/sessions/{id}/scenes/{code}/skip` 의 data. */
+export type SkipResult = {
+  /** 실제로 건너뛴 장면. null 이면 서버는 원래 그 장면을 기다리고 있지 않았다 (반복 안전). */
+  skipped: SessionSceneRef | null;
+  /** 이제 서버가 기다리는 대화 장면. null 이면 서버 대화가 남지 않았다. */
+  scene: SessionSceneRef | null;
+};
+
+/**
+ * 대화 씬을 건너뛴다 — 서버도 같이 넘긴다.
+ *
+ * 영상 구간 건너뛰기는 부르지 않는다 (진행 지휘권은 대화 장면만 서버 · 확정 결정 ⑧).
+ * **도착 장면은 서버가 정해 응답으로 준다** — 앱이 계산하면 장면 순서가 두 벌이 된다.
+ */
+export async function skipSessionScene(
+  sessionId: string,
+  sceneCode: string,
+): Promise<SkipResult> {
+  const res = await fetch(
+    `/api/sessions/${sessionId}/scenes/${encodeURIComponent(sceneCode)}/skip`,
+    { method: "POST" },
+  );
+  return unwrap<SkipResult>(res);
+}
+
 /** 끊긴 턴 이어 돌리기 — body 없음 (대화턴 명세 4.2절). */
 export async function resumeSessionTurn(sessionId: string): Promise<ResumeResult> {
   const res = await fetch(`/api/sessions/${sessionId}/turns/resume`, {

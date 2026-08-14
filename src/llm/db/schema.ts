@@ -303,9 +303,10 @@ export const story_sessions = pgTable(
       'story_sessions_last_response_mode_check',
       sql`${t.last_response_mode} IN ('NORMAL', 'GUIDED', 'CLOSING')`,
     ),
+    // SKIPPED 는 `decide()` 가 내지 않는다 — 대화 씬을 건너뛴 앱이 스킵 API 로 적는 값이다.
     check(
       'story_sessions_scene_end_reason_check',
-      sql`${t.scene_end_reason} IN ('GOAL_MET', 'MAX_TURNS')`,
+      sql`${t.scene_end_reason} IN ('GOAL_MET', 'MAX_TURNS', 'SKIPPED')`,
     ),
     check(
       'story_sessions_status_check',
