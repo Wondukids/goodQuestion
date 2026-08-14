@@ -11,6 +11,7 @@ import { ValueError } from '@/llm/domain/progress'
 import { createRun, readRunBySession, type RunRow } from '@/llm/repo/runs'
 import {
   lastCharacterLine,
+  lastChildMessageId,
   latestInProgressSession,
   readSessionWithStory,
   type SessionRow,
@@ -88,6 +89,13 @@ export interface AppSessionState {
   pending: PendingTurn | null
   /** 4.2 의 진행률. `scene_order` 는 현재 장면 것, `total` 은 장면 수 전체다. */
   progress: { scene_order: number; total: number }
+  /**
+   * 아이가 실제로 진행한 흔적 — 아이 발화가 있거나, 첫 대화 장면을 지났다(스킵 포함).
+   * 열기(4.1)의 `resumed` 재료다: 세션 행이 있다는 사실만으로는 「이어하기」가 아니다.
+   * 새 세션도 열기 자체가 첫 대화까지 전진해 여는 말을 남기므로, 행 존재를 기준으로 삼으면
+   * 첫 시작이 전부 이어하기로 둔갑한다 (2026-08-14 실사용 — part1 을 건너뛰는 버그).
+   */
+  progressed: boolean
 }
 
 /**
@@ -110,6 +118,11 @@ export async function appSessionState(args: {
     scene === null
       ? null
       : await lastCharacterLine(conn, { session_id: session.id, scene_id: scene.scene_id })
+  /* 첫 대화 장면 너머로 갔으면 발화 없이도 진행이다 — 말 없이 스킵만 한 세션이 여기 걸린다. */
+  const 첫_대화 = 장면들.find((행) => 행.character_id !== null) ?? null
+  const progressed =
+    (await lastChildMessageId(conn, session.id)) !== null ||
+    (scene !== null && 첫_대화 !== null && scene.scene_order > 첫_대화.scene_order)
   return {
     session,
     run,
@@ -117,5 +130,6 @@ export async function appSessionState(args: {
     last_character_line,
     pending: await pendingTurn(conn, { session_id: session.id }),
     progress: { scene_order: scene?.scene_order ?? 0, total: 장면들.length },
+    progressed,
   }
 }
