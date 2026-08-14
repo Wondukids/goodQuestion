@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type VideoStep } from "./data";
 import { CutsPlayer, type CutsPlayerHandle } from "./cuts-player";
 import { InteractiveScene } from "./interactive-scene";
+import { MinigamePopup } from "./minigame-popup";
 import { buildPlanSequence } from "./plan-sequence";
 import { useStorySequencer } from "./sequencer";
 import { VIDEO_SUBTITLES } from "./subtitles";
@@ -45,6 +46,21 @@ export default function FartBridePlay({
     if (step?.kind === "cuts" && cutsRef.current) cutsRef.current.skipCut();
     else next();
   };
+
+  /* 미니게임 팝업 테스트 (개발용) — 재생 중 SPACE 로 열고 닫는다.
+     아직 빈 껍데기라 이야기 진행과는 연결하지 않는다 (뒤에서 소리는 계속 난다). */
+  const [minigameOpen, setMinigameOpen] = useState(false);
+  useEffect(() => {
+    if (!started || finished) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Space") return;
+      /* 스크롤·포커스된 버튼의 스페이스 동작을 막고 팝업 토글로만 쓴다 */
+      event.preventDefault();
+      setMinigameOpen((open) => !open);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [started, finished]);
 
   return (
     <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
@@ -139,6 +155,12 @@ export default function FartBridePlay({
           </div>
         </div>
       )}
+
+      <MinigamePopup
+        open={minigameOpen}
+        onClose={() => setMinigameOpen(false)}
+        onComplete={() => setMinigameOpen(false)}
+      />
     </main>
   );
 }
