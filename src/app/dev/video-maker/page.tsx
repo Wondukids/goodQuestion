@@ -1,32 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  CameraPan,
-  CameraShake,
-  ChromaticAberration,
-  DutchAngle,
-  Flash,
-  Glitch,
-  KenBurns,
-  Letterbox,
-  Orbit,
-  Punch,
-  PunchZoom,
-  RandomBars,
-  Reveal,
-  SlideIn,
-  Vignette,
-  ZoomIn,
-  ZoomOut,
-} from "@/frontendlib";
+  CameraLayer,
+  EnterLayer,
+  OverlayLayer,
+} from "@/stories/fart-bride/cut-effect-layers";
+import { SPEAKER_VOICES } from "@/stories/fart-bride/script";
 import {
   assetUrl,
   CAMERA_EFFECT_LABELS,
@@ -62,258 +43,26 @@ for (const c of VIDEO_PLAN.cuts) {
   }
 }
 
-/* 화자 입력 자동완성 후보 — 원본 플랜에 등장한 화자들 */
-const KNOWN_SPEAKERS = Array.from(
-  new Set(Array.from(LINE_INFO.values()).map((l) => l.speaker)),
+/* 화자 선택지 — 성우 매핑이 있는 기본 4명 + 플랜에 이미 등장한 화자.
+   대화 씬의 목소리 매칭(plan-sequence.ts)이 이 이름을 그대로 쓰므로,
+   자유 입력 대신 여기서 골라야 TTS 가 어긋나지 않는다. */
+const SPEAKER_OPTIONS = Array.from(
+  new Set([
+    ...Object.keys(SPEAKER_VOICES),
+    ...Array.from(LINE_INFO.values()).map((l) => l.speaker),
+  ]),
 );
+
+/** 선택지 표기 — 성우 매핑이 있으면 보이스 모델 이름을 함께 보여 준다 ("며느리 · Leda") */
+function speakerLabel(speaker: string) {
+  return speaker in SPEAKER_VOICES
+    ? `${speaker} · ${SPEAKER_VOICES[speaker as keyof typeof SPEAKER_VOICES]}`
+    : speaker;
+}
 
 function formatTime(sec: number) {
   const whole = Math.round(sec);
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
-
-/** 컷이 떠 있는 동안의 카메라 연출 래퍼 */
-function CameraLayer({
-  effect,
-  durationMs,
-  playKey,
-  children,
-}: {
-  effect: CameraEffect;
-  durationMs: number;
-  playKey: string;
-  children: ReactNode;
-}) {
-  switch (effect) {
-    case "zoom-in":
-      return (
-        <ZoomIn durationMs={durationMs} playKey={playKey} className="h-full w-full">
-          {children}
-        </ZoomIn>
-      );
-    case "zoom-out":
-      return (
-        <ZoomOut durationMs={durationMs} playKey={playKey} className="h-full w-full">
-          {children}
-        </ZoomOut>
-      );
-    case "punch-zoom":
-      return (
-        <PunchZoom playKey={playKey} className="h-full w-full">
-          {children}
-        </PunchZoom>
-      );
-    case "ken-burns-left":
-    case "ken-burns-right":
-      return (
-        <KenBurns
-          direction={effect === "ken-burns-left" ? "left" : "right"}
-          durationMs={durationMs}
-          playKey={playKey}
-          className="h-full w-full"
-        >
-          {children}
-        </KenBurns>
-      );
-    case "pan-left":
-    case "pan-right":
-    case "tilt-up":
-    case "tilt-down":
-      return (
-        <CameraPan
-          direction={
-            effect === "pan-left"
-              ? "left"
-              : effect === "pan-right"
-                ? "right"
-                : effect === "tilt-up"
-                  ? "up"
-                  : "down"
-          }
-          durationMs={durationMs}
-          playKey={playKey}
-          className="h-full w-full"
-        >
-          {children}
-        </CameraPan>
-      );
-    case "orbit":
-      return (
-        <Orbit durationMs={durationMs} playKey={playKey} className="h-full w-full">
-          {children}
-        </Orbit>
-      );
-    case "dutch":
-      return (
-        <DutchAngle playKey={playKey} className="h-full w-full">
-          {children}
-        </DutchAngle>
-      );
-    case "shake":
-      return (
-        <CameraShake playKey={playKey} intensity={10} durationMs={600} className="h-full w-full">
-          {children}
-        </CameraShake>
-      );
-    case "shake-loop":
-      return (
-        <CameraShake loop playKey={playKey} intensity={6} durationMs={900} className="h-full w-full">
-          {children}
-        </CameraShake>
-      );
-    case "punch":
-      return (
-        <Punch playKey={playKey} className="h-full w-full">
-          {children}
-        </Punch>
-      );
-    case "glitch":
-      return (
-        <Glitch playKey={playKey} className="h-full w-full">
-          {children}
-        </Glitch>
-      );
-    case "chromatic":
-      return (
-        <ChromaticAberration playKey={playKey} className="h-full w-full">
-          {children}
-        </ChromaticAberration>
-      );
-    default:
-      return <div className="h-full w-full">{children}</div>;
-  }
-}
-
-/** 컷 등장 전환 래퍼 — playKey 가 바뀔 때마다 다시 재생 */
-function EnterLayer({
-  effect,
-  playKey,
-  children,
-}: {
-  effect: EnterEffect;
-  playKey: string;
-  children: ReactNode;
-}) {
-  switch (effect) {
-    case "slide-left":
-    case "slide-right":
-    case "slide-up":
-    case "slide-down":
-      return (
-        <SlideIn
-          from={
-            effect === "slide-left"
-              ? "left"
-              : effect === "slide-right"
-                ? "right"
-                : effect === "slide-up"
-                  ? "up"
-                  : "down"
-          }
-          playKey={playKey}
-          className="h-full w-full"
-        >
-          {children}
-        </SlideIn>
-      );
-    case "wipe-left":
-    case "wipe-right":
-    case "wipe-up":
-    case "wipe-down":
-      return (
-        <Reveal
-          variant="wipe"
-          direction={
-            effect === "wipe-left"
-              ? "left"
-              : effect === "wipe-right"
-                ? "right"
-                : effect === "wipe-up"
-                  ? "up"
-                  : "down"
-          }
-          playKey={playKey}
-          className="h-full w-full"
-        >
-          {children}
-        </Reveal>
-      );
-    case "random-bars":
-      return (
-        <RandomBars playKey={playKey} className="h-full w-full">
-          {children}
-        </RandomBars>
-      );
-    case "none":
-      return <div className="h-full w-full">{children}</div>;
-    default:
-      /* 나머지는 이름만 Reveal variant 로 바꿔 그대로 재생한다 */
-      return (
-        <Reveal
-          variant={
-            effect === "wipe-diagonal"
-              ? "wipe-diagonal"
-              : effect === "checkerboard"
-                ? "checker"
-                : effect === "flip"
-                  ? "flip-y"
-                  : effect === "flip-vertical"
-                    ? "flip-x"
-                    : effect
-          }
-          playKey={playKey}
-          className="h-full w-full"
-        >
-          {children}
-        </Reveal>
-      );
-  }
-}
-
-/** 컷 위에 겹치는 화면 오버레이 래퍼 — 카메라·등장과 독립으로 얹는다 */
-function OverlayLayer({
-  effect,
-  playKey,
-  children,
-}: {
-  effect: OverlayEffect;
-  playKey: string;
-  children: ReactNode;
-}) {
-  switch (effect) {
-    case "letterbox":
-      return (
-        <Letterbox playKey={playKey} className="h-full w-full">
-          {children}
-        </Letterbox>
-      );
-    case "vignette":
-      return (
-        <Vignette playKey={playKey} className="h-full w-full">
-          {children}
-        </Vignette>
-      );
-    case "vignette-red":
-      return (
-        <Vignette color="rgba(190, 30, 30, 0.5)" playKey={playKey} className="h-full w-full">
-          {children}
-        </Vignette>
-      );
-    case "vignette-pulse":
-      return (
-        <Vignette pulse playKey={playKey} className="h-full w-full">
-          {children}
-        </Vignette>
-      );
-    case "flash":
-      return (
-        <Flash playKey={playKey} className="h-full w-full">
-          {children}
-        </Flash>
-      );
-    default:
-      return <div className="h-full w-full">{children}</div>;
-  }
 }
 
 type PlayMode = "line" | "cut" | "all";
@@ -336,7 +85,9 @@ export default function VideoMakerPage() {
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const [linePickerOpen, setLinePickerOpen] = useState(false);
   const [lineFilter, setLineFilter] = useState("");
-  /* 연출 다시 보기 — 증가할 때마다 등장·카메라 연출을 재시작한다 */
+  /* 연출 다시 보기 — 증가할 때마다 등장·카메라·오버레이 연출을 재시작한다.
+     컷 재생·전체 재생이 컷의 첫 대사를 시작할 때도 올려, 저장된 연출을
+     소리와 같은 순간부터 확인할 수 있게 한다. */
   const [replayKey, setReplayKey] = useState(0);
   /* 컷 목록 직접 편집 — 드래그 순서 변경·더블클릭 이름 수정 */
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -402,6 +153,9 @@ export default function VideoMakerPage() {
     setNotice("");
     setCutIndex(targetCut);
     setPlayState({ line: targetLine, mode });
+    /* 컷의 첫 대사부터 재생할 때는 저장된 연출도 처음부터 다시 — 대사 하나만
+       듣는 ▶(line 모드)는 등장 전환을 다시 틀지 않는다 */
+    if (targetLine === 0 && mode !== "line") setReplayKey((k) => k + 1);
 
     const audio = new Audio(assetUrl("sound", line.audio));
     audioRef.current = audio;
@@ -1118,12 +872,16 @@ export default function VideoMakerPage() {
                 </p>
               )}
 
-              {/* 화자 입력 자동완성 — 대사 행의 화자 칸이 참조한다 */}
-              <datalist id="speaker-options">
-                {KNOWN_SPEAKERS.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
+              {/* 대화 컷 화자 점검 — 전부 내레이션이면 대화 씬 목소리가 어긋난다 */}
+              {cut.kind !== "linear" &&
+                cut.lines.length > 0 &&
+                cut.lines.every((l) => l.speaker === "내레이션") && (
+                  <p className="mb-1 rounded-xl bg-brand-50 px-3 py-2 text-[13px] font-bold text-point-strong">
+                    대화 컷인데 화자가 전부 내레이션입니다 — 재생 화면의 대화 씬
+                    목소리(TTS)가 내레이터로 나가요. 아래 화자를 며느리·시아버지처럼
+                    바꿔 주세요.
+                  </p>
+                )}
 
               {cut.lines.map((line, i) => (
                 <div
@@ -1139,13 +897,21 @@ export default function VideoMakerPage() {
                   >
                     ▶
                   </button>
-                  <input
-                    list="speaker-options"
+                  <select
                     value={line.speaker}
                     onChange={(e) => updateLine(i, { speaker: e.target.value })}
-                    title="화자 — 내레이션이면 자막에 이름이 붙지 않습니다"
-                    className="w-24 shrink-0 rounded-lg border border-transparent bg-chip px-2 py-1 text-center text-[12px] font-bold text-ink-mid outline-none hover:border-divider focus:border-primary"
-                  />
+                    title="화자 — 대화 씬의 목소리(TTS 보이스 모델)가 이 이름으로 매칭됩니다. 내레이션이면 자막에 이름이 붙지 않습니다"
+                    className="w-32 shrink-0 rounded-lg border border-transparent bg-chip px-1.5 py-1 text-center text-[12px] font-bold text-ink-mid outline-none hover:border-divider focus:border-primary"
+                  >
+                    {(SPEAKER_OPTIONS.includes(line.speaker)
+                      ? SPEAKER_OPTIONS
+                      : [line.speaker, ...SPEAKER_OPTIONS]
+                    ).map((s) => (
+                      <option key={s} value={s}>
+                        {speakerLabel(s)}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     value={line.text}
                     onChange={(e) => updateLine(i, { text: e.target.value })}

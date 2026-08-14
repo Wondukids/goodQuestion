@@ -51,9 +51,11 @@ export function useStorySequencer(steps: Step[] = SEQUENCE): StorySequencer {
   const step = finished ? null : steps[index];
 
   /* 대화 씬은 이야기 흐름이 끊기지 않도록 진입·이탈 모두 넘김 없이 바로 전환.
-     책 넘김은 대화를 거치지 않고 영상으로 들어갈 때만 — 시작·다시 보기 포함. */
+     책 넘김은 대화를 거치지 않고 영상·컷 묶음으로 들어갈 때만 — 시작·다시 보기 포함. */
   const cameFromStep = cameFrom === null ? null : steps[cameFrom];
-  const turning = step?.kind === "video" && cameFromStep?.kind !== "interactive";
+  const turning =
+    (step?.kind === "video" || step?.kind === "cuts") &&
+    cameFromStep?.kind !== "interactive";
 
   const start = useCallback(() => setStarted(true), []);
 
