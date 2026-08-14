@@ -157,7 +157,7 @@
     },
     {
       "id": "n7-1",
-      "scene": 0,
+      "scene": 4,
       "chapter": "",
       "title": "아이와의 대화 · 질문x",
       "kind": "question",
@@ -182,7 +182,7 @@
     },
     {
       "id": "n7-2",
-      "scene": 0,
+      "scene": 4,
       "chapter": "",
       "title": "아이와의 대화 · 답변",
       "kind": "answer",
@@ -387,7 +387,7 @@
     },
     {
       "id": "n14-1",
-      "scene": 0,
+      "scene": 7,
       "chapter": "",
       "title": "아이와의 대화 · 질문",
       "kind": "question",
@@ -412,7 +412,7 @@
     },
     {
       "id": "n14-2",
-      "scene": 0,
+      "scene": 7,
       "chapter": "",
       "title": "아이와의 대화 · 답변",
       "kind": "answer",
