@@ -34,6 +34,7 @@ type Phase =
   | "transcribing" // 턴 처리 중 (서버 STT→분석→판단→대사, 폴백이면 STT 만)
   | "responding" // TTS 반응 재생 중
   | "choice" // 다시 말하기 / 계속하기 — 폴백·비서버 흐름에서만
+  | "silent" // 무음 한도 초과 — 다시 말하기 / 넘어가기 선택 대기 (서버·비서버 공통)
   | "answer" // 정해진 답변 재생 중 — 폴백·비서버 흐름에서만
   | "error";
 
@@ -48,6 +49,26 @@ const FALLBACK_REACTION = "그렇구나, 이야기해 줘서 정말 고마워!";
 
 /* TTS 한 번 더 — 씬 진입 준비와 대사 합성이 몰리면 일시 오류(502)가 잦다. 짧게 쉬고
    한 번 재시도하면 대부분 살아나, 멀쩡한 LLM 대답이 고정 문구로 떨어지는 일을 줄인다. */
+/**
+ * `?debug=scene` 일 때만 진단 배지를 켠다.
+ *
+ * 🔴 **배포에서 지울 것이 없다.** 아이 앱이 여는 URL 에는 이 쿼리가 없어 아이 화면에는
+ * 절대 안 뜨고, 꺼져 있으면 DOM 이 아예 안 생긴다. 지우는 방식은 지울 것을 기억해야 하고
+ * 급할 때 잊는다 — 무엇보다 **배포된 실기기에서 켤 수 없다.**
+ *
+ * ⚠️ 첫 렌더에서 `window` 를 읽어도 안전하다 — 이 씬은 「이야기 시작」을 누른 **뒤에만**
+ *    붙으므로(`play.tsx` 의 `started`) 서버 렌더에 한 번도 안 들어간다. 그래서 수화 어긋남이
+ *    생길 자리가 없고, 효과에서 setState 하는 모양(층 규칙상 lint 오류)을 피할 수 있다.
+ */
+function useSceneDebug(): boolean {
+  const [on] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("debug") === "scene",
+  );
+  return on;
+}
+
 async function requestSpeechWithRetry(request: Parameters<typeof requestSpeech>[0]) {
   try {
     return await requestSpeech(request);
@@ -79,15 +100,43 @@ export function InteractiveScene({
   resumeLine: string | null;
   onComplete: () => void;
 }) {
+  /* 고정 문구로 떨어지는 사유 — **셋뿐이다.** 서버 대화가 도는 조건은 이 셋이 다 아닌
+     것이고, 그래서 `serverMode` 도 여기서 나온다 (조건을 두 번 적으면 갈라진다).
+
+     🔴 화면 결과는 셋 다 똑같이 「고정 문구」라, 사유를 안 남기면 사람이 「LLM 이 이상하다」로만
+     본다 — 원인은 서버 로그로만 갈렸다. 그래서 아래 배지·로그가 이 값을 그대로 쓴다. */
+  const fallbackReason =
+    sessionId === null
+      ? "세션없음 (아이 미선택·열기 실패)"
+      : step.sceneCode === ""
+        ? "이 씬에 서버 장면이 없다"
+        : step.sceneCode !== serverScene
+          ? `장면어긋남 — 서버 대기 ${serverScene ?? "없음"}`
+          : null;
+
   /* 서버 대화 모드 — 세션이 열려 있고 이 씬이 **서버가 기다리는 바로 그 장면**일 때만
      (명세 3절 매핑 + 어긋남 가드). 다르면 잘못된 캐릭터가 대답하게 되므로 고정 문구로
-     돌리고, 서버 기록은 그대로 둔다 — 다음 진입 때 건너뛴 대화로 정확히 복귀한다. */
-  const serverMode =
-    sessionId !== null && step.sceneCode !== "" && step.sceneCode === serverScene;
+     돌리고, 서버 기록은 그대로 둔다 — 건너뛰기는 스킵 API 가 서버도 같이 넘긴다. */
+  const serverMode = fallbackReason === null;
   const resumeMode = serverMode && resumeLine !== null;
   /* 진입 시점의 모드 — TTS 준비량을 정하는 데만 쓴다. 장면 도중 추적 갱신(장면끝)으로
-     serverMode 가 변해도 준비를 다시 돌리지 않기 위해 처음 값을 붙잡아 둔다. */
-  const [entryMode] = useState(() => ({ server: serverMode, resume: resumeMode }));
+     serverMode 가 변해도 준비를 다시 돌리지 않기 위해 처음 값을 붙잡아 둔다.
+     진단 로그도 이 값을 쓴다 — 알고 싶은 것은 **진입 시점**의 모드다. */
+  const [entryMode] = useState(() => ({
+    server: serverMode,
+    resume: resumeMode,
+    reason: fallbackReason,
+  }));
+  const debug = useSceneDebug();
+
+  /* 씬마다 한 줄 — 늘 켜 둔다. 폴백이 조용히 일어나는 것이 이 레포의 오랜 사각이었다. */
+  useEffect(() => {
+    console.info(
+      entryMode.server
+        ? `[장면] ${step.id} · 서버 대화 ${step.sceneCode}`
+        : `[장면] ${step.id} · 고정 문구 — ${entryMode.reason}`,
+    );
+  }, [entryMode, step.id, step.sceneCode]);
 
   const [phase, setPhase] = useState<Phase>(resumeMode ? "resume" : "question");
   const [lineIndex, setLineIndex] = useState(0);
@@ -241,14 +290,15 @@ export function InteractiveScene({
     setPhase("error");
   }, []);
 
-  /* 무음 — sttDefaults 대로 1회 재시도 후 그냥 진행 (서버 흐름도 같은 연출 — 명세 4.3절) */
+  /* 무음 — sttDefaults 대로 1회 재시도 후 선택지(다시 말하기/넘어가기)로 (서버 흐름도 같은
+     연출 — 명세 4.3절). 예전엔 여기서 바로 정해진 답변으로 넘겼는데, 아이 입장에선 아무
+     안내 없이 "내 말을 씹고 지나간" 것으로 보였다 (실사용 신고). */
   const handleSilence = useCallback(() => {
     if (retriesRef.current < STT_DEFAULTS.retryCount) {
       retriesRef.current += 1;
       setPhase("listening");
     } else {
-      setLineIndex(0);
-      setPhase("answer");
+      setPhase("silent");
     }
   }, []);
 
@@ -445,8 +495,8 @@ export function InteractiveScene({
     preparedLines?.question[preparedLines.question.length - 1]?.audio ?? null;
   const replaySrc =
     history.length > 0 ? responseUrl : resumeMode ? resumeUrl : lastQuestionAudio;
-  /* 다시 듣기는 아이 차례(듣는 중·선택)일 때만 — 음성이 겹쳐 나오지 않게 */
-  const canReplay = phase === "listening" || phase === "choice";
+  /* 다시 듣기는 아이 차례(듣는 중·선택·무음 안내)일 때만 — 음성이 겹쳐 나오지 않게 */
+  const canReplay = phase === "listening" || phase === "choice" || phase === "silent";
 
   const bubbleCount = bubbles.length;
   useEffect(() => {
@@ -505,6 +555,23 @@ export function InteractiveScene({
       )}
       {replay && (
         <audio key={replay.n} src={replay.src} autoPlay onEnded={() => setReplay(null)} />
+      )}
+
+      {/* 진단 배지 — `?debug=scene` 에서만. 아이 화면에는 뜨지 않는다 */}
+      {debug && (
+        <div className="pointer-events-none absolute left-4 top-24 rounded-lg bg-black/70 px-3 py-2 font-mono text-[12px] leading-[1.6] text-emerald-200">
+          <div>
+            서버모드 <b className="text-amber-300">{serverMode ? "ON" : "OFF"}</b> ·{" "}
+            {step.sceneCode || "장면없음"}
+          </div>
+          {!serverMode && <div className="text-amber-300">사유: {fallbackReason}</div>}
+          <div>
+            서버 대기 {serverScene ?? "없음"} · 세션 {sessionId?.slice(0, 8) ?? "없음"}
+          </div>
+          <div>
+            단계 {phase} · 턴 {Math.floor(history.length / 2)}
+          </div>
+        </div>
       )}
 
       {/* 오른쪽 채팅 패널 — 자막 대신 대화 내용을 말풍선으로 쌓는다 (시안 106) */}
@@ -624,6 +691,36 @@ export function InteractiveScene({
                 계속하기
               </button>
             </div>
+          )}
+
+          {phase === "silent" && (
+            <>
+              <p className="text-center text-[14px] font-bold text-point-strong">
+                목소리가 잘 안 들렸어요. 한 번 더 말해 볼까?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    retriesRef.current = 0;
+                    setPhase("listening");
+                  }}
+                  className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
+                >
+                  다시 말하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLineIndex(0);
+                    setPhase("answer");
+                  }}
+                  className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
+                >
+                  넘어가기
+                </button>
+              </div>
+            </>
           )}
 
           {phase === "answer" && (
