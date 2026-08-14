@@ -10,6 +10,7 @@ import { requestSpeech } from "@/tts/client";
 import { STT_DEFAULTS, type InteractiveStep, type SpeechLine } from "./data";
 import { fillChildName, vocative } from "./name";
 import {
+  openSession,
   resumeSessionTurn,
   SessionApiError,
   submitSessionTurn,
@@ -49,6 +50,8 @@ export function InteractiveScene({
   step,
   childName,
   sessionId,
+  serverScene,
+  onServerScene,
   resumeLine,
   onComplete,
 }: {
@@ -57,12 +60,19 @@ export function InteractiveScene({
   childName: string | null;
   /** 세션 열기(POST /api/sessions)의 id — null 이면 서버 없이 고정 문구 흐름 */
   sessionId: string | null;
+  /** 서버가 지금 기다리는 대화 장면 code — 이 씬과 다르면(건너뛰기로 어긋남) 서버 턴을 안 보낸다 */
+  serverScene: string | null;
+  /** 턴 응답이 장면을 옮기면(장면끝·회차끝) 추적을 갱신한다 — play.tsx 의 state 다 */
+  onServerScene: (code: string | null) => void;
   /** 복귀 진입이면 서버의 마지막 캐릭터 대사 — 여는 말 연출 대신 이 한 줄을 튼다 */
   resumeLine: string | null;
   onComplete: () => void;
 }) {
-  /* 서버 대화 모드 — 세션이 열려 있고 이 씬이 서버 장면에 매핑될 때만 (명세 3절 매핑) */
-  const serverMode = sessionId !== null && step.sceneCode !== "";
+  /* 서버 대화 모드 — 세션이 열려 있고 이 씬이 **서버가 기다리는 바로 그 장면**일 때만
+     (명세 3절 매핑 + 어긋남 가드). 다르면 잘못된 캐릭터가 대답하게 되므로 고정 문구로
+     돌리고, 서버 기록은 그대로 둔다 — 다음 진입 때 건너뛴 대화로 정확히 복귀한다. */
+  const serverMode =
+    sessionId !== null && step.sceneCode !== "" && step.sceneCode === serverScene;
   const resumeMode = serverMode && resumeLine !== null;
 
   const [phase, setPhase] = useState<Phase>(resumeMode ? "resume" : "question");
@@ -270,6 +280,18 @@ export function InteractiveScene({
           /* 미완 턴(409 TURN_INCOMPLETE) — 걸려 있던 턴을 이어 돌려 그 결과를 쓴다 */
           if (error instanceof SessionApiError && error.code === "TURN_INCOMPLETE") {
             const resumed = await resumeSessionTurn(sessionId!);
+            /* 이어 돌린 턴이 장면을 끝냈으면 서버는 아직 그 장면에 서 있다(전진은 열기 몫).
+               다시 열어 따라잡고(명세 4.3절) 장면 추적을 그 결과로 갱신한다. */
+            if (resumed.next.kind === "장면끝") {
+              try {
+                const reopened = await openSession("fart-bride");
+                onServerScene(
+                  reopened.status === "in_progress" ? (reopened.scene?.code ?? null) : null,
+                );
+              } catch {
+                onServerScene(null); // 따라잡기 실패 — 남은 씬은 고정 문구로, 다음 진입 때 복귀
+              }
+            }
             return {
               child: resumed.child,
               dialogue: resumed.dialogue,
@@ -280,6 +302,13 @@ export function InteractiveScene({
         });
 
         if (result.empty) return handleSilence();
+
+        /* 장면 추적 갱신 — 턴 API 의 장면끝은 next_scene 을 항상 싣는다 (없으면 회차끝이다).
+           next_scene 없는 장면끝은 위 resume 경로뿐이고, 그쪽은 재열기가 이미 갱신했다. */
+        if (result.next.kind === "회차끝") onServerScene(null);
+        else if (result.next.kind === "장면끝" && result.next.next_scene) {
+          onServerScene(result.next.next_scene.code);
+        }
 
         nextRef.current = result.next;
         fallbackRef.current = false;
@@ -301,7 +330,7 @@ export function InteractiveScene({
         }
       }
     },
-    [serverMode, sessionId, handleSilence, speakReaction, fail],
+    [serverMode, sessionId, onServerScene, handleSilence, speakReaction, fail],
   );
 
   const stopRecording = useCallback(() => {
