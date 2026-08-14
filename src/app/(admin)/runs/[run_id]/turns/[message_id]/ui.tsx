@@ -10,7 +10,7 @@
 //    규격으로 검사하므로 화면 조각은 라우트가 **아닌** 이 파일에 둔다.
 //    (검사가 이 조각을 그대로 렌더해 보는 자리이기도 하다 — `tests/cost.test.ts`.)
 
-import type { AttemptView, TurnAttemptsView } from '@/llm/service/view'
+import type { AttemptView, ScoreRow, TurnAttemptsView } from '@/llm/service/view'
 
 /**
  * 금액 한 칸. **모르면 「모름」이고 0 을 찍지 않는다.**
@@ -71,6 +71,84 @@ export function 시도표({ 시도들 }: { 시도들: TurnAttemptsView }) {
         {토큰(totals.output_tokens)}
       </p>
       <p className="font-mono text-xs">비용: {금액(totals.cost, totals.통화)}</p>
+    </section>
+  )
+}
+
+/**
+ * 판정 한 칸의 표기. **세 상태가 눈으로 갈려야 한다** (`lib/judge.ts` 「점수 규칙」).
+ *
+ * 🔴 `null` 을 「지킴」처럼 보이게 하지 않는다. 이 채점기의 핵심 규칙이 「**`null` 은 통과가
+ * 아니다**」이고 (결정 29), 회색 「지킴」과 회색 「판정 안 함」이 같아 보이면 화면이 그 규칙을
+ * 깨뜨린다. 그래서 위반은 빨간 굵은 글씨, 판정 안 함은 회색 물음표, 지킴만 초록이다.
+ */
+function 판정표기(값: number | null): { 글: string; 꾸밈: string } {
+  if (값 === null) return { 글: '판정 안 함', 꾸밈: 'text-zinc-500' }
+  if (값 === 0) return { 글: '위반', 꾸밈: 'font-bold text-red-600' }
+  return { 글: '지킴', 꾸밈: 'text-green-700 dark:text-green-500' }
+}
+
+/**
+ * 이 턴에서 어느 검사가 걸렸나 (경계 채점기 `lib/judge.ts` → `scores`, `graded_by='auto'`).
+ *
+ * 🔴 **검사 이름을 그대로 찍는다** (`fabricated_fixed_line`·`closing_generated`·
+ *    `scene_goal_leak` · 심판을 켰다면 셋 더). `CLAUDE.md` 로그 절의 「DB 컬럼명을 그대로
+ *    찍는다」와 같은 이유다 — 화면에서 본 이름으로 `scores` 를 바로 찾을 수 있어야 한다.
+ *
+ * ⭐ `comment` 가 이 표의 알맹이다. **위반일 때 무엇이 걸렸는지가 거기에만 있다**
+ *    (「고정 첫 대사를 그대로 만들어 냈다」 · 「장면 목표의 «…» 가 대사에 그대로 나왔다」).
+ *    판정 안 함일 때도 왜 안 쟀는지가 거기 있다.
+ *
+ * ⛔ **사람이 매긴 판정은 여기 없다.** 그쪽은 `/review` 화면이고 `graded_by <> 'auto'` 로
+ *    자동 채점을 뺀다. 두 이력을 섞지 않는 것이 원래 설계다.
+ */
+export function 경계채점표({ 채점들 }: { 채점들: readonly ScoreRow[] }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="font-semibold">경계 채점 {채점들.length}건</h3>
+      {채점들.length === 0 && (
+        <p className="text-xs text-zinc-500">
+          채점 행 없음 (채점기를 끄고 돌린 턴이거나, 전개만 재생한 턴이면 정상)
+        </p>
+      )}
+      {채점들.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="text-left">
+                {['check_name', '판정', 'comment', 'target'].map((이름) => (
+                  <th key={이름} className={`${칸} font-mono text-zinc-500`}>
+                    {이름}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {채점들.map((행) => {
+                const { 글, 꾸밈 } = 판정표기(행.value)
+                return (
+                  <tr key={행.id}>
+                    <td className={`${칸} font-mono whitespace-nowrap`}>{행.check_name}</td>
+                    <td className={`${칸} whitespace-nowrap`}>
+                      <span className={꾸밈}>{글}</span>{' '}
+                      <span className="font-mono text-zinc-500">
+                        value={행.value === null ? 'null' : 행.value.toFixed(1)}
+                      </span>
+                    </td>
+                    {/* 위반일 때 **무엇이 걸렸는지**가 여기 있다. 요약하지 않는다. */}
+                    <td className={칸}>{행.comment === null || 행.comment === '' ? '—' : 행.comment}</td>
+                    <td className={`${칸} font-mono whitespace-nowrap`}>{행.target}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-xs text-zinc-500">
+        ⚠️ <strong>「판정 안 함」은 통과가 아니다</strong> — 검사 조건이 아예 안 섰거나 심판을 믿을
+        수 없었다는 뜻이고, 회차 목록의 위반율에서 <strong>분모에서 빠진다</strong> (결정 29).
+      </p>
     </section>
   )
 }

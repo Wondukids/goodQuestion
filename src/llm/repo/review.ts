@@ -50,6 +50,8 @@
 import { and, eq, sql } from 'drizzle-orm'
 
 import { corrections, llm_calls, review_criteria, runs, scores } from '@/llm/db/schema'
+// ⭐ 「위반 몇 건인가」를 세는 규칙은 채점기 것 하나뿐이다 (`autoScoreSummary()` 머리말).
+import { gradedCount, violationCount, type CheckResult } from '@/llm/judge'
 
 import type { Conn } from './db'
 
@@ -137,6 +139,97 @@ export async function currentScores(
   `)
   // 손 SQL 이라 드리즐이 칸을 못 검사한다. **형은 여기서 한 번만 못박는다.**
   return 행들 as unknown as (ScoreRow)[]
+}
+
+// ---------------------------------------------------------------------------
+// 자동 채점 — 사람 판정과 **따로** 읽는다
+// ---------------------------------------------------------------------------
+//
+// 🔴 위 `currentScores()` 와 아래 두 함수는 **같은 창 쿼리에 필터만 다르다.** 검수 화면이
+//    읽는 것들은 전부 `graded_by <> 'auto'` 로 자동 채점을 빼고(사람 판정 이력에 섞지
+//    않는다), 여기 둘은 반대로 `graded_by = 'auto'` 만 본다. 그래서 **두 갈래가 한 번도
+//    만나지 않는다** — 자동 채점은 사람이 매긴 것 옆이 아니라 제 칸에서만 보인다.
+
+/** 자동 채점 집계 한 벌 (파이썬 `자동_채점_집계`). */
+export interface AutoScoreSummary {
+  /** 판정한 칸의 수. **위반율의 분모다.** */
+  graded_count: number
+  violation_count: number
+  /**
+   * 판정 안 함(`value IS NULL`)의 수.
+   *
+   * 🔴 **분모에서 빠진다** (결정 29 · FR-045a·b). 「검사 조건이 안 섰다」를 「지켰다」로 세면
+   * 위반율이 조용히 낮아진다. 그래서 세지 않고 **몇 건이 빠졌는지를 옆에 함께 보여 준다** —
+   * 빠진 수가 안 보이면 「위반 0%」가 「다 지켰다」인지 「잰 것이 없다」인지 못 가른다.
+   */
+  unscored_count: number
+  /** 위반 ÷ 판정한 수. 판정한 것이 하나도 없으면 `null` 이다 — **0 이 아니다.** */
+  violation_rate: number | null
+}
+
+/**
+ * 같은 칸에서 가장 최근에 덧붙인 **자동** 판정만 (파이썬 `자동_채점_집계` 의 창 쿼리).
+ *
+ * 「같은 칸」의 뜻은 `currentScores()` 와 같다 — `(message_id, llm_call_id, target,
+ * check_name)` 넷. 같은 턴을 다시 돌리면 그 칸에 행이 하나 더 쌓이므로, 세는 것은 **마지막
+ * 것 하나**여야 한다. 안 그러면 다시 돌릴수록 옛 판정이 위반율에 계속 남는다.
+ *
+ * `message_id` 를 주면 그 아이 발화 한 건으로 좁힌다 (턴 상세 화면 자리 · 파이썬에 없다).
+ */
+export async function currentAutoScores(
+  conn: Conn,
+  { run_id, message_id }: { run_id: string; message_id?: string },
+): Promise<ScoreRow[]> {
+  // ⚠️ `sql` 조각으로 끼워야 값이 매개변수로 나간다. 문자열을 이어 붙이지 않는다.
+  const 턴_한정 = message_id === undefined ? sql`true` : sql`s.message_id = ${message_id}`
+  const 행들 = await conn.execute(sql`
+    SELECT ranked.*
+      FROM (
+            SELECT s.*,
+                   row_number() OVER (
+                       PARTITION BY s.message_id, s.llm_call_id, s.target, s.check_name
+                       ORDER BY s.created_at DESC, s.id DESC
+                   ) AS latest_no
+              FROM ${scores} s
+             WHERE s.run_id = ${run_id} AND s.graded_by = 'auto' AND ${턴_한정}
+           ) ranked
+     WHERE ranked.latest_no = 1
+     ORDER BY ranked.created_at, ranked.id
+  `)
+  // 손 SQL 이라 드리즐이 칸을 못 검사한다. **형은 여기서 한 번만 못박는다.**
+  return 행들 as unknown as (ScoreRow)[]
+}
+
+/**
+ * 이 회차의 자동 채점을 한 벌로 (파이썬 `자동_채점_집계`).
+ *
+ * ⭐ **세는 규칙은 여기 없다.** `lib/judge.ts` 의 `violationCount()`·`gradedCount()` 를 불러
+ *    쓴다 — 채점기가 쓰는 잣대와 화면이 세는 잣대가 두 벌이 되면 조용히 갈린다. 파이썬도
+ *    같은 자리에서 `scoring.위반_수`·`scoring.판정한_수` 를 불렀다.
+ *
+ * ⚠️ 그래서 이 파일이 `lib/judge.ts` 를 import 한다. 저 파일 끝에는 LLM 이 있지만
+ *    (심판 셋), 여기서 부르는 둘은 **배열을 세는 순수 함수**다. 층 규칙이 막는 것은
+ *    「저장 계층에서 LLM 을 부르는 것」이고 그 일은 여기서 일어나지 않는다.
+ */
+export async function autoScoreSummary(
+  conn: Conn,
+  { run_id }: { run_id: string },
+): Promise<AutoScoreSummary> {
+  const 현재 = await currentAutoScores(conn, { run_id })
+  // 파이썬 `scoring.채점(name=…, value=…, comment=…)` 과 같은 모양으로 옮겨 담는다.
+  const 결과: CheckResult[] = 현재.map((행) => ({
+    name: 행.check_name,
+    value: 행.value,
+    comment: 행.comment ?? '',
+  }))
+  const graded_count = gradedCount(결과)
+  const violation_count = violationCount(결과)
+  return {
+    graded_count,
+    violation_count,
+    unscored_count: 결과.length - graded_count,
+    violation_rate: graded_count === 0 ? null : violation_count / graded_count,
+  }
 }
 
 // ---------------------------------------------------------------------------

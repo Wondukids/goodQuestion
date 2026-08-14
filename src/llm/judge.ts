@@ -55,7 +55,6 @@
 // 파이썬이 랭퓨즈를 몰랐던 것과 같은 선이다 — 점수를 어디에 남기느냐는 서비스 층 몫이다.
 
 import { type Settings } from '@/llm/config'
-import { complete } from '@/llm/provider'
 import { chooseBody, sendableBody } from '@/llm/prompts'
 
 /**
@@ -345,13 +344,26 @@ export interface JudgeOptions {
  */
 const 용도_머리 = 'judge:'
 
+/**
+ * 심판을 안 켜면 LLM 모듈을 **아예 안 부른다** (파이썬 `_기본_호출()` 의 함수 안 import).
+ *
+ * 🔴 파이썬이 이 자리에 주석을 달아 뒀다 — 「여기서 import 한다. 채점 함수만 쓰는 쪽이
+ *    LLM SDK 를 끌고 오지 않게.」 그 성질이 층으로 이어진다:
+ *    `repo/review.ts` 가 위반/판정 수를 세려고 이 파일을 부르는데, 최상단에서 `complete` 를
+ *    끌어오면 **저장 계층이 LLM 모듈을 통째로 로드한다.** 세는 함수 넷은 순수 배열 연산이라
+ *    그럴 이유가 없다.
+ *
+ * ⚠️ 그래서 규칙 심판 셋만 쓰는 쪽(턴 저장 경로 · 회차 집계)은 이 함수에 닿지 않는다.
+ */
 function 기본_호출(): JudgeCall {
-  return (system, user, options) =>
-    complete(system, user, {
+  return async (system, user, options) => {
+    const { complete } = await import('@/llm/provider')
+    return complete(system, user, {
       json_schema: options.json_schema,
       settings: options.settings,
       purpose: options.purpose,
     })
+  }
 }
 
 /**

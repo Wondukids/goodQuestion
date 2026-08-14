@@ -31,6 +31,12 @@ import { analysisLine, decisionLine, stateLine } from '@/llm/log'
 import { listStories, scenesOfStory, type SceneRow, type StoryRow } from '@/llm/repo/content'
 import { getDb, type Conn } from '@/llm/repo/db'
 import {
+  autoScoreSummary,
+  currentAutoScores,
+  type AutoScoreSummary,
+  type ScoreRow,
+} from '@/llm/repo/review'
+import {
   attemptTotals,
   listRunsWithStory,
   readAttempts,
@@ -247,12 +253,22 @@ export function turnLogLines(
 // 회차 목록 · 이야기 목록
 // ═══════════════════════════════════════════════════════════════════════════
 
+// 화면은 `lib/repo` 를 직접 못 부른다 (eslint 층 경계). 자동 채점의 형도 여기서 다시 내보낸다.
+export type { AutoScoreSummary, ScoreRow }
+
 /** 회차 목록 한 줄. 회차 행에 세션 상태 · 이야기 · 아이 턴 수를 붙인 것. */
 export interface RunListItem extends RunWithStory {
   /** 아이가 말한 횟수. 파이썬 목록 화면의 `turn_count` 다. */
   turn_count: number
   /** 실험 메모가 붙은 회차인가 (파이썬 `experimental`). */
   experimental: boolean
+  /**
+   * 경계 채점기(`lib/judge.ts`)가 이 회차에 남긴 것의 집계. 파이썬 목록의 `score` 자리다.
+   *
+   * 🔴 **`scored_at` 이 `null` 이면 아예 안 부른다** (파이썬 `routes/runs.py:229`). 안 돈
+   * 회차와 「돌았는데 잰 것이 없는」 회차는 다른 사실이고, 둘 다 0 건으로 보이면 못 가른다.
+   */
+  score: AutoScoreSummary | null
 }
 
 /** 회차 목록 (최근 것이 위). */
@@ -266,6 +282,8 @@ export async function listRunsView(conn?: Conn): Promise<RunListItem[]> {
       ...회차,
       turn_count: 줄들.filter((행) => 행.speaker_type === 'child').length,
       experimental: Boolean(회차.experiment_note),
+      score:
+        회차.scored_at === null ? null : await autoScoreSummary(연결, { run_id: 회차.id }),
     })
   }
   return 목록
@@ -525,6 +543,17 @@ export interface TurnAttemptsView {
   run: RunRow
   message_id: string
   attempts: AttemptView[]
+  /**
+   * 이 턴의 대사에 경계 채점기가 매긴 것 (`graded_by='auto'` · 같은 칸의 **최신 한 행**).
+   *
+   * 🔴 `scores.message_id` 는 **아이 발화 id** 다 (`repo/review.ts` 머리말 ·
+   * `service/turn.ts` 의 저장 자리). 이 화면이 쥔 `message_id` 도 아이 발화라 그대로 맞는다 —
+   * 캐릭터 행의 id 로는 `llm_calls` 도 `scores` 도 안 걸린다 (`runs/ui.tsx` 의 `시도링크`).
+   *
+   * ⛔ 사람이 매긴 판정은 **여기 안 섞는다.** 검수 화면(`/review`)이 `graded_by <> 'auto'`
+   *    로 자동 채점을 빼는 것과 같은 선이고, 방향만 반대다.
+   */
+  auto_scores: ScoreRow[]
   totals: {
     attempt_count: number
     duration_ms: number
@@ -541,7 +570,12 @@ export interface TurnAttemptsView {
 /**
  * 한 턴이 부른 LLM 시도들 (파이썬 `시도_보기()`).
  *
+ * ⭐ 자동 채점(`auto_scores`)도 함께 싣는다 — 파이썬에 없던 자리다. 채점기는 돌지만 그 결과를
+ *    볼 화면이 하나도 없어서 DB 를 직접 봐야 했다. 왕복을 하나 더 두지 않은 것은 사람이 이
+ *    턴을 열어 보는 이유가 「이 턴이 무엇을 했나」 하나이기 때문이다.
+ *
  * ⛔ **여기서 아무것도 판정하지 않는다.** `llm_calls` 에 남은 사실에 단가표를 곱할 뿐이다.
+ *    채점도 다시 돌리지 않는다 — 저장된 행을 읽을 뿐이다.
  * ⚠️ 화면은 `lib/repo` 를 직접 못 부른다 (eslint 층 경계). 그 얇은 자리가 여기다.
  */
 export async function turnAttempts(
@@ -576,6 +610,7 @@ export async function turnAttempts(
     run,
     message_id,
     attempts,
+    auto_scores: await currentAutoScores(연결, { run_id, message_id }),
     totals: {
       ...합계,
       cost: 비용_모름 ? null : 비용_합계,

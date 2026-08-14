@@ -310,6 +310,8 @@ function 그린다(시도들: readonly AttemptView[], 고칠_것: Partial<TurnAt
     run: { id: randomUUID() } as TurnAttemptsView['run'],
     message_id: randomUUID(),
     attempts: [...시도들],
+    // 시도표는 채점을 안 그린다 (그건 `경계채점표` 다 · `tests/자동채점-화면.test.ts`). 모양만 맞춘다.
+    auto_scores: [],
     totals: {
       attempt_count: 시도들.length,
       duration_ms: 시도들.reduce((합, 하나) => 합 + 하나.duration_ms, 0),
