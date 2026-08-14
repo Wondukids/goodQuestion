@@ -27,7 +27,7 @@ export default async function ReportPage() {
   const child = await requireSelectedChild();
 
   return (
-    <main className="min-h-screen bg-warm px-12 py-8">
+    <main className="min-h-full bg-warm px-12 py-8">
       <Link
         href="/mypage"
         className="flex w-fit items-center gap-2 text-[18px] font-extrabold text-ink"

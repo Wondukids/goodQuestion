@@ -4,7 +4,7 @@ import { StepIndicator } from "@/components/onboarding/step-indicator";
 
 export default function ChildOnboardingPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-auth-bg px-12 py-8">
+    <main className="relative flex min-h-full items-center justify-center bg-auth-bg px-12 py-8">
       <Logo className="absolute top-[30px] left-12" />
 
       <div className="flex w-[1202px] max-w-full flex-col items-center gap-20">

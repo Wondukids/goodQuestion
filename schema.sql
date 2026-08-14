@@ -205,3 +205,18 @@ create table child_recommendations (
     unique (child_id, rank)
 );
 create index idx_child_recommendations_child on child_recommendations (child_id);
+
+-- 14. child_attendance — 하루 한 줄 출석 -----------------------------------------
+-- story_sessions 에서 유도하지 않고 따로 두는 이유: 이어하기는 세션을 새로 만들지
+-- 않고 last_activity_at 만 갱신해서 started_at 만으로는 그날 방문이 사라지고,
+-- 마이페이지의 "출석하기" 버튼처럼 이야기를 시작하지 않은 출석도 남겨야 한다.
+create table child_attendance (
+    id          uuid primary key default gen_random_uuid(),
+    child_id    uuid not null references children (id) on delete cascade,
+    -- Asia/Seoul 기준 날짜. UTC 로 담으면 밤 9시 이후 활동이 전날로 밀린다.
+    attended_on date not null,
+    created_at  timestamptz not null default now(),
+    -- 하루 한 줄. 버튼을 여러 번 눌러도, 자동 기록과 겹쳐도 중복되지 않는다.
+    unique (child_id, attended_on)
+);
+create index idx_child_attendance_child_on on child_attendance (child_id, attended_on desc);

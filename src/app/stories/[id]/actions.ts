@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { markAttendance } from "@/lib/attendance";
 import { requireSelectedChild } from "@/lib/selected-child";
 import { createClient } from "@/lib/supabase/server";
 
@@ -40,6 +41,13 @@ export async function startStory(slug: string) {
         .from("story_sessions")
         .insert({ child_id: child.id, story_id: story.id });
   if (error) console.error("세션 기록 실패:", error.message);
+
+  /* 이야기를 시작했으면 그날 온 것이다 — 마이페이지에서 따로 누르지 않아도 출석이 찍힌다.
+     이어하기는 세션을 새로 만들지 않아 started_at 이 안 움직이므로 여기서 챙겨야 한다.
+     출석도 재생을 막지 않는다. */
+  await markAttendance(child.id).catch((cause: unknown) =>
+    console.error("출석 기록 실패:", cause),
+  );
 
   redirect(`/stories/${slug}/play`);
 }
