@@ -77,13 +77,13 @@ process.env.GQ_EXPERIMENT_CHILD_ID ||= '00000000-0000-4000-8000-0000000c8171'
 //
 // 담은 `drizzle-kit push` 가 쓰는 것과 **같은 화이트리스트**다. 목록이 둘이면 한쪽만 낡는다.
 
-import { 검사_대상_가드 } from '@/db/push-guard'
-import { loadEnvFile } from '@/lib/config'
+import { 검사_대상_가드 } from '@/llm/db/push-guard'
+import { loadEnvFile } from '@/llm/config'
 
 loadEnvFile()
 검사_대상_가드(process.env.DATABASE_URL)
 
-import { __testing as rateLimit } from '@/lib/llm/rate-limit'
+import { __testing as rateLimit } from '@/llm/provider/rate-limit'
 import { clearFakeSdks } from './support/sdk-gate'
 
 beforeEach(() => {

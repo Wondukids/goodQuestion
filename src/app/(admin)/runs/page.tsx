@@ -8,8 +8,8 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { 고를_수_있는_강도, loadSettings, 모델_목록 } from '@/lib/config'
-import { listRunsView, listStoriesView } from '@/lib/service/view'
+import { 고를_수_있는_강도, loadSettings, 모델_목록 } from '@/llm/config'
+import { listRunsView, listStoriesView } from '@/llm/service/view'
 
 import { startRunAction } from './actions'
 import { 보내기 } from './submit'

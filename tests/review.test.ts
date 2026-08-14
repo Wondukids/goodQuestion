@@ -24,13 +24,13 @@ import { randomUUID } from 'node:crypto'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
-import { characters, corrections, scores, stories, story_scenes } from '@/db/schema'
+import { characters, corrections, scores, stories, story_scenes } from '@/llm/db/schema'
 
 // ⚠️ 팩토리 안에서 바깥 변수를 참조하면 hoisting 에 걸린다 (`admin.test.ts` 와 같은 상자).
 const 상자 = vi.hoisted(() => ({ tx: null as unknown }))
 
-vi.mock('@/lib/repo/db', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/repo/db')>()
+vi.mock('@/llm/repo/db', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/repo/db')>()
   return { ...real, getDb: () => 상자.tx ?? real.getDb() }
 })
 
@@ -41,18 +41,18 @@ vi.mock('next/headers', () => ({
 }))
 
 import { analysisScoreAction, criterionAction, utteranceScoreAction } from '@/app/(admin)/review/actions'
-import { ValueError } from '@/lib/domain/progress'
-import type { Attempt } from '@/lib/llm'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
+import { ValueError } from '@/llm/domain/progress'
+import type { Attempt } from '@/llm/provider'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import {
   currentScores,
   pendingScores,
   reviewTurns,
   staleScores,
   utteranceExportRows,
-} from '@/lib/repo/review'
-import { createRun, insertAttempts } from '@/lib/repo/runs'
-import { createSession, enterScene, insertAnalysis, insertMessage } from '@/lib/repo/sessions'
+} from '@/llm/repo/review'
+import { createRun, insertAttempts } from '@/llm/repo/runs'
+import { createSession, enterScene, insertAnalysis, insertMessage } from '@/llm/repo/sessions'
 import {
   exportGoldenset,
   goldensetItems,
@@ -65,8 +65,8 @@ import {
   판정_항목_이름,
   골든셋_파일_오래됨,
   type ScoreForm,
-} from '@/lib/service/review'
-import { MessageNotFound } from '@/lib/service/step'
+} from '@/llm/service/review'
+import { MessageNotFound } from '@/llm/service/step'
 
 // ── DB 가 있나 ────────────────────────────────────────────────────────────
 
@@ -959,6 +959,6 @@ function 공통(거리: 검수거리) {
 
 /** 대사 내보내기 본문. `exportUtterances()` 는 시각도 같이 주므로 본문만 꺼낸다. */
 async function exportUtterances_본문(tx: Conn): Promise<string> {
-  const { exportUtterances } = await import('@/lib/service/review')
+  const { exportUtterances } = await import('@/llm/service/review')
   return (await exportUtterances(tx)).body
 }

@@ -18,8 +18,8 @@ import path from 'node:path'
 import { sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { characters, seed_revisions, stories, story_scenes } from '@/db/schema'
-import { PROJECT_ROOT, WEB_ROOT } from '@/lib/config'
+import { characters, seed_revisions, stories, story_scenes } from '@/llm/db/schema'
+import { PROJECT_ROOT, WEB_ROOT } from '@/llm/config'
 import {
   ensureSeedFileBaseline,
   listSeedCharacters,
@@ -27,8 +27,8 @@ import {
   seedFileDiffers,
   seedFingerprint,
   시드파일_표시,
-} from '@/lib/repo/characters-admin'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
+} from '@/llm/repo/characters-admin'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import {
   charactersView,
   needsReview,
@@ -38,7 +38,7 @@ import {
   표시_없음,
   캐릭터_칸,
   장면_칸,
-} from '@/lib/service/characters'
+} from '@/llm/service/characters'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. 출처 표가 시드 파일 머리말과 어긋나지 않는다 (DB 없이 돈다)

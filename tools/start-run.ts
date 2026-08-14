@@ -28,8 +28,8 @@
  *   ⚠️ ①③ 은 **진짜 LLM 을 부른다.** 키가 꽂혀 있으면 돈이 나간다.
  */
 
-import { closeDb, getDb } from '@/lib/repo/db'
-import { advanceRun, startRun } from '@/lib/service/run'
+import { closeDb, getDb } from '@/llm/repo/db'
+import { advanceRun, startRun } from '@/llm/service/run'
 
 interface 옵션 {
   story_code: string

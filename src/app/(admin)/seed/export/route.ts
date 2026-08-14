@@ -11,7 +11,7 @@
 // ⚠️ 라우트 핸들러는 기본으로 **캐시되지 않는다** (Next 16 `15-route-handlers.md`).
 //    작업값은 매번 다시 읽혀야 하므로 그 기본값이 우리가 원하는 것이다.
 
-import { seedExportSql } from '@/lib/service/seed'
+import { seedExportSql } from '@/llm/service/seed'
 
 export async function GET(): Promise<Response> {
   const 본문 = await seedExportSql()

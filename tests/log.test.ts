@@ -17,7 +17,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Decision, SessionState } from '@/lib/domain/decide'
+import type { Decision, SessionState } from '@/llm/domain/decide'
 import {
   analysisLine,
   decisionLine,
@@ -29,7 +29,7 @@ import {
   stateLine,
   type AnalysisForLog,
   type SceneForLog,
-} from '@/lib/log'
+} from '@/llm/log'
 
 function 분석(바꿀것: Partial<AnalysisForLog> = {}): AnalysisForLog {
   return {

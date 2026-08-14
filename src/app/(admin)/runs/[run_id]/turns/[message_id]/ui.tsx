@@ -10,7 +10,7 @@
 //    규격으로 검사하므로 화면 조각은 라우트가 **아닌** 이 파일에 둔다.
 //    (검사가 이 조각을 그대로 렌더해 보는 자리이기도 하다 — `tests/cost.test.ts`.)
 
-import type { AttemptView, TurnAttemptsView } from '@/lib/service/view'
+import type { AttemptView, TurnAttemptsView } from '@/llm/service/view'
 
 /**
  * 금액 한 칸. **모르면 「모름」이고 0 을 찍지 않는다.**

@@ -6,8 +6,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { loadSettings, 고를_수_있는_강도, type Settings } from '@/lib/config'
-import { buildChain, complete, geminiRequest, LLMError, _생각수준 } from '@/lib/llm'
+import { loadSettings, 고를_수_있는_강도, type Settings } from '@/llm/config'
+import { buildChain, complete, geminiRequest, LLMError, _생각수준 } from '@/llm/provider'
 
 import { installFakeSdk } from './support/sdk-gate'
 

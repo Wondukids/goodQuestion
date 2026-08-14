@@ -11,7 +11,7 @@
 // ⚠️ 주소가 파이썬(`/export/goldenset`)과 갈렸다 — 검수 폴더 아래로 모았다.
 // ⚠️ 파일을 **쓰지 않는다.** 정본은 `goldenset/*.jsonl` 이고 사람이 옮긴다 (경계 6).
 
-import { exportGoldenset } from '@/lib/service/review'
+import { exportGoldenset } from '@/llm/service/review'
 
 export async function GET(): Promise<Response> {
   const { body, exported_at } = await exportGoldenset()

@@ -6,7 +6,7 @@
 // ⚠️ 행을 **그대로** 싣는다 — 칸 이름이 DB 컬럼 이름이다 (`CLAUDE.md` 로그 절과 같은 잣대).
 // ⚠️ 주소가 파이썬(`/export/utterances`)과 갈렸다 — 검수 폴더 아래로 모았다.
 
-import { exportUtterances } from '@/lib/service/review'
+import { exportUtterances } from '@/llm/service/review'
 
 export async function GET(): Promise<Response> {
   const { body, exported_at } = await exportUtterances()

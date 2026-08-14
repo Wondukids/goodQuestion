@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { 검사_대상_가드 } from '@/db/push-guard'
+import { 검사_대상_가드 } from '@/llm/db/push-guard'
 
 const 로컬 = 'postgresql://postgres:pw@localhost:5433/goodquestion_ts'
 

@@ -1,7 +1,7 @@
 import { defineConfig } from 'drizzle-kit'
 
-import { 우리_스키마들, 우리_표_이름들, 푸시_가드 } from './src/db/push-guard'
-import { loadEnvFile } from './src/lib/config'
+import { 우리_스키마들, 우리_표_이름들, 푸시_가드 } from './src/llm/db/push-guard'
+import { loadEnvFile } from './src/llm/config'
 
 // ⚠️ `config({ path: '.env.local' })` 를 직접 부르지 않는다 — 그건 **cwd 기준**이라
 //    한 곳만 봤다. `loadEnvFile()` 은 정해진 자리들을 순서대로 보고 `override: false` 라
@@ -13,8 +13,8 @@ loadEnvFile()
 푸시_가드(process.argv, process.env.DATABASE_URL)
 
 export default defineConfig({
-  schema: './src/db/schema.ts',
-  out: './src/db/migrations',
+  schema: './src/llm/db/schema.ts',
+  out: './src/llm/db/migrations',
   dialect: 'postgresql',
   dbCredentials: { url: process.env.DATABASE_URL! },
   // 둘째 담 — 명령줄과 상관없이 **우리가 선언한 18표 밖을 아예 안 본다.**

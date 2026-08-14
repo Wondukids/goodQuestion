@@ -18,8 +18,8 @@
 
 import { sql } from 'drizzle-orm'
 
-import { loadSettings } from '@/lib/config'
-import { closeDb, getDb } from '@/lib/repo/db'
+import { loadSettings } from '@/llm/config'
+import { closeDb, getDb } from '@/llm/repo/db'
 
 /** [갈래, 보여줄 이름, 세는 SQL] */
 const 볼_것: readonly [string, string, string][] = [

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { __testing as rateLimit, waitForRateLimit } from '@/lib/llm/rate-limit'
+import { __testing as rateLimit, waitForRateLimit } from '@/llm/provider/rate-limit'
 
 import { activeFakes, installFakeSdk } from './support/sdk-gate'
 

@@ -24,13 +24,13 @@ import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { characters, stories, story_scenes } from '@/db/schema'
+import { characters, stories, story_scenes } from '@/llm/db/schema'
 
 // ⚠️ 팩토리 안에서 바깥 변수를 참조하면 hoisting 에 걸린다. `vi.hoisted` 로 상자를 먼저 만든다.
 const 상자 = vi.hoisted(() => ({ tx: null as unknown }))
 
-vi.mock('@/lib/repo/db', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/repo/db')>()
+vi.mock('@/llm/repo/db', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/repo/db')>()
   return {
     ...real,
     // 검사가 트랜잭션을 꽂아 두면 그것을, 아니면 진짜 연결을 준다.
@@ -42,10 +42,10 @@ import { POST as 분석_라우트 } from '@/app/api/v1/analysis/route'
 import { POST as 판단_라우트 } from '@/app/api/v1/decision/route'
 import { POST as 대사_라우트 } from '@/app/api/v1/dialogue/route'
 import { GET as 장면_라우트 } from '@/app/api/v1/stories/[story_code]/scenes/[scene_code]/route'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { advanceRun, startRun } from '@/lib/service/run'
-import { startScene } from '@/lib/service/story'
-import { analysisStep, decisionStep, dialogueStep } from '@/lib/service/step'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { advanceRun, startRun } from '@/llm/service/run'
+import { startScene } from '@/llm/service/story'
+import { analysisStep, decisionStep, dialogueStep } from '@/llm/service/step'
 
 import { installFakeSdk } from './support/sdk-gate'
 
@@ -523,7 +523,7 @@ function id를_뺀다(값: Record<string, unknown>): Record<string, unknown> {
 
 /** `startScene()` 에 넘길 장면 한 행. 콘텐츠 조회는 서비스가 이미 갖고 있다. */
 async function 장면_행(tx: Conn, 씨: 씨앗, code: string) {
-  const { scenesOfStory } = await import('@/lib/repo/content')
+  const { scenesOfStory } = await import('@/llm/repo/content')
   const 전부 = await scenesOfStory(tx, 씨.story_code)
   const 하나 = 전부.find((행) => 행.code === code)
   if (하나 === undefined) throw new Error(`검사 콘텐츠에 ${code} 가 없다`)

@@ -5,8 +5,8 @@
 // ⚠️ 라우트 파일(`page.tsx`)에서 이런 것을 export 하지 않는다 — Next 가 그 파일의 export 를
 //    규격으로 검사하므로, 화면 조각은 라우트가 **아닌** 파일에 둔다.
 
-import { elementNames } from '@/lib/elements'
-import type { ResultView } from '@/lib/service/goldenset'
+import { elementNames } from '@/llm/elements'
+import type { ResultView } from '@/llm/service/goldenset'
 
 // ⭐ `한칸`·`오류띠`·`라벨` 은 여기에도 글자까지 같은 것이 있었다. 화면 전부가 쓰므로
 //    `app/(admin)/ui.tsx` 한 곳으로 모으고 여기서는 다시 내보내기만 한다 (2026-08-13).

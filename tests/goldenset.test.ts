@@ -15,16 +15,16 @@ import { afterAll, describe, expect, it, vi } from 'vitest'
 // ⚠️ 팩토리 안에서 바깥 변수를 참조하면 hoisting 에 걸린다 (`admin.test.ts` 와 같은 상자).
 const 상자 = vi.hoisted(() => ({ tx: null as unknown }))
 
-vi.mock('@/lib/repo/db', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/repo/db')>()
+vi.mock('@/llm/repo/db', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/repo/db')>()
   return { ...real, getDb: () => 상자.tx ?? real.getDb() }
 })
 
-import { loadSettings } from '@/lib/config'
-import { ValueError } from '@/lib/domain/progress'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { insertGoldensetResult } from '@/lib/repo/goldenset'
-import { reviewedOnly, type GoldenItem, type GoldenLabel } from '@/lib/scoring'
+import { loadSettings } from '@/llm/config'
+import { ValueError } from '@/llm/domain/progress'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { insertGoldensetResult } from '@/llm/repo/goldenset'
+import { reviewedOnly, type GoldenItem, type GoldenLabel } from '@/llm/scoring'
 import {
   analyzeGoldenItem,
   fileDigest,
@@ -40,7 +40,7 @@ import {
   summarize,
   제미나이_키_확인,
   LabelParseError,
-} from '@/lib/service/goldenset'
+} from '@/llm/service/goldenset'
 
 import { runGoldensetAction, runGoldensetItemAction } from '@/app/(admin)/goldenset/actions'
 

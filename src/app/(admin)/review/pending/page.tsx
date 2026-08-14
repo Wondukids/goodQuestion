@@ -11,7 +11,7 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { pendingView, 교정_고를_값, 출처_이름 } from '@/lib/service/review'
+import { pendingView, 교정_고를_값, 출처_이름 } from '@/llm/service/review'
 
 import { 라벨, 오류띠, 한칸 } from '../../runs/ui'
 import { criterionAction } from '../actions'

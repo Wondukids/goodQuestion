@@ -19,10 +19,10 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { 제미나이_키_번호들 } from '@/lib/config'
-import { elementNames } from '@/lib/elements'
-import { goldensetScreen, type GoldensetScreen } from '@/lib/service/goldenset'
-import { trustworthy } from '@/lib/scoring'
+import { 제미나이_키_번호들 } from '@/llm/config'
+import { elementNames } from '@/llm/elements'
+import { goldensetScreen, type GoldensetScreen } from '@/llm/service/goldenset'
+import { trustworthy } from '@/llm/scoring'
 
 import { runGoldensetAction, runGoldensetItemAction } from './actions'
 import { 결과칸, 경고띠, 라벨, 소수셋, 오류띠, 요소들, 한칸 } from './ui'

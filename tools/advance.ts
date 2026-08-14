@@ -7,8 +7,8 @@
 //
 // ⛔ LLM 을 부르지 않는다. 전개 지문과 고정 첫 대사는 DB 텍스트다.
 
-import { getDb, closeDb } from '@/lib/repo/db'
-import { advanceRun } from '@/lib/service/run'
+import { getDb, closeDb } from '@/llm/repo/db'
+import { advanceRun } from '@/llm/service/run'
 
 async function main(): Promise<void> {
   const run_id = process.argv[2]

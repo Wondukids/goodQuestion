@@ -21,9 +21,9 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { saveSeedCell, undoSeedCell, 경고_칸자리 } from '@/lib/service/seed'
+import { saveSeedCell, undoSeedCell, 경고_칸자리 } from '@/llm/service/seed'
 
-import { 옮긴다 } from '../../api/_lib/envelope'
+import { 옮긴다 } from '@/llm/controller/envelope'
 
 /** 실패를 사람이 읽을 한 줄로. 라우트가 쓰는 표를 그대로 쓴다. */
 function 오류_문구(오류: unknown): string {

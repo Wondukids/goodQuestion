@@ -24,7 +24,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { loadSettings } from '@/lib/config'
+import { loadSettings } from '@/llm/config'
 
 /** 이 검사가 손대는 이름 전부. 갈래마다 원래 값으로 되돌린다. */
 const 손대는_이름들 = [

@@ -27,7 +27,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { characters, llm_calls, messages, runs, stories, story_scenes, story_sessions } from '@/db/schema'
+import { characters, llm_calls, messages, runs, stories, story_scenes, story_sessions } from '@/llm/db/schema'
 import {
   단가표_읽기,
   단가표_해석,
@@ -36,9 +36,9 @@ import {
   적용_단가,
   빈_단가표,
   type 단가표,
-} from '@/lib/config'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { turnAttempts, type AttemptView, type TurnAttemptsView } from '@/lib/service/view'
+} from '@/llm/config'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { turnAttempts, type AttemptView, type TurnAttemptsView } from '@/llm/service/view'
 
 import { 금액, 시도표 } from '@/app/(admin)/runs/[run_id]/turns/[message_id]/ui'
 

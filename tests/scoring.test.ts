@@ -23,7 +23,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { PROJECT_ROOT } from '@/lib/config'
+import { PROJECT_ROOT } from '@/llm/config'
 import {
   CHILD_INTENT_값,
   ELEMENT_값,
@@ -38,8 +38,8 @@ import {
   trustworthy,
   type GoldenItem,
   type ScorePair,
-} from '@/lib/scoring'
-import { 사고_요소, 유효성_값, 의도_값 } from '@/lib/engine/analyze'
+} from '@/llm/scoring'
+import { 사고_요소, 유효성_값, 의도_값 } from '@/llm/engine/analyze'
 
 // ── 황금표 ────────────────────────────────────────────────────────────────
 

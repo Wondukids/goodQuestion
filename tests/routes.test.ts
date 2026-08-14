@@ -18,12 +18,12 @@ import path from 'node:path'
 
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import { WEB_ROOT } from '@/lib/config'
+import { WEB_ROOT } from '@/llm/config'
 
 // 서비스 함수 넷만 가짜로 바꾼다. **예외 클래스는 진짜를 그대로 흘린다** —
 // 봉투가 그것을 `instanceof` 로 알아보기 때문이다 (`app/api/_lib/envelope.ts` 머리말).
-vi.mock('@/lib/service/step', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/service/step')>()
+vi.mock('@/llm/service/step', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/service/step')>()
   return {
     ...real,
     analysisStep: vi.fn(),
@@ -51,7 +51,7 @@ import {
   TurnInProgress,
   TurnNotAllowed,
   ValueError,
-} from '@/lib/service/step'
+} from '@/llm/service/step'
 
 const 가짜 = {
   분석: analysisStep as unknown as Mock,
@@ -429,12 +429,12 @@ describe('라우트 파일은 service 만 부른다', () => {
       const 본문 = readFileSync(path.join(WEB_ROOT, 상대경로), 'utf8')
       const 가져온것 = [...본문.matchAll(/from\s+'([^']+)'/g)].map((하나) => 하나[1])
 
-      expect(가져온것).not.toContain('@/lib/repo/db')
+      expect(가져온것).not.toContain('@/llm/repo/db')
       for (const 하나 of 가져온것) {
-        expect(하나.startsWith('@/lib/repo')).toBe(false)
-        expect(하나.startsWith('@/lib/llm')).toBe(false)
-        expect(하나.startsWith('@/lib/domain')).toBe(false)
-        expect(하나.startsWith('@/lib/engine')).toBe(false)
+        expect(하나.startsWith('@/llm/repo')).toBe(false)
+        expect(하나.startsWith('@/llm/provider')).toBe(false)
+        expect(하나.startsWith('@/llm/domain')).toBe(false)
+        expect(하나.startsWith('@/llm/engine')).toBe(false)
         expect(하나.startsWith('@/db')).toBe(false)
       }
       // 판정을 부르는 흔적이 없다. `decide()` 는 서비스 아래 하나뿐이다.

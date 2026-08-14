@@ -29,7 +29,7 @@ import { randomUUID } from 'node:crypto'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { characters, messages, stories, story_scenes, story_sessions } from '@/db/schema'
+import { characters, messages, stories, story_scenes, story_sessions } from '@/llm/db/schema'
 
 // ── 장면 행을 읽은 **직후**에 끼어드는 자리 ────────────────────────────────
 //
@@ -39,8 +39,8 @@ import { characters, messages, stories, story_scenes, story_sessions } from '@/d
 // ⚠️ 팩토리 안에서 바깥 변수를 참조하면 hoisting 에 걸린다 (`admin.test.ts` 와 같은 상자).
 const 상자 = vi.hoisted(() => ({ 장면_읽은_직후: null as null | (() => Promise<void>) }))
 
-vi.mock('@/lib/repo/content', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/repo/content')>()
+vi.mock('@/llm/repo/content', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/repo/content')>()
   return {
     ...real,
     scenesOfStory: async (...인자: Parameters<typeof real.scenesOfStory>) => {
@@ -53,15 +53,15 @@ vi.mock('@/lib/repo/content', async (importOriginal) => {
   }
 })
 
-import { loadSettings } from '@/lib/config'
-import { read, sendableBody } from '@/lib/prompts'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { readAttempts } from '@/lib/repo/runs'
-import { latestSeedRevision } from '@/lib/repo/seed'
-import { insertMessage, readSession, sceneMessages } from '@/lib/repo/sessions'
-import { readRunTurnConditions, readTurnCondition } from '@/lib/repo/turn-conditions'
-import { saveExperimentPromptStep } from '@/lib/service/prompt-lab'
-import { analysisStep, decisionStep, dialogueStep } from '@/lib/service/step'
+import { loadSettings } from '@/llm/config'
+import { read, sendableBody } from '@/llm/prompts'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { readAttempts } from '@/llm/repo/runs'
+import { latestSeedRevision } from '@/llm/repo/seed'
+import { insertMessage, readSession, sceneMessages } from '@/llm/repo/sessions'
+import { readRunTurnConditions, readTurnCondition } from '@/llm/repo/turn-conditions'
+import { saveExperimentPromptStep } from '@/llm/service/prompt-lab'
+import { analysisStep, decisionStep, dialogueStep } from '@/llm/service/step'
 import {
   advanceRun,
   inProgress,
@@ -76,10 +76,10 @@ import {
   TurnInProgress,
   TurnNotAllowed,
   기본_프롬프트_버전,
-} from '@/lib/service/run'
-import { saveSeedCell } from '@/lib/service/seed'
-import { runStory, startScene } from '@/lib/service/story'
-import { isUsableUtterance, runDialogueStage, TurnFailed } from '@/lib/service/turn'
+} from '@/llm/service/run'
+import { saveSeedCell } from '@/llm/service/seed'
+import { runStory, startScene } from '@/llm/service/story'
+import { isUsableUtterance, runDialogueStage, TurnFailed } from '@/llm/service/turn'
 
 import { installFakeSdk } from './support/sdk-gate'
 

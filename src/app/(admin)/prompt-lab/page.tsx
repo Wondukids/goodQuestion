@@ -11,7 +11,7 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { promptLabView, type PromptItem } from '@/lib/service/prompt-lab'
+import { promptLabView, type PromptItem } from '@/llm/service/prompt-lab'
 
 import { 한칸, 오류띠 } from '../runs/ui'
 import { saveExperimentPromptAction } from './actions'

@@ -5,9 +5,9 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { loadSettings, type Settings } from '@/lib/config'
-import { characterTurn, generateLine, type CharacterDirection } from '@/lib/engine/character'
-import type { CharacterScene } from '@/lib/engine/material'
+import { loadSettings, type Settings } from '@/llm/config'
+import { characterTurn, generateLine, type CharacterDirection } from '@/llm/engine/character'
+import type { CharacterScene } from '@/llm/engine/material'
 
 import { installFakeSdk } from './support/sdk-gate'
 

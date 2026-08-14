@@ -21,7 +21,7 @@ import {
   type Decision,
   type SceneConstants,
   type SessionState,
-} from '@/lib/domain/decide'
+} from '@/llm/domain/decide'
 
 interface 사례 {
   id: number

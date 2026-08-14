@@ -11,7 +11,7 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { runDetail, type RunDetail } from '@/lib/service/view'
+import { runDetail, type RunDetail } from '@/llm/service/view'
 
 import { 로그세줄, 시도링크, 칸들, 표기 } from '../../ui'
 

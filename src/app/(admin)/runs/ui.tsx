@@ -10,7 +10,7 @@
 
 import Link from 'next/link'
 
-import type { TurnRow } from '@/lib/service/view'
+import type { TurnRow } from '@/llm/service/view'
 
 import { 라벨 } from '../ui'
 

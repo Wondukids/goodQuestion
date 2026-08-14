@@ -10,8 +10,8 @@
 
 import { connection } from 'next/server'
 
-import { elementName } from '@/lib/elements'
-import { seedWorkbench, 출처_이름, 칸_id, 칸_이름, 칸자리_이름 } from '@/lib/service/seed'
+import { elementName } from '@/llm/elements'
+import { seedWorkbench, 출처_이름, 칸_id, 칸_이름, 칸자리_이름 } from '@/llm/service/seed'
 
 import { 오류띠, 한칸 } from '../runs/ui'
 import { saveSeedCellAction, undoSeedRevisionAction } from './actions'

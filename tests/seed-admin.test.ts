@@ -17,9 +17,9 @@ import { randomUUID } from 'node:crypto'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { characters, seed_revisions, stories, story_scenes } from '@/db/schema'
-import { ValueError } from '@/lib/domain/progress'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
+import { characters, seed_revisions, stories, story_scenes } from '@/llm/db/schema'
+import { ValueError } from '@/llm/domain/progress'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import {
   latestSeedRevision,
   listSeed,
@@ -29,7 +29,7 @@ import {
   대화_장면_입장_경고,
   시드파일_표이름,
   같은_값,
-} from '@/lib/repo/seed'
+} from '@/llm/repo/seed'
 import {
   CHECK_위반,
   DB가_거절한_이유,
@@ -49,7 +49,7 @@ import {
   칸_id,
   칸_이름,
   칸자리_이름,
-} from '@/lib/service/seed'
+} from '@/llm/service/seed'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. 글자만 다루는 것

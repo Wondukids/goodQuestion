@@ -32,8 +32,8 @@ import {
   파괴적_명령인가,
   안전한_대상인가,
   푸시_가드,
-} from '@/db/push-guard'
-import * as 스키마 from '@/db/schema'
+} from '@/llm/db/push-guard'
+import * as 스키마 from '@/llm/db/schema'
 
 /** 우리 로컬 개발 DB. `.env.local` 이 가리키는 곳과 같은 모양이다. */
 const 로컬 = 'postgresql://postgres:pw@localhost:5433/goodquestion_ts'

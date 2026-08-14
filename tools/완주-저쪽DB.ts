@@ -17,8 +17,8 @@
 
 import { sql } from 'drizzle-orm'
 
-import { closeDb, getDb } from '@/lib/repo/db'
-import { advanceRun, startRun, submitTurn } from '@/lib/service/run'
+import { closeDb, getDb } from '@/llm/repo/db'
+import { advanceRun, startRun, submitTurn } from '@/llm/service/run'
 
 /** `docs/설계/회차_대본.md` 의 대본 그대로. 장면 번호 → 아이 발화. */
 const 대본: Record<number, readonly string[]> = {

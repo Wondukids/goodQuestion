@@ -15,7 +15,7 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { turnAttempts } from '@/lib/service/view'
+import { turnAttempts } from '@/llm/service/view'
 
 import { 칸들 } from '../../../ui'
 import { 시도표 } from './ui'

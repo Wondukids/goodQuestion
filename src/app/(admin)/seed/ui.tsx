@@ -5,7 +5,7 @@
 //    규격으로 검사하므로, 화면 조각은 라우트가 **아닌** 파일에 둔다
 //    (`app/(admin)/runs/ui.tsx` 와 같은 규칙이다).
 
-import { 고를_수_있는_출처, 출처_이름 } from '@/lib/service/seed'
+import { 고를_수_있는_출처, 출처_이름 } from '@/llm/service/seed'
 
 /** 폼이 어느 칸을 고치는지. 파이썬에서는 이것이 주소(`/seed/{table}/{row_id}/{column}`)였다. */
 export function 숨은칸들({

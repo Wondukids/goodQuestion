@@ -12,14 +12,14 @@
 
 import { connection } from 'next/server'
 
-import { elementName } from '@/lib/elements'
+import { elementName } from '@/llm/elements'
 import {
   charactersView,
   출처_이름,
   type CharactersView,
   type FieldView,
   type Origin,
-} from '@/lib/service/characters'
+} from '@/llm/service/characters'
 
 export const metadata = { title: '캐릭터 보기 — 굿퀘스천 관리자' }
 

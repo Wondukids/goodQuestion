@@ -24,8 +24,8 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { elementName } from '@/lib/elements'
-import { runDetail, type RunDetail } from '@/lib/service/view'
+import { elementName } from '@/llm/elements'
+import { runDetail, type RunDetail } from '@/llm/service/view'
 
 import {
   advanceAction,

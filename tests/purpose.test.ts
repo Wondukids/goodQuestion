@@ -13,9 +13,9 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { loadSettings, type Settings } from '@/lib/config'
-import { analyze } from '@/lib/engine/analyze'
-import { generateLine } from '@/lib/engine/character'
+import { loadSettings, type Settings } from '@/llm/config'
+import { analyze } from '@/llm/engine/analyze'
+import { generateLine } from '@/llm/engine/character'
 
 import { installFakeSdk } from './support/sdk-gate'
 

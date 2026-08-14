@@ -23,12 +23,12 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
-import { 고를_수_있는_강도, loadSettings } from '@/lib/config'
-import { advanceStep, resumeTurn, startRunStep, submitTurn } from '@/lib/service/run'
-import { analysisStep, decisionStep, dialogueStep, ValueError } from '@/lib/service/step'
-import { listScenesView } from '@/lib/service/view'
+import { 고를_수_있는_강도, loadSettings } from '@/llm/config'
+import { advanceStep, resumeTurn, startRunStep, submitTurn } from '@/llm/service/run'
+import { analysisStep, decisionStep, dialogueStep, ValueError } from '@/llm/service/step'
+import { listScenesView } from '@/llm/service/view'
 
-import { 옮긴다 } from '../../api/_lib/envelope'
+import { 옮긴다 } from '@/llm/controller/envelope'
 
 /** 실패를 사람이 읽을 한 줄로. 라우트가 쓰는 표를 그대로 쓴다. */
 function 오류_문구(오류: unknown): string {

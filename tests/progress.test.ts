@@ -25,7 +25,7 @@ import {
   type SceneRow,
   type SessionRow,
   type Step,
-} from '@/lib/domain/progress'
+} from '@/llm/domain/progress'
 
 /** 답이거나(`Step`) 예외거나(`오류`·`말`). 파이썬이 두 갈래로 터지는 것까지 잰다. */
 type 기대한_할일 = Step | { 오류: string; 말: string }

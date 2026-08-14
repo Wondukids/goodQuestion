@@ -14,7 +14,7 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
 
-import { elementName } from '@/lib/elements'
+import { elementName } from '@/llm/elements'
 import {
   reviewView,
   type ReviewRecordView,
@@ -24,7 +24,7 @@ import {
   분석_체크리스트,
   교정_고를_값,
   출처_이름,
-} from '@/lib/service/review'
+} from '@/llm/service/review'
 
 import { 라벨, 오류띠, 한칸 } from '../../../runs/ui'
 import { analysisScoreAction, criterionAction, utteranceScoreAction } from '../../actions'

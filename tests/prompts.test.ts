@@ -23,7 +23,7 @@ import {
   read,
   render,
   sendableBody,
-} from '@/lib/prompts'
+} from '@/llm/prompts'
 
 // 재료 틀을 가진 셋. 열쇠 이름은 `runner.py` 가 넘기던 것 그대로다.
 const 틀을_가진_것: ReadonlyArray<[이름: string, 자리표시자: string]> = [

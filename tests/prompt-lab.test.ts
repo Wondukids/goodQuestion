@@ -31,29 +31,29 @@ import path from 'node:path'
 import { sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
-import { characters, experiment_prompts, stories, story_scenes } from '@/db/schema'
+import { characters, experiment_prompts, stories, story_scenes } from '@/llm/db/schema'
 
 // ⚠️ 팩토리 안에서 바깥 변수를 참조하면 hoisting 에 걸린다 (`tests/admin.test.ts` 와 같은 상자).
 const 상자 = vi.hoisted(() => ({ tx: null as unknown }))
 
-vi.mock('@/lib/repo/db', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/repo/db')>()
+vi.mock('@/llm/repo/db', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/repo/db')>()
   return { ...real, getDb: () => 상자.tx ?? real.getDb() }
 })
 
 import { saveExperimentPromptAction } from '@/app/(admin)/prompt-lab/actions'
-import { WEB_ROOT } from '@/lib/config'
-import { promptsDir } from '@/lib/prompts'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { readExperimentPrompts, saveExperimentPrompt } from '@/lib/repo/prompt-lab'
-import { createRun, readRun } from '@/lib/repo/runs'
-import { createSession } from '@/lib/repo/sessions'
+import { WEB_ROOT } from '@/llm/config'
+import { promptsDir } from '@/llm/prompts'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { readExperimentPrompts, saveExperimentPrompt } from '@/llm/repo/prompt-lab'
+import { createRun, readRun } from '@/llm/repo/runs'
+import { createSession } from '@/llm/repo/sessions'
 import {
   experimentPrompts,
   listPromptNames,
   promptLabView,
   saveExperimentPromptStep,
-} from '@/lib/service/prompt-lab'
+} from '@/llm/service/prompt-lab'
 
 // 실험용 본문. 「받는 것」 블록을 일부러 **한 칸만** 두었다 —
 // 재료 틀까지 준 정본에서 나온 것인지 이걸로 구분한다.

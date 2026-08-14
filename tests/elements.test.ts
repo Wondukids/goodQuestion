@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import { elementMeaning, elementName, elementNames, 요소 } from '@/lib/elements'
+import { elementMeaning, elementName, elementNames, 요소 } from '@/llm/elements'
 
 /** 파이썬 `요소.py` 의 표 그대로. 여기서 다시 적는 것이 이식 대조의 요점이다. */
 const 기대한_이름 = {

@@ -15,7 +15,7 @@ import {
   GOAL_ENV,
   type AnalysisScene,
   type CharacterScene,
-} from '@/lib/engine/material'
+} from '@/llm/engine/material'
 
 const 분석_장면: AnalysisScene = {
   scene_description: '며느리가 밥상 앞에서 방귀를 참고 있다',

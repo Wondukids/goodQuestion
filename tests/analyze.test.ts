@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { loadSettings, type Settings } from '@/lib/config'
+import { loadSettings, type Settings } from '@/llm/config'
 import {
   AnalysisPayloadSchema,
   AnalysisResponseError,
@@ -13,7 +13,7 @@ import {
   parseResponse,
   postProcess,
   분석_스키마,
-} from '@/lib/engine/analyze'
+} from '@/llm/engine/analyze'
 
 import { installFakeSdk } from './support/sdk-gate'
 

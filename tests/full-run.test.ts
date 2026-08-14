@@ -41,13 +41,13 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { llm_calls, messages } from '@/db/schema'
-import { loadSettings } from '@/lib/config'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { readRun } from '@/lib/repo/runs'
-import { readSession, sceneMessages } from '@/lib/repo/sessions'
-import { readRunTurnConditions } from '@/lib/repo/turn-conditions'
-import { advanceStep, runState, startRunStep, submitTurn } from '@/lib/service/run'
+import { llm_calls, messages } from '@/llm/db/schema'
+import { loadSettings } from '@/llm/config'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { readRun } from '@/llm/repo/runs'
+import { readSession, sceneMessages } from '@/llm/repo/sessions'
+import { readRunTurnConditions } from '@/llm/repo/turn-conditions'
+import { advanceStep, runState, startRunStep, submitTurn } from '@/llm/service/run'
 
 import { installFakeSdk } from './support/sdk-gate'
 

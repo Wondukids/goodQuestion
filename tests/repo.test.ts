@@ -25,10 +25,10 @@ import {
   story_scenes,
   story_sessions,
   utterance_analyses,
-} from '@/db/schema'
-import type { Decision } from '@/lib/domain/decide'
-import { LookupError } from '@/lib/domain/progress'
-import type { Attempt } from '@/lib/llm'
+} from '@/llm/db/schema'
+import type { Decision } from '@/llm/domain/decide'
+import { LookupError } from '@/llm/domain/progress'
+import type { Attempt } from '@/llm/provider'
 import {
   SceneNotFound,
   findScene,
@@ -38,8 +38,8 @@ import {
   requireDialogueScene,
   scenesOfStory,
   scenesOfStoryId,
-} from '@/lib/repo/content'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
+} from '@/llm/repo/content'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import {
   attemptTotals,
   createRun,
@@ -50,13 +50,13 @@ import {
   readAttempts,
   readRun,
   readRunBySession,
-} from '@/lib/repo/runs'
+} from '@/llm/repo/runs'
 import {
   readRunTurnConditions,
   readTurnCondition,
   upsertTurnCondition,
   type TurnConditionInput,
-} from '@/lib/repo/turn-conditions'
+} from '@/llm/repo/turn-conditions'
 import {
   completeSession,
   createSession,
@@ -71,7 +71,7 @@ import {
   sceneMessages,
   updateSession,
   분석_규격,
-} from '@/lib/repo/sessions'
+} from '@/llm/repo/sessions'
 
 // ── DB 가 있나 ────────────────────────────────────────────────────────────
 

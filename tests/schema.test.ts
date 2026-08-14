@@ -60,8 +60,8 @@ import { PgDialect, PgTable, getTableConfig } from 'drizzle-orm/pg-core'
 import type { PgColumn } from 'drizzle-orm/pg-core'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import * as 스키마 from '@/db/schema'
-import { closeDb, getDb } from '@/lib/repo/db'
+import * as 스키마 from '@/llm/db/schema'
+import { closeDb, getDb } from '@/llm/repo/db'
 
 // ── 선언에서 표를 모은다 ──────────────────────────────────────────────────
 //

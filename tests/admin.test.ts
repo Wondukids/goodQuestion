@@ -39,23 +39,23 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { characters, runs, stories, story_scenes, story_sessions } from '@/db/schema'
+import { characters, runs, stories, story_scenes, story_sessions } from '@/llm/db/schema'
 
 // ⚠️ 팩토리 안에서 바깥 변수를 참조하면 hoisting 에 걸린다 (`routes.db.test.ts` 와 같은 상자).
 const 상자 = vi.hoisted(() => ({ tx: null as unknown }))
 
-vi.mock('@/lib/repo/db', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@/lib/repo/db')>()
+vi.mock('@/llm/repo/db', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/llm/repo/db')>()
   return { ...real, getDb: () => 상자.tx ?? real.getDb() }
 })
 
-import { 옮긴다 } from '@/app/api/_lib/envelope'
-import { loadSettings, WEB_ROOT, 고를_수_있는_강도 } from '@/lib/config'
-import { read, sendableBody } from '@/lib/prompts'
-import { closeDb, getDb, type Conn } from '@/lib/repo/db'
-import { readAttempts, readRun } from '@/lib/repo/runs'
-import { insertMessage, sessionTranscript } from '@/lib/repo/sessions'
-import { readRunTurnConditions } from '@/lib/repo/turn-conditions'
+import { 옮긴다 } from '@/llm/controller/envelope'
+import { loadSettings, WEB_ROOT, 고를_수_있는_강도 } from '@/llm/config'
+import { read, sendableBody } from '@/llm/prompts'
+import { closeDb, getDb, type Conn } from '@/llm/repo/db'
+import { readAttempts, readRun } from '@/llm/repo/runs'
+import { insertMessage, sessionTranscript } from '@/llm/repo/sessions'
+import { readRunTurnConditions } from '@/llm/repo/turn-conditions'
 import {
   advanceStep,
   inProgress,
@@ -63,10 +63,10 @@ import {
   runState,
   startRunStep,
   TurnInProgress,
-} from '@/lib/service/run'
-import { saveExperimentPromptStep } from '@/lib/service/prompt-lab'
-import { analysisStep, decisionStep, dialogueStep, sceneView } from '@/lib/service/step'
-import { runStory } from '@/lib/service/story'
+} from '@/llm/service/run'
+import { saveExperimentPromptStep } from '@/llm/service/prompt-lab'
+import { analysisStep, decisionStep, dialogueStep, sceneView } from '@/llm/service/step'
+import { runStory } from '@/llm/service/story'
 import {
   fallbackTurns,
   runDetail,
@@ -74,7 +74,7 @@ import {
   turnLogLines,
   type ScenePage,
   type TurnRow,
-} from '@/lib/service/view'
+} from '@/llm/service/view'
 
 import {
   advanceAction,
@@ -1526,8 +1526,8 @@ describe('화면 파일은 service 만 부른다', () => {
       const 가져온것 = [...본문.matchAll(/from\s+'([^']+)'/g)].map((하나) => 하나[1])
 
       for (const 하나 of 가져온것) {
-        expect(하나.startsWith('@/lib/repo')).toBe(false)
-        expect(하나.startsWith('@/lib/llm')).toBe(false)
+        expect(하나.startsWith('@/llm/repo')).toBe(false)
+        expect(하나.startsWith('@/llm/provider')).toBe(false)
         expect(하나.startsWith('@/db')).toBe(false)
       }
     })
