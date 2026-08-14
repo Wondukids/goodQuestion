@@ -35,6 +35,18 @@ import { fill, materialTemplate, PromptError, sendableBody } from './parse'
 /** 이 파일이 있어야 우리 `prompts/` 다. 이름만 같은 남의 폴더를 잡지 않으려고 둔다. */
 const 표식 = 'analysis.md'
 
+/**
+ * `prompts/` 안에 있지만 **프롬프트가 아닌** md (2026-08-14).
+ *
+ * `README.md` 는 프롬프트 관리 규칙을 적은 문서다. LLM 에 보내는 글이 아니므로
+ * 프롬프트 목록에 끼면 안 된다 — 작업대 화면에 뜨고, 이름 목록을 정확히 일치로 보는
+ * 검사가 빨개진다.
+ *
+ * ⚠️ **여기 한 곳에만 둔다.** 목록을 만드는 자리(`service/prompt-lab.ts`)와 세는 자리
+ * (`tests/prompts.test.ts`)가 각자 이름을 적으면 파일이 하나 더 늘 때 둘이 갈라진다.
+ */
+export const 프롬프트가_아닌_md: readonly string[] = ['README']
+
 let 찾은_디렉터리: string | null = null
 
 /** 시작 자리부터 파일시스템 꼭대기까지. */

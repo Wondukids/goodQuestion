@@ -25,7 +25,7 @@ import { readdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { ValueError } from '@/llm/domain/progress'
-import { promptsDir, read } from '@/llm/prompts'
+import { promptsDir, read, 프롬프트가_아닌_md } from '@/llm/prompts'
 import { getDb, type Conn } from '@/llm/repo/db'
 import {
   readExperimentPrompts,
@@ -59,12 +59,18 @@ export interface PromptLabView {
   experiment_names: string[]
 }
 
-/** `prompts/` 안의 `*.md` 이름들. **부를 때마다 다시 읽는다** (캐시하지 않는다). */
+/**
+ * `prompts/` 안의 프롬프트 이름들. **부를 때마다 다시 읽는다** (캐시하지 않는다).
+ *
+ * ⛔ `README.md` 처럼 프롬프트가 아닌 문서는 뺀다 (`프롬프트가_아닌_md`).
+ *    안 빼면 작업대 화면에 규칙 문서가 프롬프트인 척 뜬다.
+ */
 export function listPromptNames(디렉터리?: string): string[] {
   const 자리 = 디렉터리 ?? promptsDir()
   return readdirSync(자리)
     .filter((이름) => 이름.endsWith('.md'))
     .map((이름) => path.basename(이름, '.md'))
+    .filter((이름) => !프롬프트가_아닌_md.includes(이름))
     .sort()
 }
 

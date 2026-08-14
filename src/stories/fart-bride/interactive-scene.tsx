@@ -186,14 +186,20 @@ export function InteractiveScene({
       return url;
     };
 
-    const substitute = (lines: SpeechLine[]) =>
-      Promise.all(
-        lines.map(async (line) => {
-          if (!line.text.includes("ㅇㅇ")) return line;
-          const text = fillChildName(line.text, childName);
-          return { text, audio: await tts(text) };
-        }),
-      );
+    /* 병렬로 몰아 부르면 구글 분당 한도(429)에 걸리기 쉬워 한 건씩 순차 합성한다.
+       서버가 같은 문장을 캐시하므로 씬 재진입 때는 구글 호출 없이 바로 온다. */
+    const substitute = async (lines: SpeechLine[]) => {
+      const result: SpeechLine[] = [];
+      for (const line of lines) {
+        if (!line.text.includes("ㅇㅇ")) {
+          result.push(line);
+          continue;
+        }
+        const text = fillChildName(line.text, childName);
+        result.push({ text, audio: await tts(text) });
+      }
+      return result;
+    };
 
     (async () => {
       try {
@@ -202,17 +208,18 @@ export function InteractiveScene({
           line.text.includes("ㅇㅇ"),
         );
         /* 이름만 부르는 한마디는 연기가 붕 뜨기 쉬워 호명 전용 지시를 덧붙인다 */
-        const [greetingAudio, question, answer] = await Promise.all([
-          needsGreeting
-            ? tts(
-                greetingText,
-                `${step.speaker.stylePrompt} 지금은 아이에게 말을 걸려고 이름을 부르는 짧은 첫마디입니다 — 이름을 반갑고 다정하게, 자연스럽게 불러 주세요.`,
-              )
-            : Promise.resolve(null),
-          substitute(step.question.lines),
-          /* 서버 모드에선 정해진 답변이 재생되지 않는다(502 폴백 전용) — 준비 TTS 절약 */
-          entryMode.server ? Promise.resolve(step.answer.lines) : substitute(step.answer.lines),
-        ]);
+        const greetingAudio = needsGreeting
+          ? await tts(
+              greetingText,
+              `${step.speaker.stylePrompt} 지금은 아이에게 말을 걸려고 이름을 부르는 짧은 첫마디입니다 — 이름을 반갑고 다정하게, 자연스럽게 불러 주세요.`,
+            )
+          : null;
+        const question = await substitute(step.question.lines);
+        /* 서버 모드에선 정해진 답변이 재생되지 않는다(502 폴백 전용) — 준비 TTS 절약.
+           순차 합성이라 부르는 개수가 곧 진입 대기 시간이다 — 이 절약을 빼면 씬 진입이 느려진다. */
+        const answer = entryMode.server
+          ? step.answer.lines
+          : await substitute(step.answer.lines);
         if (cancelled) return;
         setPreparedLines({
           question: greetingAudio

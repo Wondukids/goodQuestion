@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type VideoStep } from "./data";
 import { CutsPlayer, type CutsPlayerHandle } from "./cuts-player";
 import { InteractiveScene } from "./interactive-scene";
+import { MinigamePopup } from "./minigame-popup";
 import { buildPlanSequence } from "./plan-sequence";
 import { useStorySequencer } from "./sequencer";
 import {
@@ -153,6 +154,24 @@ export default function FartBridePlay({
     next();
   };
 
+  /* 미니게임 팝업 테스트 (개발용) — SPACE 를 누를 때마다 다음 미션으로 넘어간다
+     (닫힘 → 미션1 → 미션2 → 닫힘). 열고 닫는 토글로 두면 미션1 만 계속
+     처음부터 다시 뜬다. 아직 이야기 진행과는 연결하지 않아서, 미션을 끝내도
+     팝업만 닫힌다 (뒤에서 이야기 소리는 계속 난다). */
+  const [minigame, setMinigame] = useState<1 | 2 | null>(null);
+  useEffect(() => {
+    if (!started || finished) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      /* 누르고 있으면 키가 연타로 들어와 미션이 순식간에 지나간다 */
+      if (event.code !== "Space" || event.repeat) return;
+      /* 스크롤·포커스된 버튼의 스페이스 동작을 막고 미션 전환으로만 쓴다 */
+      event.preventDefault();
+      setMinigame((mission) => (mission === null ? 1 : mission === 1 ? 2 : null));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [started, finished]);
+
   return (
     <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
       {!started && (
@@ -274,6 +293,14 @@ export default function FartBridePlay({
           </div>
         </div>
       )}
+
+      <MinigamePopup
+        open={minigame !== null}
+        mission={minigame ?? 1}
+        childName={childName}
+        onClose={() => setMinigame(null)}
+        onComplete={() => setMinigame(null)}
+      />
     </main>
   );
 }
