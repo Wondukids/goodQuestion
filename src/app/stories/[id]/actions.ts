@@ -2,26 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { requireSelectedChild } from "@/lib/selected-child";
-import { LookupError, ValueError } from "@/llm/service/step";
-import { openSession } from "@/session/service/open";
 
 /**
- * "이야기 시작하기" — 세션 열기(4.1)를 거쳐 재생 화면으로 간다 (이슈 #6).
+ * "이야기 시작하기" — 아이 확인만 하고 재생 화면으로 보낸다.
  *
- * 전에는 Supabase 로 `story_sessions` 에 흔적만 남기고 **실패해도 넘어갔다.**
- * 이제 세션이 이어하기의 근거라서 생성 실패는 막는다 (`docs/이야기_세션_명세.md` 4절
- * 운영 전제) — `openSession()` 이 세션·회차 동반 생성과 따라잡기까지 다 안다.
+ * 세션 열기(4.1)는 재생 화면의 `beginStory` 가 맡는다 (`docs/이야기_세션_명세.md` 6.2절).
+ * 여기서 열면 재생 화면의 열기가 그 세션을 다시 찾아 첫 시작이 이어하기로 둔갑한다
+ * (2026-08-14 실사용 — part1 을 건너뛰고 대화 씬으로 점프하던 버그).
  */
 export async function startStory(slug: string) {
-  const child = await requireSelectedChild();
-
-  try {
-    await openSession({ child_id: child.id, story: slug });
-  } catch (오류) {
-    // 없는 이야기·공개 전 이야기는 인트로로 돌려보낸다 — 전과 같은 흐름이다.
-    if (오류 instanceof LookupError || 오류 instanceof ValueError) redirect(`/stories/${slug}`);
-    throw 오류;
-  }
-
+  await requireSelectedChild();
   redirect(`/stories/${slug}/play`);
 }
