@@ -6,17 +6,20 @@ import { synthesizeSpeech, TtsError } from "@/tts/server";
  * 어느 모델 경로였는지는 응답 헤더 X-TTS-Model 로 확인한다.
  */
 export async function POST(request: Request) {
-  const { text, voice, stylePrompt } = (await request.json()) as {
+  const { text, voice, stylePrompt, geminiOnly } = (await request.json()) as {
     text?: string;
     voice?: string;
     stylePrompt?: string;
+    geminiOnly?: boolean;
   };
   if (!text?.trim()) {
     return NextResponse.json({ error: "text 가 비어 있습니다." }, { status: 400 });
   }
 
   try {
-    const { audio, contentType, model } = await synthesizeSpeech(text, voice, stylePrompt);
+    const { audio, contentType, model } = await synthesizeSpeech(text, voice, stylePrompt, {
+      geminiOnly: geminiOnly === true,
+    });
     return new NextResponse(audio, {
       headers: { "Content-Type": contentType, "X-TTS-Model": model },
     });

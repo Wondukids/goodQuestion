@@ -52,6 +52,8 @@ async function tryGeminiApi(
   text: string,
   voiceName: string,
   stylePrompt?: string,
+  /** true 면 실패를 숨기지 않고 원인 그대로 throw 한다 (폴백 없이 쓸 때) */
+  strict = false,
 ): Promise<SynthesizedSpeech | null> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${geminiKey}`,
@@ -76,7 +78,12 @@ async function tryGeminiApi(
       }),
     },
   );
-  if (!res.ok) return null;
+  if (!res.ok) {
+    if (strict) {
+      throw new TtsError(`Gemini API TTS 호출 실패 (${res.status})`, 502, await res.text());
+    }
+    return null;
+  }
 
   const data = (await res.json()) as {
     candidates?: {
@@ -86,7 +93,10 @@ async function tryGeminiApi(
   const inline = data.candidates?.[0]?.content?.parts?.find(
     (part) => part.inlineData?.data,
   )?.inlineData;
-  if (!inline?.data) return null;
+  if (!inline?.data) {
+    if (strict) throw new TtsError("Gemini API 응답에 오디오가 없습니다.", 502);
+    return null;
+  }
 
   const rate = Number(/rate=(\d+)/.exec(inline.mimeType ?? "")?.[1] ?? 24000);
   return {
@@ -101,7 +111,27 @@ export async function synthesizeSpeech(
   text: string,
   voice?: string,
   stylePrompt?: string,
+  options?: {
+    /** true 면 폴백 없이 gemini-api-2.5-flash-tts 로 고정 — 실패는 에러로 드러난다 */
+    geminiOnly?: boolean;
+  },
 ): Promise<SynthesizedSpeech> {
+  const voiceName = resolveVoice(voice);
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  /* 모델 고정 모드 — Gemini API 키만 있으면 되고, 실패 원인을 숨기지 않는다 */
+  if (options?.geminiOnly) {
+    if (!geminiKey) {
+      throw new TtsError(
+        "GEMINI_API_KEY 가 없습니다. 모델을 고정하려면 .env.local 에 추가하고 서버를 재시작하세요.",
+        500,
+      );
+    }
+    const result = await tryGeminiApi(geminiKey, text, voiceName, stylePrompt, true);
+    /* strict 모드는 실패 시 throw 하므로 여기 도달하면 항상 결과가 있다 */
+    return result as SynthesizedSpeech;
+  }
+
   const key = process.env.GOOGLE_CLOUD_API_KEY;
   if (!key) {
     throw new TtsError(
@@ -110,10 +140,7 @@ export async function synthesizeSpeech(
     );
   }
 
-  const voiceName = resolveVoice(voice);
-
   /* 1차: Gemini API (키가 설정된 경우에만) */
-  const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     const result = await tryGeminiApi(geminiKey, text, voiceName, stylePrompt);
     if (result) return result;

@@ -9,10 +9,20 @@ export type SpeechRequest = {
   voice: string;
   /** 말투 연기 지시 (Gemini 경로만 반영) */
   stylePrompt?: string;
+  /** true 면 폴백 없이 gemini-api-2.5-flash-tts 로 고정 — 실패는 에러로 드러난다 */
+  geminiOnly?: boolean;
 };
 
-/** 캐릭터 음성을 합성해 오디오 Blob 으로 받는다. 실패하면 서버가 준 메시지로 throw. */
-export async function requestSpeech(request: SpeechRequest): Promise<Blob> {
+export type SpeechResult = {
+  audio: Blob;
+  /** 어느 모델 경로로 합성했는지 (응답 헤더 X-TTS-Model, 없으면 null) */
+  model: string | null;
+};
+
+/** requestSpeech 에 더해 어느 모델 경로였는지도 받는다 — 테스트·디버깅용. */
+export async function requestSpeechDetailed(
+  request: SpeechRequest,
+): Promise<SpeechResult> {
   const res = await fetch("/api/fart-bride/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -22,5 +32,10 @@ export async function requestSpeech(request: SpeechRequest): Promise<Blob> {
     const detail = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new Error(detail?.error ?? `TTS 실패 (${res.status})`);
   }
-  return res.blob();
+  return { audio: await res.blob(), model: res.headers.get("X-TTS-Model") };
+}
+
+/** 캐릭터 음성을 합성해 오디오 Blob 으로 받는다. 실패하면 서버가 준 메시지로 throw. */
+export async function requestSpeech(request: SpeechRequest): Promise<Blob> {
+  return (await requestSpeechDetailed(request)).audio;
 }
