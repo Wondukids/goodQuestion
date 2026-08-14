@@ -29,7 +29,7 @@
 }
 
 .fx-fade-in {
-  animation: fx-fade-in 0.25s ease-out both;
+  animation: fx-fade-in var(--fx-duration, 0.25s) ease-out both;
 }
 
 @keyframes fx-pop-in {
@@ -114,5 +114,531 @@
 
 .fx-shake {
   animation: fx-shake var(--fx-duration, 0.5s) linear var(--fx-repeat, 1) both;
+  will-change: transform;
+}
+
+/* ==================== 카메라 — 컷이 떠 있는 동안 ==================== */
+
+/* 펀치 줌 — 순간 확 다가갔다가 원래대로 (타격·놀람) */
+@keyframes fx-punch-zoom {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(var(--fx-punch-scale, 1.18));
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.fx-punch-zoom {
+  animation: fx-punch-zoom var(--fx-duration, 0.4s) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  transform-origin: var(--fx-origin, center);
+  will-change: transform;
+}
+
+/* 펀치 — 지정 방향으로 확 밀렸다가 복귀 (셰이크와 달리 방향이 있다) */
+@keyframes fx-punch {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(var(--fx-tx, 14px), var(--fx-ty, 0px));
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+.fx-punch {
+  animation: fx-punch var(--fx-duration, 0.4s) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  will-change: transform;
+}
+
+/* 팬·틸트 — 살짝 확대한 채 지정 방향으로 천천히 훑는다.
+   확대(--fx-pan-scale)가 이동(--fx-*-x/y)보다 커야 가장자리가 드러나지 않는다. */
+@keyframes fx-pan {
+  from {
+    transform: scale(var(--fx-pan-scale, 1.12))
+      translate(var(--fx-from-x, 3%), var(--fx-from-y, 0%));
+  }
+  to {
+    transform: scale(var(--fx-pan-scale, 1.12))
+      translate(var(--fx-to-x, -3%), var(--fx-to-y, 0%));
+  }
+}
+
+.fx-pan {
+  animation: fx-pan var(--fx-duration, 8s) var(--fx-ease, ease-in-out) both;
+  will-change: transform;
+}
+
+/* 켄 번즈 — 천천히 확대하며 동시에 훑는다 (팬 + 줌 조합) */
+@keyframes fx-ken-burns {
+  from {
+    transform: scale(var(--fx-scale-from, 1.1))
+      translate(var(--fx-from-x, 3%), var(--fx-from-y, 0%));
+  }
+  to {
+    transform: scale(var(--fx-scale-to, 1.25))
+      translate(var(--fx-to-x, -3%), var(--fx-to-y, 0%));
+  }
+}
+
+.fx-ken-burns {
+  animation: fx-ken-burns var(--fx-duration, 8s) var(--fx-ease, linear) both;
+  will-change: transform;
+}
+
+/* 오빗 — 살짝 확대한 채 원을 그리며 천천히 돈다 (대상 주위 궤도 흉내) */
+@keyframes fx-orbit {
+  0% {
+    transform: scale(var(--fx-orbit-scale, 1.15)) translate(var(--fx-orbit-r, 2%), 0);
+  }
+  25% {
+    transform: scale(var(--fx-orbit-scale, 1.15)) translate(0, var(--fx-orbit-r, 2%));
+  }
+  50% {
+    transform: scale(var(--fx-orbit-scale, 1.15))
+      translate(calc(var(--fx-orbit-r, 2%) * -1), 0);
+  }
+  75% {
+    transform: scale(var(--fx-orbit-scale, 1.15))
+      translate(0, calc(var(--fx-orbit-r, 2%) * -1));
+  }
+  100% {
+    transform: scale(var(--fx-orbit-scale, 1.15)) translate(var(--fx-orbit-r, 2%), 0);
+  }
+}
+
+.fx-orbit {
+  animation: fx-orbit var(--fx-duration, 8s) linear var(--fx-repeat, infinite) both;
+  will-change: transform;
+}
+
+/* 더치 앵글 — 비스듬히 기울어진다. 확대로 모서리 빈 곳을 가린다 */
+@keyframes fx-dutch {
+  from {
+    transform: rotate(0deg) scale(var(--fx-dutch-scale, 1.2));
+  }
+  to {
+    transform: rotate(var(--fx-angle, -6deg)) scale(var(--fx-dutch-scale, 1.2));
+  }
+}
+
+.fx-dutch {
+  animation: fx-dutch var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+/* ==================== 왜곡 — 글리치·색수차 ==================== */
+
+/* 글리치 본체 — steps 로 뚝뚝 끊기는 미세 지터 + 색 틀어짐 */
+@keyframes fx-glitch-jitter {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  10% {
+    transform: translate(-2px, 1px);
+    filter: hue-rotate(20deg) saturate(1.4);
+  }
+  30% {
+    transform: translate(2px, -1px);
+  }
+  45% {
+    transform: translate(-1px, 0);
+    filter: hue-rotate(-30deg);
+  }
+  60% {
+    transform: translate(1px, 1px);
+  }
+  75% {
+    transform: translate(0, 0);
+    filter: saturate(2);
+  }
+}
+
+.fx-glitch-jitter {
+  animation: fx-glitch-jitter var(--fx-duration, 0.6s) steps(1, end) var(--fx-repeat, 1) both;
+  will-change: transform, filter;
+}
+
+/* 글리치 조각 — 가로 밴드만 잘라 좌우로 어긋난 사본 (Glitch 컴포넌트가 겹친다) */
+@keyframes fx-glitch-slice {
+  0%,
+  12%,
+  50%,
+  82%,
+  100% {
+    clip-path: inset(100% 0 0 0);
+    transform: translateX(0);
+    opacity: 0;
+  }
+  13% {
+    clip-path: inset(12% 0 78% 0);
+    transform: translateX(var(--fx-glitch-shift, 10px));
+    opacity: 1;
+    filter: hue-rotate(90deg);
+  }
+  25% {
+    clip-path: inset(62% 0 24% 0);
+    transform: translateX(calc(var(--fx-glitch-shift, 10px) * -1));
+    opacity: 1;
+  }
+  38% {
+    clip-path: inset(35% 0 52% 0);
+    transform: translateX(var(--fx-glitch-shift, 10px));
+    opacity: 1;
+    filter: hue-rotate(-90deg);
+  }
+  70% {
+    clip-path: inset(80% 0 6% 0);
+    transform: translateX(calc(var(--fx-glitch-shift, 10px) * -0.6));
+    opacity: 1;
+  }
+}
+
+.fx-glitch-slice {
+  animation: fx-glitch-slice var(--fx-duration, 0.6s) steps(1, end) var(--fx-repeat, 1) both;
+  will-change: transform, clip-path;
+}
+
+/* 색수차 — 색을 튼 사본이 좌우로 벌어졌다 모인다 (ChromaticAberration 이 겹친다) */
+@keyframes fx-chroma {
+  0%,
+  100% {
+    transform: translateX(calc(var(--fx-chroma, 4px) * var(--fx-chroma-dir, 1) * 0.4));
+  }
+  50% {
+    transform: translateX(calc(var(--fx-chroma, 4px) * var(--fx-chroma-dir, 1)));
+  }
+}
+
+.fx-chroma-copy {
+  mix-blend-mode: screen;
+  opacity: 0.4;
+  animation: fx-chroma var(--fx-duration, 1.2s) ease-in-out var(--fx-repeat, infinite) both;
+  will-change: transform;
+}
+
+/* ==================== 오버레이 — 레터박스·비네트·플래시 ==================== */
+
+/* 레터박스 — 위아래 검은 띠가 화면 밖에서 들어온다 */
+@keyframes fx-bar-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fx-bar-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.fx-bar-top {
+  animation: fx-bar-in-top var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+.fx-bar-bottom {
+  animation: fx-bar-in-bottom var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+/* 비네트 — 가장자리를 어둡게. 색(--fx-vig-color)을 붉게 주면 피격·위기 연출 */
+.fx-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent var(--fx-vig-inner, 52%),
+    var(--fx-vig-color, rgba(0, 0, 0, 0.55)) 100%
+  );
+  animation: fx-fade-in var(--fx-duration, 0.7s) ease-out both;
+}
+
+@keyframes fx-vignette-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.fx-vignette-pulse {
+  animation: fx-vignette-pulse var(--fx-duration, 1.6s) ease-in-out infinite both;
+}
+
+/* 플래시 — 순간 번쩍였다가 사라진다 (번개·폭발·스킬) */
+@keyframes fx-flash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--fx-flash-peak, 1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fx-flash {
+  background: var(--fx-flash-color, #fff);
+  animation: fx-flash var(--fx-duration, 0.45s) ease-out both;
+}
+
+/* ==================== 등장 전환 ==================== */
+
+/* 스케일 — 작게 시작해 커지며 등장 (팝과 달리 오버슈트 없음) */
+@keyframes fx-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--fx-scale-from, 0.6));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fx-scale-in {
+  animation: fx-scale-in var(--fx-duration, 0.5s) ease-out both;
+  will-change: transform;
+}
+
+/* 줌 페이드 — 살짝 커진 상태에서 줄어들며 페이드 인 (가장 무난한 조합) */
+@keyframes fx-zoom-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--fx-scale-from, 1.12));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fx-zoom-fade-in {
+  animation: fx-zoom-fade-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+/* 페이드 스루 블랙 — 검은 화면을 거쳐 밝아진다 (챕터 전환·시간 경과) */
+@keyframes fx-fade-black-in {
+  0% {
+    opacity: 0;
+    filter: brightness(0);
+  }
+  40% {
+    opacity: 1;
+    filter: brightness(0);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.fx-fade-black-in {
+  animation: fx-fade-black-in var(--fx-duration, 0.9s) ease-out both;
+  will-change: filter;
+}
+
+/* 대각선 와이프 — 왼쪽 위 모서리부터 대각선으로 드러난다 */
+@keyframes fx-wipe-diag-in {
+  from {
+    clip-path: polygon(0 0, 0 0, 0 0);
+  }
+  to {
+    clip-path: polygon(0 0, 200% 0, 0 200%);
+  }
+}
+
+.fx-wipe-diag-in {
+  animation: fx-wipe-diag-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+/* 아이리스 — 원이 커지며 드러난다. 중심은 --fx-origin (클릭 지점 등) */
+@keyframes fx-iris-in {
+  from {
+    clip-path: circle(0% at var(--fx-origin, 50% 50%));
+  }
+  to {
+    clip-path: circle(120% at var(--fx-origin, 50% 50%));
+  }
+}
+
+.fx-iris-in {
+  animation: fx-iris-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+/* 스플릿 — 가운데에서 문이 열리듯 양쪽으로 갈라지며 드러난다 */
+@keyframes fx-split-in {
+  from {
+    clip-path: inset(0 50% 0 50%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.fx-split-in {
+  animation: fx-split-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+}
+
+/* 블라인드 — 가로 줄 8개가 동시에 펼쳐진다 (마스크 줄 두께를 애니메이션) */
+@property --fx-blind {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+@keyframes fx-blinds-in {
+  from {
+    --fx-blind: 0%;
+  }
+  to {
+    --fx-blind: 12.5%;
+  }
+}
+
+.fx-blinds-in {
+  mask-image: repeating-linear-gradient(
+    to bottom,
+    #000 0 var(--fx-blind),
+    transparent var(--fx-blind) 12.5%
+  );
+  -webkit-mask-image: repeating-linear-gradient(
+    to bottom,
+    #000 0 var(--fx-blind),
+    transparent var(--fx-blind) 12.5%
+  );
+  animation: fx-blinds-in var(--fx-duration, 0.7s) ease-out both;
+}
+
+/* 체커 타일 — 타일마다 시계 방향으로 쓸어내며 드러난다 (체커보드 변형) */
+@property --fx-sweep {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes fx-checker-in {
+  from {
+    --fx-sweep: 0deg;
+  }
+  to {
+    --fx-sweep: 360deg;
+  }
+}
+
+.fx-checker-in {
+  mask-image: repeating-conic-gradient(#000 0 var(--fx-sweep), transparent var(--fx-sweep) 360deg);
+  -webkit-mask-image: repeating-conic-gradient(
+    #000 0 var(--fx-sweep),
+    transparent var(--fx-sweep) 360deg
+  );
+  mask-size: var(--fx-tile, 25%) var(--fx-tile, 25%);
+  -webkit-mask-size: var(--fx-tile, 25%) var(--fx-tile, 25%);
+  animation: fx-checker-in var(--fx-duration, 0.7s) ease-in-out both;
+}
+
+/* 플립 — 카드 뒤집듯 회전하며 등장 (X축 = 세로 뒤집기, Y축 = 가로 뒤집기) */
+@keyframes fx-flip-x-in {
+  from {
+    transform: perspective(1200px) rotateX(-90deg);
+  }
+  to {
+    transform: perspective(1200px) rotateX(0deg);
+  }
+}
+
+@keyframes fx-flip-y-in {
+  from {
+    transform: perspective(1200px) rotateY(-90deg);
+  }
+  to {
+    transform: perspective(1200px) rotateY(0deg);
+  }
+}
+
+.fx-flip-x-in {
+  animation: fx-flip-x-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+.fx-flip-y-in {
+  animation: fx-flip-y-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+/* 로테이트 — 기울어진 채 커지며 등장 (다이내믹한 전환) */
+@keyframes fx-rotate-in {
+  from {
+    opacity: 0;
+    transform: rotate(var(--fx-angle, -12deg)) scale(var(--fx-scale-from, 0.85));
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.fx-rotate-in {
+  animation: fx-rotate-in var(--fx-duration, 0.7s) cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  will-change: transform;
+}
+
+/* 블러 — 흐릿하게 시작해 선명해진다 (회상·꿈에서 깨어나듯) */
+@keyframes fx-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(var(--fx-blur, 24px));
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.fx-blur-in {
+  animation: fx-blur-in var(--fx-duration, 0.7s) ease-out both;
+  will-change: filter;
+}
+
+/* 바운스 — 위에서 떨어져 살짝 튕기며 정착 (발랄·캐주얼) */
+@keyframes fx-bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-60%);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  65% {
+    transform: translateY(-6%);
+  }
+  82% {
+    transform: translateY(0);
+  }
+  92% {
+    transform: translateY(-2%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.fx-bounce-in {
+  animation: fx-bounce-in var(--fx-duration, 0.8s) cubic-bezier(0.35, 0, 0.4, 1) both;
   will-change: transform;
 }
