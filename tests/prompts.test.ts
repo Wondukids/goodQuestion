@@ -38,8 +38,11 @@ import {
 /** 사람이 읽는 쪽. ⛔ **이름이 이 검사 파일에만 있다** — 엔진은 이 파일을 모른다. */
 const 해설 = '해설.md'
 
-/** 재료 JSON 이 들어가는 셋. 열쇠 이름은 `runner.py` 가 넘기던 것 그대로다. */
-const 재료를_받는_것 = ['analysis', 'character', 'child']
+/**
+ * 재료 JSON 이 들어가는 다섯. 앞의 셋은 열쇠 이름이 `runner.py` 가 넘기던 것 그대로이고,
+ * 미션 둘(이슈 #18)은 `docs/미션_명세.md` 9절이 정본이다.
+ */
+const 재료를_받는_것 = ['analysis', 'character', 'child', 'mission_reply', 'mission_summary']
 
 /** 심판 셋. 나가는 쪽이 **한국어**다 — 한국어 대사를 읽고 판정하기 때문. */
 const 심판 = [
@@ -65,7 +68,7 @@ describe('prompts/ 찾기', () => {
     expect(path.basename(path.dirname(promptsDir()))).not.toBe('web')
   })
 
-  it('정본 여섯이 다 읽힌다', () => {
+  it('정본 여덟이 다 읽힌다', () => {
     expect(프롬프트들).toEqual([...심판, ...재료를_받는_것].sort())
     for (const 이름 of 프롬프트들) {
       expect(read(이름).length).toBeGreaterThan(0)
@@ -111,10 +114,11 @@ describe('① 태그 짝 — 규칙이 한쪽에만 있으면 잡는다', () => 
     expect(나가는쪽.length).toBeGreaterThan(0)
   })
 
-  it('셋을 합치면 32쌍이다 (2026-08-14 기준선)', () => {
+  it('다섯을 합치면 47쌍이다 (2026-08-14 기준선)', () => {
     // 규칙을 더하거나 지우면 이 숫자가 바뀐다. 바뀌었으면 **의도한 것인지 확인하고** 고쳐라.
+    // 32(분석 13 · 캐릭터 14 · 아이 5) + 미션 15(`R-…` 8 · `S-…` 7) = 47 (이슈 #18).
     const 합 = 재료를_받는_것.reduce((센것, 이름) => 센것 + 태그(read(이름)).length, 0)
-    expect(합).toBe(32)
+    expect(합).toBe(47)
   })
 
   it('⚠️ 뜻이 어긋난 것은 못 잡는다', () => {
@@ -163,6 +167,7 @@ describe('③ 경로 봉인 — 해설을 LLM 경로에 실을 길이 없다', (
     'src/llm/engine/analyze.ts',
     'src/llm/engine/character.ts',
     'src/llm/engine/material.ts',
+    'src/llm/engine/mission.ts',
     'src/llm/judge.ts',
   ]
 
@@ -213,7 +218,7 @@ describe('재료 JSON', () => {
 })
 
 describe('정본은 검사가 건드리지 않는다', () => {
-  it('열두 파일 모두 읽어도 그대로다', () => {
+  it('열여섯 파일 모두 읽어도 그대로다', () => {
     for (const 이름 of 프롬프트들) {
       for (const 파일 of [보낼것, 해설]) {
         const 경로 = path.join(promptsDir(), 이름, 파일)

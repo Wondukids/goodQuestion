@@ -42,9 +42,11 @@ prompts/
   judge_gave_away_element/       보낼것.md (한국어) · 해설.md
   judge_guided_toward_target/    보낼것.md (한국어) · 해설.md
   judge_invented_setting/        보낼것.md (한국어) · 해설.md
+  mission_reply/                 보낼것.md (영어) · 해설.md   ← 이슈 #18
+  mission_summary/               보낼것.md (영어) · 해설.md   ← 이슈 #18
 ```
 
-폴더가 여섯이라는 것과 이름 목록, 그리고 **폴더마다 두 파일이 다 있는지**를
+폴더가 여덟이라는 것과 이름 목록, 그리고 **폴더마다 두 파일이 다 있는지**를
 `tests/prompts.test.ts` 가 검사한다. 늘리거나 지우면 그 검사가 먼저 빨개진다.
 
 🔴 **폴더 이름을 바꾸지 마라.** `'analysis'`·`'character'` 는 실험판 표의 값이기도 해서
@@ -82,9 +84,9 @@ DB CHECK(`src/llm/db/schema.ts`)·리포(`src/llm/repo/prompt-lab.ts`)·폼 검�
 
 ### 정본 md 는 검사도 안 건드린다
 
-`tests/prompts.test.ts` 는 가짜 md 를 만들어 통과시키지 않는다. **정본 여섯을 그대로
+`tests/prompts.test.ts` 는 가짜 md 를 만들어 통과시키지 않는다. **정본 여덟을 그대로
 읽는다** — 「md 를 고치면 코드가 따라온다」는 성질은 진짜 파일로만 확인되기 때문이다.
-열두 파일을 다 읽은 뒤에도 그대로인지까지 본다.
+열여섯 파일을 다 읽은 뒤에도 그대로인지까지 본다.
 
 ---
 
@@ -139,8 +141,10 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | `[E-…]` | `analysis` (Element / 분석) | 13 |
 | `[C-…]` | `character` (Character) | 14 |
 | `[K-…]` | `child` (Kid) | 5 |
+| `[R-…]` | `mission_reply` (Reply / 아이대답요약) | 8 |
+| `[S-…]` | `mission_summary` (Summary / 종료 요약) | 7 |
 
-**32쌍이 맞는다.** 예를 들어 `analysis` 는 `E-BARE` · `E-EMOTION` · `E-EMPATHY` ·
+**47쌍이 맞는다.** 예를 들어 `analysis` 는 `E-BARE` · `E-EMOTION` · `E-EMPATHY` ·
 `E-INTENT` · `E-MULTI` · `E-NOCRIT` · `E-REASON` · `E-REQUEST` · `E-RESULT` · `E-SHORT` ·
 `E-SOLUTION` · `E-VERBATIM` · `E-YOUNG` 열셋이 양쪽에 다 있다.
 
@@ -152,7 +156,7 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | ② 인용 누출 | `보낼것.md` 에 `docs/`·`CLAUDE.md`·`notes/`·`이슈 #`·📄·✏️ 가 없는가 |
 | ③ 경로 봉인 | 해설 파일 이름이 LLM 경로 소스에 한 글자도 없는가 |
 
-①에는 **32쌍 고정 단언**이 있다. 규칙을 더하거나 지우면 빨개진다 — 의도한 것인지
+①에는 **47쌍 고정 단언**이 있다. 규칙을 더하거나 지우면 빨개진다 — 의도한 것인지
 확인하고 숫자를 고쳐라.
 
 ③ 때문에 `render.ts`·`parse.ts`·`material.ts` 의 **주석에도** 해설 파일 이름이 없다.
@@ -170,7 +174,7 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 
 | 프롬프트 | 나가는 쪽의 언어 |
 | --- | --- |
-| `analysis` · `character` · `child` | **영어** |
+| `analysis` · `character` · `child` · `mission_reply` · `mission_summary` | **영어** |
 | `judge_gave_away_element` · `judge_guided_toward_target` · `judge_invented_setting` | **한국어** |
 
 **분석·캐릭터·아이가 영어인 이유는 토큰 절약이다.** 한글 한 글자가 영어보다 토큰을 더
@@ -311,7 +315,7 @@ system 없이 도는데, 그게 실험인지 실수인지 나중에 못 가른�
 
 ---
 
-## 8. 여섯 프롬프트 — 무엇이고, 어디까지 배선됐나
+## 8. 여덟 프롬프트 — 무엇이고, 어디까지 배선됐나
 
 | 프롬프트 | 무엇 | 엔진에 붙었나 |
 | --- | --- | --- |
@@ -321,6 +325,8 @@ system 없이 도는데, 그게 실험인지 실수인지 나중에 못 가른�
 | `judge_gave_away_element` | 캐릭터가 아이 대신 답을 말해 버렸나 | ⭕ `src/llm/judge.ts:443-461` |
 | `judge_guided_toward_target` | 캐릭터가 이번 턴의 과녁 쪽으로 유도했나 | ⭕ `src/llm/judge.ts:477` |
 | `judge_invented_setting` | 캐릭터가 없는 설정을 지어냈나 | ⭕ `src/llm/judge.ts:515` |
+| `mission_reply` | 미션 턴의 아이대답요약·다리 대사 (이슈 #18) | ⭕ `src/llm/engine/mission.ts` — 미션 API(#19)가 아직 안 부른다 |
+| `mission_summary` | 미션 종료 요약 (이슈 #18) | ⭕ `src/llm/engine/mission.ts` — 미션 API(#19)가 아직 안 부른다 |
 
 심판 셋은 `boundaryChecks()`(`src/llm/judge.ts:572-590`)가 한 번에 부르고, 턴을 도는 길이
 자동 채점을 켠 회차에서 그것을 부른다(`src/llm/service/turn.ts:609-614`).
