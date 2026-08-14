@@ -48,12 +48,19 @@ export default async function GoldensetPage({
   try {
     바탕 = await goldensetScreen({ file, goldenset_run_id: run })
   } catch (그것) {
-    // 정답지 폴더가 비었거나 `?run=` 이 없는 판을 가리킨다. **빈 화면으로 때우지 않는다.**
+    // 정답지 폴더가 비었거나, `?run=` 이 없는 판을 가리키거나, 이 화면이 못 읽는 갈래의
+    // 정답지를 골랐다. **빈 화면으로 때우지 않는다.**
     읽기_오류 = 그것 instanceof Error ? `${그것.name}: ${그것.message}` : String(그것)
     return (
       <main className="flex flex-col gap-4">
         <h2 className="font-semibold">골든셋 채점</h2>
         <오류띠 문구={읽기_오류} />
+        {/* 고르는 칸이 이 화면에만 있어서, 링크가 없으면 못 읽는 파일을 고른 사람이 갇힌다. */}
+        <p className="text-xs">
+          <Link href="/goldenset" className="underline">
+            다른 정답지 고르기
+          </Link>
+        </p>
       </main>
     )
   }

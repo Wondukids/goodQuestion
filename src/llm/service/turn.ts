@@ -65,9 +65,11 @@ import { characterTurn, type CharacterDirection } from '@/llm/engine/character'
 import { buildAnalysisMaterial, type NarrationScene } from '@/llm/engine/material'
 import { LLMError, type LLMResult } from '@/llm/provider'
 import { analysisLine, decisionLine, dialogueLine, printLine, sceneEndLine, stateLine } from '@/llm/log'
+import { boundaryChecks, type JudgeInput } from '@/llm/judge'
 import { requireDialogueScene, type SceneRow } from '@/llm/repo/content'
 import type { Conn } from '@/llm/repo/db'
-import { insertAttempts } from '@/llm/repo/runs'
+import { insertScore } from '@/llm/repo/review'
+import { insertAttempts, type LlmCallRow } from '@/llm/repo/runs'
 import {
   insertAnalysis,
   insertMessage,
@@ -451,6 +453,18 @@ export interface DialogueStageArgs {
   settings?: Settings
   prompt?: string | null
   notify?: Notify
+  /**
+   * 경계 채점을 돌릴지 (파이썬 `회차._자동_채점`). 기본은 **켬** — 파이썬이 턴마다 돌렸다.
+   * 끄는 자리는 검사와, 채점 없이 대사만 다시 뽑아 보는 화면이다.
+   */
+  autoScore?: boolean
+  /**
+   * 경계 채점에서 **심판(LLM)까지** 부를지. 기본은 **끔** (파이썬 `경계_채점(심판_포함=False)`).
+   *
+   * 🔴 켜면 턴마다 LLM 호출이 최대 셋 더 붙는다 — **돈이 든다.** 되풀이는 무료로,
+   *    검수할 때만 태운다는 규칙이 여기에도 걸린다 (`CLAUDE.md` LLM 공급자 절).
+   */
+  judges?: boolean
 }
 
 export interface DialogueStage {
@@ -464,6 +478,49 @@ export interface DialogueStage {
   /** 이번 호출이 이미 있던 캐릭터 행을 덮어썼나 (③ 재호출). */
   overwritten: boolean
   llm: LLMResult | null
+}
+
+/**
+ * 채점기에 넣을 재료를 짠다 (파이썬 `회차._자동_채점` 의 앞부분).
+ *
+ * 🔴 **`대사` 에는 「캐릭터 LLM 이 만든 것」만 넣는다.** 고정 마지막 대사(`source === 'fixed'`)
+ *    는 사람이 써 넣은 문장이라 「경계를 넘었나」를 물을 자리가 아니고, 넣으면
+ *    `fabricated_fixed_line` 이 **언제나 위반**으로 나온다 (`CLAUDE.md` 경계 4).
+ *    파이썬도 `대사단계.대사` 가 CLOSING 이면 `None` 이라 같은 값이 들어갔다.
+ *
+ * ⚠️ **파이썬보다 네 칸을 더 채운다** — `child_utterance` · `guidance_target` ·
+ *    `element_criterion` · `remaining_worry`. 넷 다 **심판(LLM)만 읽는 값**이라
+ *    규칙 심판 셋의 결과는 파이썬과 한 글자도 안 달라진다. 파이썬이 이 칸들을 비워 둔 것은
+ *    거기서 심판을 아예 안 켰기 때문이고, 비운 채로 켜면 과녁 심판이 늘 「판정 안 함」이 된다.
+ */
+function 경계채점_재료(args: {
+  scene: SceneRow
+  precedingNarrations: readonly NarrationScene[]
+  decision: CharacterDirection
+  child_utterance: string
+  글: string
+  source: 'generated' | 'fixed'
+}): JudgeInput {
+  const { scene, precedingNarrations, decision, child_utterance, 글, source } = args
+  const 과녁 = decision.guidance_target
+  return {
+    대사: source === 'generated' ? 글 : '',
+    response_mode: decision.response_mode,
+    character_opening: scene.character_opening,
+    character_closing: scene.character_closing,
+    scene_goal: scene.scene_goal,
+    child_utterance,
+    이야기_재료: [
+      ...precedingNarrations.map((앞) => 앞.scene_description ?? ''),
+      scene.conflict ?? '',
+      scene.persona ?? '',
+    ]
+      .filter((글) => 글 !== '')
+      .join('\n'),
+    guidance_target: 과녁,
+    element_criterion: 과녁 === null ? null : (scene.element_criteria[과녁] ?? null),
+    remaining_worry: 과녁 === null ? null : (scene.remaining_worries[과녁] ?? null),
+  }
 }
 
 /**
@@ -489,6 +546,8 @@ export async function runDialogueStage(args: DialogueStageArgs): Promise<Dialogu
     settings,
     prompt = null,
     notify = 안알림,
+    autoScore = true,
+    judges = false,
   } = args
 
   // 이 장면에서 오간 말. **이번 발화는 빼고** 준다 — 그 규칙을 우리가 지킨다 (계약 5절).
@@ -544,7 +603,17 @@ export async function runDialogueStage(args: DialogueStageArgs): Promise<Dialogu
       ? 다음
       : null
 
-  const 캐릭터_행 = await 한묶음(conn, async (tx) => {
+  // ⭐ 경계 채점은 **트랜잭션 밖**에서 먼저 돌린다. 심판을 켜면 LLM 을 타는데,
+  //    열린 트랜잭션을 붙잡고 네트워크를 기다리면 그동안 이 연결이 잠긴다.
+  //    심판을 끈 기본값에서는 순수 함수 셋뿐이라 아무것도 안 기다린다.
+  const 검사들 = autoScore
+    ? await boundaryChecks(경계채점_재료({ scene, precedingNarrations, decision, child_utterance, 글, source }), {
+        judges,
+        settings,
+      })
+    : []
+
+  const { 행: 캐릭터_행 } = await 한묶음(conn, async (tx) => {
     const 행 =
       덮어쓸_행 === null
         ? // 어느 쪽이든 `messages` 는 **한 행**이다 (결정 21 · 36).
@@ -555,14 +624,32 @@ export async function runDialogueStage(args: DialogueStageArgs): Promise<Dialogu
             text: 글,
           })
         : await overwriteMessageText(tx, { message_id: 덮어쓸_행.id, text: 글 })
+    let 시도들: LlmCallRow[] = []
     if (결과.llm !== null) {
-      await insertAttempts(tx, {
+      시도들 = await insertAttempts(tx, {
         run_id,
         message_id: child_message_id,
         attempts: 결과.llm.attempts,
       })
     }
-    return 행
+    // 파이썬 `회차.py:269` — 마지막으로 **성공한** 캐릭터 호출이 이 판정의 출처다.
+    const 성공_캐릭터 = [...시도들].reverse().find((시도) => 시도.ok) ?? null
+    for (const 검사 of 검사들) {
+      await insertScore(tx, {
+        run_id,
+        // 🔴 **아이 발화 id 다**, 캐릭터 행 id 가 아니다 (파이썬 `message_id=아이_메시지_id`).
+        //    `scores.message_id` 는 「어느 아이 발화에 대한 판정인가」다 (`repo/review.ts` 머리말).
+        message_id: child_message_id,
+        llm_call_id: 성공_캐릭터?.id ?? null,
+        target: 'utterance',
+        check_name: 검사.name,
+        value: 검사.value,
+        comment: 검사.comment,
+        violated_item: null,
+        graded_by: 'auto',
+      })
+    }
+    return { 행 }
   })
 
   printLine(dialogueLine(scene.character_name ?? '', 글, { 고정: source === 'fixed' }))

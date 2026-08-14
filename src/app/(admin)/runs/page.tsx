@@ -13,7 +13,7 @@ import { listRunsView, listStoriesView } from '@/llm/service/view'
 
 import { startRunAction } from './actions'
 import { 보내기 } from './submit'
-import { LLM칸, 라벨, 오류띠, 한칸 } from './ui'
+import { LLM칸, 라벨, 오류띠, 자동채점칸, 한칸 } from './ui'
 
 export const metadata = { title: '회차 — 굿퀘스천 관리자' }
 
@@ -132,6 +132,7 @@ export default async function RunsPage({
                   'scope',
                   'status',
                   '아이 턴',
+                  '자동 채점',
                   'prompt_version',
                   'started_by',
                   'ended_at',
@@ -160,6 +161,10 @@ export default async function RunsPage({
                   </td>
                   <td className="py-1 pr-3 font-mono">{회차.status}</td>
                   <td className="py-1 pr-3 font-mono">{회차.turn_count}</td>
+                  {/* 경계 채점기(`lib/judge.ts`)가 남긴 것. 안 돈 회차는 「채점 안 함」이다. */}
+                  <td className="py-1 pr-3 whitespace-nowrap">
+                    <자동채점칸 요약={회차.score} />
+                  </td>
                   <td className="py-1 pr-3 font-mono">{회차.prompt_version}</td>
                   <td className="py-1 pr-3">{회차.started_by ?? 'null'}</td>
                   <td className="py-1 pr-3 font-mono">

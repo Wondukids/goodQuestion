@@ -10,7 +10,7 @@
 
 import Link from 'next/link'
 
-import type { TurnRow } from '@/llm/service/view'
+import type { AutoScoreSummary, TurnRow } from '@/llm/service/view'
 
 import { 라벨 } from '../ui'
 
@@ -85,6 +85,45 @@ export function LLM칸({
         </div>
       </div>
     </fieldset>
+  )
+}
+
+/**
+ * 회차 목록의 「자동 채점」 한 칸 (파이썬 `run_list.html:24-28`).
+ *
+ * 갈래 셋이 그대로다 —
+ *
+ * | 값 | 무엇 |
+ * |---|---|
+ * | `null` | `scored_at` 이 안 찍혔다. **아직 안 돈 회차다** (집계를 부르지도 않았다) |
+ * | `graded_count === 0` | 돌긴 했는데 판정된 칸이 하나도 없다. **위반 0% 라고 쓰지 않는다** |
+ * | 그 밖 | `위반 X.X% · 판정 불가 N건` |
+ *
+ * 🔴 「판정 불가 N건」이 위반율 **옆에 늘 붙는다.** 판정 안 한 칸은 분모에서 빠지므로
+ *    (결정 29), 그 수가 안 보이면 낮은 위반율이 「잘 지켰다」인지 「잰 것이 적다」인지 못 가른다.
+ *
+ * ⛔ 여기에 규칙이 없다 — 세는 것은 `repo/review.autoScoreSummary()` 가 `lib/judge.ts` 의
+ *    잣대로 이미 끝냈다.
+ */
+export function 자동채점칸({ 요약 }: { 요약: AutoScoreSummary | null }) {
+  if (요약 === null) return <span className="text-zinc-500">채점 안 함</span>
+  if (요약.graded_count === 0) {
+    return (
+      <span className="text-zinc-500">
+        판정 가능한 검사 없음 · 판정 불가 {요약.unscored_count}건
+      </span>
+    )
+  }
+  const 위반 = 요약.violation_rate ?? 0
+  return (
+    <span>
+      <span className={위반 > 0 ? 'font-bold text-red-600' : ''}>
+        위반 {(위반 * 100).toFixed(1)}%
+      </span>{' '}
+      <span className="text-zinc-500">
+        ({요약.violation_count}/{요약.graded_count}) · 판정 불가 {요약.unscored_count}건
+      </span>
+    </span>
   )
 }
 

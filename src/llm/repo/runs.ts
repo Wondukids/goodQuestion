@@ -152,6 +152,22 @@ export async function endRun(conn: Conn, run_id: string): Promise<RunRow> {
   return 행들[0]
 }
 
+/**
+ * 자동 채점을 **처음 끝낸** 시각을 보존한다 (파이썬 `저장.회차_채점완료`).
+ *
+ * `endRun` 과 같은 규칙이다 — 다시 불러도 첫 값이 남는다. 「이 회차는 채점을 거쳤나」가
+ * 사람 검수 화면의 분모라, 다시 돌릴 때마다 시각이 갱신되면 **처음 잰 때**를 잃는다.
+ */
+export async function markRunScored(conn: Conn, run_id: string): Promise<RunRow> {
+  const 행들 = await conn
+    .update(runs)
+    .set({ scored_at: sql`coalesce(${runs.scored_at}, now())` })
+    .where(eq(runs.id, run_id))
+    .returning()
+  if (행들.length === 0) throw new LookupError(`회차가 없다: ${run_id}`)
+  return 행들[0]
+}
+
 // ---------------------------------------------------------------------------
 // LLM 호출 기록
 // ---------------------------------------------------------------------------

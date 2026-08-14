@@ -41,7 +41,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { llm_calls, messages } from '@/llm/db/schema'
+import { llm_calls, messages, scores } from '@/llm/db/schema'
 import { loadSettings } from '@/llm/config'
 import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import { readRun } from '@/llm/repo/runs'
@@ -249,10 +249,20 @@ interface 완주기록 {
   /** 마지막에 `nextStep()` 이 낸 할 일. `회차끝` 이어야 회차가 닫힌 것이다. */
   마지막_할일: string
   session: { status: string; completed_at: Date | null }
-  run: { ended_at: Date | null }
-  메시지들: { speaker_type: string; scene_code: string; text: string }[]
+  run: { ended_at: Date | null; scored_at: Date | null }
+  메시지들: { id: string; speaker_type: string; scene_code: string; text: string }[]
   turn_conditions: number
   llm_calls: { purpose: string; ok: boolean }[]
+  /** 자동 경계 채점이 남긴 행 (`lib/judge.ts` → `scores`). `graded_by='auto'` 만 나온다. */
+  scores: {
+    message_id: string | null
+    check_name: string
+    value: number | null
+    comment: string | null
+    graded_by: string
+    target: string
+    llm_call_id: string | null
+  }[]
   /** 닫는 대사의 정본 — `story_scenes.character_closing` 원문. */
   고정_마지막대사: Record<string, string | null>
   호출: 가짜_호출[]
@@ -380,6 +390,7 @@ async function 한판(tx: Conn, 기록: 가짜_기록, printed: string[]): Promi
 
   const 메시지_행 = await tx
     .select({
+      id: messages.id,
       speaker_type: messages.speaker_type,
       scene_id: messages.scene_id,
       text: messages.text,
@@ -393,6 +404,20 @@ async function 한판(tx: Conn, 기록: 가짜_기록, printed: string[]): Promi
     .from(llm_calls)
     .where(eq(llm_calls.run_id, run.id))
 
+  const 채점_행 = await tx
+    .select({
+      message_id: scores.message_id,
+      check_name: scores.check_name,
+      value: scores.value,
+      comment: scores.comment,
+      graded_by: scores.graded_by,
+      target: scores.target,
+      llm_call_id: scores.llm_call_id,
+    })
+    .from(scores)
+    .where(eq(scores.run_id, run.id))
+    .orderBy(asc(scores.created_at), asc(scores.id))
+
   const 세션 = await readSession(tx, run.session_id)
   const 회차 = await readRun(tx, run.id)
 
@@ -401,14 +426,16 @@ async function 한판(tx: Conn, 기록: 가짜_기록, printed: string[]): Promi
     advances,
     마지막_할일,
     session: { status: 세션.status, completed_at: 세션.completed_at },
-    run: { ended_at: 회차.ended_at },
+    run: { ended_at: 회차.ended_at, scored_at: 회차.scored_at },
     메시지들: 메시지_행.map((행) => ({
+      id: 행.id,
       speaker_type: 행.speaker_type,
       scene_code: 장면이름.get(행.scene_id) ?? '?',
       text: 행.text,
     })),
     turn_conditions: (await readRunTurnConditions(tx, run.id)).length,
     llm_calls: 호출_행,
+    scores: 채점_행,
     고정_마지막대사: Object.fromEntries(scenes.map((행) => [행.code, 행.character_closing])),
     호출: 기록.호출,
     printed,
@@ -542,6 +569,79 @@ async function 완주한다(): Promise<완주기록> {
 
     // 턴 판정은 아이가 말한 만큼 남는다 (턴 로그 화면과 회차 비교의 재료다).
     expect(완주.turn_conditions).toBe(아이_턴_수)
+  })
+
+  // ── 경계 채점이 실제로 붙어 도나 (이슈 #26 일감 10 · char 트랙 #22 ③) ──────
+  //
+  // `lib/judge.ts` 는 그 자체로는 순수 함수 묶음이라 단위 검사로 다 잴 수 있다. 여기서
+  // 재는 것은 **배선**이다 — 턴을 저장할 때 정말 불리나, 어느 메시지에 붙나, 고정 대사가
+  // 채점 대상에 섞이지 않나. 파이썬에서 이 자리가 `회차._자동_채점()` 이었다.
+
+  it('🔴 턴마다 규칙 심판 셋이 돌아 scores 에 auto 로 쌓인다 (심판 LLM 은 안 켠다)', () => {
+    const 이름들 = ['fabricated_fixed_line', 'closing_generated', 'scene_goal_leak']
+
+    // 기본값은 「심판 끔」이다 (파이썬 `경계_채점(심판_포함=False)`). 켜졌다면 여섯이 된다 —
+    // ⚠️ 그건 턴마다 LLM 호출이 셋 더 나갔다는 뜻이라 **돈이 새는 것을 이 줄이 잡는다.**
+    expect(완주.scores).toHaveLength(아이_턴_수 * 3)
+    expect(new Set(완주.scores.map((행) => 행.check_name))).toEqual(new Set(이름들))
+    expect(완주.scores.every((행) => 행.graded_by === 'auto')).toBe(true)
+    expect(완주.scores.every((행) => 행.target === 'utterance')).toBe(true)
+
+    // 🔴 **아이 발화 행에 붙는다**, 캐릭터 행이 아니다 (`scores.message_id` 의 뜻).
+    const 아이_id = new Set(
+      완주.메시지들.filter((행) => 행.speaker_type === 'child').map((행) => 행.id),
+    )
+    expect(완주.scores.every((행) => 행.message_id !== null && 아이_id.has(행.message_id))).toBe(
+      true,
+    )
+
+    // 턴 하나에 정확히 셋. 순서도 늘 같다.
+    for (const id of 아이_id) {
+      expect(완주.scores.filter((행) => 행.message_id === id).map((행) => 행.check_name)).toEqual(
+        이름들,
+      )
+    }
+  })
+
+  it('⭐ CLOSING 턴은 고정 대사를 채점 대상으로 넘기지 않는다 (경계 4)', () => {
+    // 이게 이 배선에서 제일 미끄러운 자리다. `dialogue_text` 를 그대로 채점기에 넘기면
+    // 고정 마지막 대사가 「캐릭터가 지어낸 대사」로 들어가 `fabricated_fixed_line` 이
+    // **CLOSING 턴마다 위반**으로 뜬다. 넘기는 것은 생성된 줄뿐이라야 한다.
+    const 턴별 = 완주.메시지들
+      .filter((행) => 행.speaker_type === 'child')
+      .map((행, 자리) => ({ 턴: 완주.turns[자리], 점수: 완주.scores.filter((s) => s.message_id === 행.id) }))
+
+    const 닫는 = 턴별.filter((하나) => 하나.턴.response_mode === 'CLOSING')
+    expect(닫는).toHaveLength(닫는_턴_수)
+    for (const 하나 of 닫는) {
+      const 값 = Object.fromEntries(하나.점수.map((행) => [행.check_name, 행.value]))
+      // 대사가 빈 글자로 들어갔다는 증거 — 셋 다 「지켰다」다.
+      expect(값['closing_generated']).toBe(1)
+      expect(값['fabricated_fixed_line']).toBe(1)
+      expect(값['scene_goal_leak']).toBe(1)
+    }
+
+    // CLOSING 이 아닌 턴에서는 `closing_generated` 가 **판정 안 함**(null)으로 빠진다.
+    for (const 하나 of 턴별.filter((하나) => 하나.턴.response_mode !== 'CLOSING')) {
+      const 값 = Object.fromEntries(하나.점수.map((행) => [행.check_name, 행.value]))
+      expect(값['closing_generated']).toBeNull()
+    }
+  })
+
+  it('판정의 출처가 남는다 — 캐릭터 호출이 있던 턴만 llm_call_id 가 찬다', () => {
+    const 아이_행 = 완주.메시지들.filter((행) => 행.speaker_type === 'child')
+    for (const [자리, 행] of 아이_행.entries()) {
+      const 점수 = 완주.scores.filter((s) => s.message_id === 행.id)
+      // CLOSING 턴은 캐릭터 LLM 을 아예 안 부르므로 댈 출처가 없다.
+      const 있어야 = 완주.turns[자리].response_mode !== 'CLOSING'
+      for (const 하나 of 점수) {
+        expect(하나.llm_call_id === null).toBe(!있어야)
+      }
+    }
+  })
+
+  it('회차를 닫을 때 scored_at 이 찍힌다 (파이썬 `회차_채점완료`)', () => {
+    expect(완주.run.scored_at).not.toBeNull()
   })
 
   it('⭐ 장면이 바뀌면 누적 요소·턴 수가 0 으로 리셋된다 (안 지우면 첫 턴에 GOAL_MET)', () => {

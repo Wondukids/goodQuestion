@@ -1,7 +1,7 @@
 {
  "무엇": "파이썬 goodquestion.goldenset.채점() 이 낸 값. tests/scoring.test.ts 가 대조한다.",
- "뜬_날": "2026-08-13",
- "만든_법": "notes/ 아래가 아니라 이 파일 머리말 참고 — LLM 없이 결정적으로 지어낸 라벨이다",
+ "뜬_날": "2026-08-14",
+ "만든_법": "파이썬 goodquestion.goldenset.채점() 을 진짜로 돌려 떴다. 2026-08-14 에 골든셋 정답 4줄이 바뀌어(이슈 #21·#6) 다시 떴고, 라벨은 「완전 일치」 사례만 새 정답으로 다시 지었다.",
  "사례들": [
   {
    "이름": "빈 판 — 짝이 하나도 없다",
@@ -176,9 +176,7 @@
      "item_id": "gs_banggui_05_302",
      "라벨": {
       "child_intent": "PERSPECTIVE",
-      "detected_elements": [
-       "EMPATHY"
-      ],
+      "detected_elements": [],
       "utterance_validity": "VALID"
      }
     },
@@ -512,9 +510,7 @@
       "검수": "검수완료",
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
-      "맞힌_요소": [
-       "EMPATHY"
-      ],
+      "맞힌_요소": [],
       "놓친_요소": [],
       "지어낸_요소": []
      },
@@ -707,7 +703,8 @@
      "라벨": {
       "child_intent": "PERSPECTIVE",
       "detected_elements": [
-       "EMPATHY"
+       "EMPATHY",
+       "PERSPECTIVE"
       ],
       "utterance_validity": "VALID"
      }
@@ -816,7 +813,8 @@
      "라벨": {
       "child_intent": "PERSPECTIVE",
       "detected_elements": [
-       "PERSPECTIVE"
+       "PERSPECTIVE",
+       "EMPATHY"
       ],
       "utterance_validity": "VALID"
      }
@@ -843,7 +841,9 @@
      "item_id": "gs_banggui_03_204",
      "라벨": {
       "child_intent": "OPINION",
-      "detected_elements": [],
+      "detected_elements": [
+       "PERSPECTIVE"
+      ],
       "utterance_validity": "VALID"
      }
     },
@@ -1238,9 +1238,7 @@
      "item_id": "gs_banggui_05_302",
      "라벨": {
       "child_intent": "PERSPECTIVE",
-      "detected_elements": [
-       "EMPATHY"
-      ],
+      "detected_elements": [],
       "utterance_validity": "VALID"
      }
     },
@@ -1424,7 +1422,8 @@
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
       "맞힌_요소": [
-       "EMPATHY"
+       "EMPATHY",
+       "PERSPECTIVE"
       ],
       "놓친_요소": [],
       "지어낸_요소": []
@@ -1545,7 +1544,8 @@
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
       "맞힌_요소": [
-       "PERSPECTIVE"
+       "PERSPECTIVE",
+       "EMPATHY"
       ],
       "놓친_요소": [],
       "지어낸_요소": []
@@ -1575,7 +1575,9 @@
       "검수": "초안",
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
-      "맞힌_요소": [],
+      "맞힌_요소": [
+       "PERSPECTIVE"
+      ],
       "놓친_요소": [],
       "지어낸_요소": []
      },
@@ -2011,9 +2013,7 @@
       "검수": "검수완료",
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
-      "맞힌_요소": [
-       "EMPATHY"
-      ],
+      "맞힌_요소": [],
       "놓친_요소": [],
       "지어낸_요소": []
      },
@@ -2916,8 +2916,8 @@
     "child_intent_정확도": 0.6712328767123288,
     "utterance_validity_정확도": 0.7397260273972602,
     "요소_정밀도": 0.5833333333333334,
-    "요소_재현율": 0.6712328767123288,
-    "요소_F1": 0.6242038216560509,
+    "요소_재현율": 0.6533333333333333,
+    "요소_F1": 0.6163522012578616,
     "믿을_수_있나": false,
     "항목별": [
      {
@@ -2943,7 +2943,9 @@
       "맞힌_요소": [
        "EMPATHY"
       ],
-      "놓친_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
       "지어낸_요소": []
      },
      {
@@ -3078,7 +3080,9 @@
       "맞힌_요소": [
        "PERSPECTIVE"
       ],
-      "놓친_요소": [],
+      "놓친_요소": [
+       "EMPATHY"
+      ],
       "지어낸_요소": []
      },
      {
@@ -3109,7 +3113,9 @@
       "child_intent_맞음": true,
       "utterance_validity_맞음": false,
       "맞힌_요소": [],
-      "놓친_요소": [],
+      "놓친_요소": [
+       "PERSPECTIVE"
+      ],
       "지어낸_요소": [
        "DECISION"
       ]
@@ -3594,9 +3600,7 @@
       "child_intent_맞음": false,
       "utterance_validity_맞음": true,
       "맞힌_요소": [],
-      "놓친_요소": [
-       "EMPATHY"
-      ],
+      "놓친_요소": [],
       "지어낸_요소": []
      },
      {
@@ -4105,9 +4109,9 @@
     "초안_건수": 0,
     "child_intent_정확도": 0.6666666666666666,
     "utterance_validity_정확도": 0.7333333333333333,
-    "요소_정밀도": 0.7142857142857143,
-    "요소_재현율": 0.6818181818181818,
-    "요소_F1": 0.6976744186046512,
+    "요소_정밀도": 0.6904761904761905,
+    "요소_재현율": 0.6744186046511628,
+    "요소_F1": 0.6823529411764705,
     "믿을_수_있나": true,
     "항목별": [
      {
@@ -4293,11 +4297,10 @@
       "검수": "검수완료",
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
-      "맞힌_요소": [
-       "EMPATHY"
-      ],
+      "맞힌_요소": [],
       "놓친_요소": [],
       "지어낸_요소": [
+       "EMPATHY",
        "PERSPECTIVE"
       ]
      },
@@ -4911,9 +4914,7 @@
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
       "맞힌_요소": [],
-      "놓친_요소": [
-       "EMPATHY"
-      ],
+      "놓친_요소": [],
       "지어낸_요소": []
      },
      {
@@ -5605,9 +5606,9 @@
     "초안_건수": 0,
     "child_intent_정확도": 1.0,
     "utterance_validity_정확도": 1.0,
-    "요소_정밀도": 0.18333333333333332,
+    "요소_정밀도": 0.17916666666666667,
     "요소_재현율": 1.0,
-    "요소_F1": 0.30985915492957744,
+    "요소_F1": 0.303886925795053,
     "믿을_수_있나": true,
     "항목별": [
      {
@@ -5881,9 +5882,7 @@
       "검수": "검수완료",
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
-      "맞힌_요소": [
-       "EMPATHY"
-      ],
+      "맞힌_요소": [],
       "놓친_요소": [],
       "지어낸_요소": [
        "DECISION",
@@ -5892,6 +5891,7 @@
        "SOLUTION",
        "RESULT",
        "EMOTION",
+       "EMPATHY",
        "REQUEST"
       ]
      },
@@ -6579,9 +6579,9 @@
     "초안_건수": 0,
     "child_intent_정확도": 1.0,
     "utterance_validity_정확도": 1.0,
-    "요소_정밀도": 0.3333333333333333,
-    "요소_재현율": 0.45454545454545453,
-    "요소_F1": 0.3846153846153846,
+    "요소_정밀도": 0.31666666666666665,
+    "요소_재현율": 0.4418604651162791,
+    "요소_F1": 0.3689320388349514,
     "믿을_수_있나": true,
     "항목별": [
      {
@@ -6806,13 +6806,13 @@
       "검수": "검수완료",
       "child_intent_맞음": true,
       "utterance_validity_맞음": true,
-      "맞힌_요소": [
-       "EMPATHY"
-      ],
+      "맞힌_요소": [],
       "놓친_요소": [],
       "지어낸_요소": [
        "REASON",
-       "REASON"
+       "REASON",
+       "EMPATHY",
+       "EMPATHY"
       ]
      },
      {

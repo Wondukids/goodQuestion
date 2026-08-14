@@ -233,17 +233,26 @@ export interface CharacterMaterialArgs {
 }
 
 /**
- * 캐릭터 LLM 에 보낼 user 본문 (파이썬 `runner.캐릭터_재료()`).
+ * 캐릭터 LLM 재료 **묶음 그 자체**(채우기 전) — 파이썬 `runner.캐릭터_재료_묶음()`.
  *
- * `docs/기준/LLM입출력규격.md:234-341` 의 4묶음. **안 넣는 것 셋이 이 함수의 절반이다.**
+ * `docs/기준/LLM입출력규격.md:234-341` 의 6묶음. **안 넣는 것 셋이 이 함수의 절반이다.**
  *
  * - ⛔ `scene_goal` — 읽으면 아이 대신 그 문장을 말해 버린다 (`:275-278`).
  *   파이썬 `scoring.py` 에 `scene_goal_leak` 전용 채점까지 있다.
  *   🔴 **분석 쪽에 `goal` 을 켜도 캐릭터 쪽은 그대로다** (`스펙확정_연동기준.md` C).
  * - `missing_elements` 통째 — `remaining_worries[guidance_target]` **한 줄**만 준다 (`:299-309`)
  * - 전체 줄거리 — 스포일러. `scene_order < N` 인 전개까지만 (`:320-340`)
+ *
+ * ⛔ `guidance_target` **이름 자체는 안 들어간다.** 규칙 층이 넘기는 것은 요소 이름과 걱정
+ * 문장인데, 캐릭터 프롬프트에는 걱정 문장만 실어 왔다 (기준 문서 13절). 그 선을 지킨다.
+ *
+ * 🔴 **채우기와 갈라 둔 이유** — 유도 골든셋이 **이 dict 를 그대로 파일에 박제**해야 하는데,
+ * 베껴 쓰면 조용히 갈라진다 (`web/tools/유도셋-기록.ts` 의 `pickItem()`, 파이썬도 같은 자리에서
+ * `캐릭터_재료_묶음()` 을 갈라냈다).
  */
-export function buildCharacterMaterial(args: CharacterMaterialArgs): string {
+export function buildCharacterMaterialBundle(
+  args: Omit<CharacterMaterialArgs, 'prompt'>,
+): Record<string, unknown> {
   const {
     scene,
     precedingNarrations = [],
@@ -253,7 +262,6 @@ export function buildCharacterMaterial(args: CharacterMaterialArgs): string {
     reaction_key,
     guidance_target = null,
     pastMessages = [],
-    prompt = null,
   } = args
 
   // 없으면 빈칸. 지어내지 않는다 (`docs/기준/LLM입출력규격.md:273`)
@@ -292,6 +300,19 @@ export function buildCharacterMaterial(args: CharacterMaterialArgs): string {
     },
   }
 
+  return 재료
+}
+
+/**
+ * 만들어 둔 재료 묶음을 캐릭터 프롬프트 틀에 채운다 (파이썬 `runner.캐릭터_재료()` 의 뒷대목).
+ *
+ * 묶음이 어디서 왔는지 모른다 — 방금 만든 것이든 골든셋 파일에서 읽어 온 것이든 같다.
+ * **채우는 자리도 하나여야 한다**(위 `buildCharacterMaterialBundle()` 머리말과 같은 이유).
+ */
+export function renderCharacterMaterial(
+  재료: Readonly<Record<string, unknown>>,
+  prompt: string | null = null,
+): string {
   const 출처 = prompt === null || prompt === undefined ? 'prompts/character.md' : '주어진 본문'
   const 본문 = chooseBody('character', prompt)
   return fill(
@@ -303,4 +324,9 @@ export function buildCharacterMaterial(args: CharacterMaterialArgs): string {
     },
     출처,
   )
+}
+
+/** 캐릭터 LLM 에 보낼 user 본문 (파이썬 `runner.캐릭터_재료()`). 위 둘을 이어 부른다. */
+export function buildCharacterMaterial(args: CharacterMaterialArgs): string {
+  return renderCharacterMaterial(buildCharacterMaterialBundle(args), args.prompt ?? null)
 }
