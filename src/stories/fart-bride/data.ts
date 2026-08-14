@@ -10,6 +10,7 @@
  */
 
 import type { TtsVoice } from "@/tts/voices";
+import type { PlanCut } from "./video-plan";
 
 const BASE = "/stories/fart-bride";
 
@@ -42,11 +43,22 @@ export type InteractiveStep = {
   answer: { image: string; lines: SpeechLine[] };
 };
 
-export type Step = VideoStep | InteractiveStep;
+/**
+ * video-plan.json 의 연속된 linear 컷 묶음 — mp4 파트 대신 컷 이미지+녹음
+ * 음성+저장된 연출로 재생한다. 변환은 plan-sequence.ts, 재생은 cuts-player.tsx.
+ */
+export type CutsStep = {
+  kind: "cuts";
+  id: string;
+  label: string;
+  cuts: PlanCut[];
+};
 
-/** story_database.json 의 meta.sttDefaults */
+export type Step = VideoStep | InteractiveStep | CutsStep;
+
+/** story_database.json 의 meta.sttDefaults — maxListenSec 만 10→20초로 늘렸다 */
 export const STT_DEFAULTS = {
-  maxListenSec: 10,
+  maxListenSec: 20,
   retryCount: 1,
   proceedOnSilence: true,
 };

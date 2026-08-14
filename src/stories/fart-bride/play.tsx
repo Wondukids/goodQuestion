@@ -2,23 +2,33 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type VideoStep } from "./data";
+import { CutsPlayer, type CutsPlayerHandle } from "./cuts-player";
 import { InteractiveScene } from "./interactive-scene";
+import { buildPlanSequence } from "./plan-sequence";
 import { useStorySequencer } from "./sequencer";
 import { VIDEO_SUBTITLES } from "./subtitles";
 
 /**
  * 방귀 뀌는 며느리 — 재생 화면.
  *
- * 영상 5파트 사이에 인터랙티브 4씬(STT→TTS)이 끼어드는 구조.
- * 순서 정의는 data.ts, 진행 제어(시작·다음·점프·책 넘김 판단)는 sequencer.ts,
+ * 재생 순서는 /dev/video-maker 에서 편집·저장한 video-plan.json 을 따른다
+ * (plan-sequence.ts 가 변환): linear 컷 묶음은 cuts-player 가 이미지+음성+
+ * 저장된 연출로 재생하고, 질문·답변 컷 짝은 대화 씬(STT→TTS)이 된다.
+ * 진행 제어(시작·다음·점프·책 넘김 판단)는 sequencer.ts,
  * 대화 씬 동작은 interactive-scene.tsx 에 있다 — 이 파일은 그리기만 한다.
+ * mp4 파트 방식 순서(data.ts 의 SEQUENCE)는 남아 있다 — 되돌리려면
+ * useStorySequencer() 를 인자 없이 부르면 된다.
  *
  * 시안 8~17 디자인은 추후 제공 예정이라 지금은 기능 테스트용 최소 UI 다.
  * 첫 화면의 "이야기 시작" 버튼은 소리 있는 자동재생을 허용받기 위한
  * 사용자 제스처이기도 하다 — 빼면 브라우저가 영상 소리를 막는다.
  */
+
+/* 플랜은 빌드에 포함된 정적 데이터라 모듈에서 한 번만 변환한다 */
+const PLAN_STEPS = buildPlanSequence();
+
 export default function FartBridePlay({
   childName,
 }: {
@@ -26,7 +36,15 @@ export default function FartBridePlay({
   childName: string | null;
 }) {
   const { steps, started, stepIndex, step, finished, turning, start, next, restart } =
-    useStorySequencer();
+    useStorySequencer(PLAN_STEPS);
+
+  /* 건너뛰기 — 컷 묶음 재생 중에는 스텝째가 아니라 한 컷씩 넘긴다.
+     마지막 컷에서는 cuts-player 가 onEnded 로 다음 스텝을 부른다. */
+  const cutsRef = useRef<CutsPlayerHandle | null>(null);
+  const skip = () => {
+    if (step?.kind === "cuts" && cutsRef.current) cutsRef.current.skipCut();
+    else next();
+  };
 
   return (
     <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
@@ -78,6 +96,8 @@ export default function FartBridePlay({
           >
             {step.kind === "video" ? (
               <PartVideo step={step} onEnded={next} />
+            ) : step.kind === "cuts" ? (
+              <CutsPlayer step={step} onEnded={next} ref={cutsRef} />
             ) : (
               <InteractiveScene step={step} childName={childName} onComplete={next} />
             )}
@@ -111,7 +131,7 @@ export default function FartBridePlay({
 
             <button
               type="button"
-              onClick={next}
+              onClick={skip}
               className="rounded-lg bg-white/20 px-4 py-2 text-[15px] font-bold text-white"
             >
               건너뛰기
