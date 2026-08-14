@@ -62,6 +62,11 @@ for (const c of VIDEO_PLAN.cuts) {
   }
 }
 
+/* 화자 입력 자동완성 후보 — 원본 플랜에 등장한 화자들 */
+const KNOWN_SPEAKERS = Array.from(
+  new Set(Array.from(LINE_INFO.values()).map((l) => l.speaker)),
+);
+
 function formatTime(sec: number) {
   const whole = Math.round(sec);
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
@@ -333,6 +338,12 @@ export default function VideoMakerPage() {
   const [lineFilter, setLineFilter] = useState("");
   /* 연출 다시 보기 — 증가할 때마다 등장·카메라 연출을 재시작한다 */
   const [replayKey, setReplayKey] = useState(0);
+  /* 컷 목록 직접 편집 — 드래그 순서 변경·더블클릭 이름 수정 */
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  /* 새 컷 종류 선택 메뉴가 열린 위치 — "이 인덱스 아래에 추가" */
+  const [addMenuAt, setAddMenuAt] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previewRef = useRef<HTMLAudioElement | null>(null);
 
@@ -421,6 +432,7 @@ export default function VideoMakerPage() {
     stopPlayback();
     setImagePickerOpen(false);
     setLinePickerOpen(false);
+    setAddMenuAt(null);
     setCutIndex(index);
   }
 
@@ -452,12 +464,20 @@ export default function VideoMakerPage() {
     updateCut(cutIndex, { lines: cut.lines.filter((_, idx) => idx !== i) });
   }
 
+  /** 대사 하나의 화자·자막을 고친다 — 목록에서 바로 입력 */
+  function updateLine(i: number, patch: Partial<PlanLine>) {
+    updateCut(cutIndex, {
+      lines: cut.lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)),
+    });
+  }
+
   function addLine(audio: string) {
     stopPlayback();
     const known = LINE_INFO.get(audio);
+    /* 플랜에 없는 소리는 자막을 비워 두고 목록에서 직접 쓰게 한다 */
     const line: PlanLine = known
       ? { ...known }
-      : { speaker: "내레이션", text: `(대사 미지정 — ${audio})`, audio, durationSec: null };
+      : { speaker: "내레이션", text: "", audio, durationSec: null };
     updateCut(cutIndex, { lines: [...cut.lines, line] });
   }
 
@@ -469,54 +489,103 @@ export default function VideoMakerPage() {
     setImagePickerOpen(false);
   }
 
-  /** 현재 컷 아래에 빈 컷을 추가한다 — 이미지는 우선 현재 컷 것을 물려받는다 */
-  function addCut() {
-    stopPlayback();
-    let n = 1;
-    while (cuts.some((c) => c.id === `n${n}`)) n++;
-    const added: PlanCut = {
-      id: `n${n}`,
-      scene: cut.scene,
-      chapter: cut.chapter,
+  /** 빈 컷 한 개 — 이미지·대사·연출이 전부 비어 있다 */
+  function makeCut(id: string, overrides: Partial<PlanCut> = {}): PlanCut {
+    return {
+      id,
+      scene: 0,
+      chapter: "",
       title: "새 컷",
       kind: "linear",
-      image: cut.image || (assets?.image[0] ?? ""),
+      image: "",
       needsNewImage: false,
       screenTransition: false,
       after: null,
-      effect: { camera: "none", enter: "none" },
+      effect: { camera: "none", enter: "none", overlay: "none" },
       lines: [],
       durationSec: 0,
+      ...overrides,
     };
+  }
+
+  /** 새 컷 종류 — 빈 컷 하나, 또는 질문·답변 쌍(STT / STT→미니게임) */
+  type NewCutKind = "blank" | "stt" | "stt-minigame";
+
+  /** afterIndex 컷 아래에 새 컷을 추가한다. 대화 컷은 질문·답변 두 개가 함께 생긴다 */
+  function addCut(afterIndex = cutIndex, kind: NewCutKind = "blank") {
+    stopPlayback();
+    setAddMenuAt(null);
+    let n = 1;
+    while (cuts.some((c) => c.id === `n${n}` || c.id === `n${n}-1` || c.id === `n${n}-2`)) n++;
+    const base = cuts[afterIndex];
+    const common = { scene: base?.scene ?? 0, chapter: base?.chapter ?? "" };
+    const added: PlanCut[] =
+      kind === "blank"
+        ? [makeCut(`n${n}`, common)]
+        : [
+            makeCut(`n${n}-1`, {
+              ...common,
+              kind: "question",
+              title: "아이와의 대화 · 질문",
+              after: kind === "stt" ? "stt" : "stt-minigame",
+            }),
+            makeCut(`n${n}-2`, {
+              ...common,
+              kind: "answer",
+              title: "아이와의 대화 · 답변",
+            }),
+          ];
     setCuts((prev) => [
-      ...prev.slice(0, cutIndex + 1),
-      added,
-      ...prev.slice(cutIndex + 1),
+      ...prev.slice(0, afterIndex + 1),
+      ...added,
+      ...prev.slice(afterIndex + 1),
     ]);
-    setCutIndex(cutIndex + 1);
+    setCutIndex(afterIndex + 1);
     setDirty(true);
   }
 
-  function removeCut() {
-    if (cuts.length <= 1) return;
-    if (!window.confirm(`"${cut.id}. ${cut.title}" 컷을 삭제할까요?`)) return;
+  /** 전체 컷을 비우고 빈 컷 하나에서 새로 시작한다 — "저장" 전까지 json 은 그대로다 */
+  function resetPlan() {
+    if (
+      !window.confirm(
+        "모든 컷을 지우고 처음부터 새로 만듭니다.\n\"저장\"을 누르기 전까지 video-plan.json 은 바뀌지 않습니다. 계속할까요?",
+      )
+    )
+      return;
     stopPlayback();
-    setCuts((prev) => prev.filter((_, i) => i !== cutIndex));
-    setCutIndex(Math.min(cutIndex, cuts.length - 2));
+    setAddMenuAt(null);
+    setRenamingId(null);
+    setCuts([makeCut("n1")]);
+    setCutIndex(0);
+    setDirty(true);
+  }
+
+  function removeCut(index = cutIndex) {
+    if (cuts.length <= 1) return;
+    const target = cuts[index];
+    if (!target || !window.confirm(`"${target.id}. ${target.title}" 컷을 삭제할까요?`)) return;
+    stopPlayback();
+    setCuts((prev) => prev.filter((_, i) => i !== index));
+    setCutIndex((prev) => (index < prev ? prev - 1 : Math.min(prev, cuts.length - 2)));
+    setDirty(true);
+  }
+
+  /** from 위치의 컷을 to 위치로 옮긴다 — 드래그 앤 드롭과 ↑↓ 버튼이 함께 쓴다 */
+  function moveCutTo(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= cuts.length || to >= cuts.length) return;
+    stopPlayback();
+    setCuts((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setCutIndex(to);
     setDirty(true);
   }
 
   function moveCut(delta: number) {
-    const j = cutIndex + delta;
-    if (j < 0 || j >= cuts.length) return;
-    stopPlayback();
-    setCuts((prev) => {
-      const next = [...prev];
-      [next[cutIndex], next[j]] = [next[j], next[cutIndex]];
-      return next;
-    });
-    setCutIndex(j);
-    setDirty(true);
+    moveCutTo(cutIndex, cutIndex + delta);
   }
 
   /** 대사 추가 목록에서 ▶ — 연결 전에 들어 본다 */
@@ -580,6 +649,13 @@ export default function VideoMakerPage() {
             )}
             <button
               type="button"
+              onClick={resetPlan}
+              className="rounded-xl bg-chip px-4 py-2.5 text-[15px] font-bold text-point-strong"
+            >
+              처음부터 새로 만들기
+            </button>
+            <button
+              type="button"
               onClick={savePlan}
               disabled={!dirty || saving}
               className="rounded-xl bg-primary px-6 py-2.5 text-[15px] font-extrabold text-white disabled:opacity-40"
@@ -596,25 +672,158 @@ export default function VideoMakerPage() {
         )}
 
         <div className="flex flex-col gap-6 lg:flex-row">
-          {/* ---------- 컷 목록 ---------- */}
+          {/* ---------- 컷 목록 (직접 편집: 드래그 순서·더블클릭 이름·행별 추가/삭제) ---------- */}
           <aside className="flex max-h-[760px] w-full shrink-0 flex-col gap-1 overflow-y-auto rounded-2xl bg-surface p-3 shadow-panel lg:w-[340px]">
+            <p className="px-2 pb-1 text-[11px] font-bold text-ink-faint">
+              드래그로 순서 이동 · 제목 더블클릭으로 이름 수정
+            </p>
             {cuts.map((c, i) => (
-              <button
+              <div
                 key={c.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => selectCut(i)}
-                className={`flex flex-col gap-1 rounded-xl px-3 py-2 text-left ${
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") selectCut(i);
+                }}
+                draggable={renamingId !== c.id}
+                onDragStart={() => setDragIndex(i)}
+                onDragEnd={() => {
+                  setDragIndex(null);
+                  setDropIndex(null);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDropIndex(i);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) moveCutTo(dragIndex, i);
+                  setDragIndex(null);
+                  setDropIndex(null);
+                }}
+                className={`group relative flex cursor-pointer flex-col gap-1 rounded-xl px-3 py-2 text-left ${
                   i === cutIndex ? "bg-primary-soft" : "hover:bg-chip"
-                }`}
+                } ${
+                  dropIndex === i && dragIndex !== null && dragIndex !== i
+                    ? "ring-2 ring-primary"
+                    : ""
+                } ${dragIndex === i ? "opacity-50" : ""}`}
               >
                 <span className="flex items-baseline gap-2">
-                  <span className="text-[13px] font-extrabold text-ink">
-                    {c.id}. {c.title}
+                  <span className="shrink-0 cursor-grab text-[12px] text-ink-faint" aria-hidden>
+                    ⠿
                   </span>
+                  <span className="shrink-0 text-[13px] font-extrabold text-ink">{c.id}.</span>
+                  {renamingId === c.id ? (
+                    <input
+                      autoFocus
+                      value={c.title}
+                      onChange={(e) => updateCut(i, { title: e.target.value })}
+                      onBlur={() => setRenamingId(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === "Escape") setRenamingId(null);
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="min-w-0 flex-1 rounded border border-primary bg-white px-1 text-[13px] font-extrabold text-ink outline-none"
+                    />
+                  ) : (
+                    <span
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        selectCut(i);
+                        setRenamingId(c.id);
+                      }}
+                      title="더블클릭으로 이름 수정"
+                      className="min-w-0 flex-1 truncate text-[13px] font-extrabold text-ink"
+                    >
+                      {c.title}
+                    </span>
+                  )}
                   <span className="ml-auto shrink-0 text-[12px] text-ink-faint">
                     {formatTime(startTimes[i])} · {c.durationSec.toFixed(1)}s
                   </span>
                 </span>
+                {/* 행 위에 올리면 나오는 조작 버튼 — 시간 표시 위를 덮는다 */}
+                <span className="absolute right-1.5 top-1 hidden gap-0.5 rounded-lg bg-white/95 px-1 py-0.5 shadow-panel group-hover:flex">
+                  <button
+                    type="button"
+                    title="위로"
+                    disabled={i === 0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveCutTo(i, i - 1);
+                    }}
+                    className="rounded px-1.5 text-[13px] font-bold text-ink hover:bg-chip disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    title="아래로"
+                    disabled={i === cuts.length - 1}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveCutTo(i, i + 1);
+                    }}
+                    className="rounded px-1.5 text-[13px] font-bold text-ink hover:bg-chip disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    title="아래에 새 컷 (종류 선택)"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddMenuAt((prev) => (prev === i ? null : i));
+                    }}
+                    className="rounded px-1.5 text-[13px] font-bold text-primary-strong hover:bg-chip"
+                  >
+                    ＋
+                  </button>
+                  <button
+                    type="button"
+                    title="컷 삭제"
+                    disabled={cuts.length <= 1}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeCut(i);
+                    }}
+                    className="rounded px-1.5 text-[13px] font-bold text-point-strong hover:bg-chip disabled:opacity-30"
+                  >
+                    ✕
+                  </button>
+                </span>
+                {/* 새 컷 종류 선택 — ＋ 를 누르면 이 컷 아래에 무엇을 넣을지 고른다 */}
+                {addMenuAt === i && (
+                  <span
+                    className="absolute right-1.5 top-8 z-10 flex w-64 flex-col rounded-xl border border-divider bg-white p-1 shadow-panel"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => addCut(i, "blank")}
+                      className="rounded-lg px-3 py-1.5 text-left text-[13px] font-bold text-ink hover:bg-chip"
+                    >
+                      빈 컷 — 이미지·대사 없이 시작
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addCut(i, "stt")}
+                      className="rounded-lg px-3 py-1.5 text-left text-[13px] font-bold text-ink hover:bg-chip"
+                    >
+                      대화 컷 (STT) — 질문·답변 쌍, 아이 답변 대기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addCut(i, "stt-minigame")}
+                      className="rounded-lg px-3 py-1.5 text-left text-[13px] font-bold text-ink hover:bg-chip"
+                    >
+                      대화 컷 (STT → 미니게임) — 답변 뒤 미니게임
+                    </button>
+                  </span>
+                )}
                 <span className="flex flex-wrap gap-1">
                   {c.needsNewImage && (
                     <span className="rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-bold text-point-strong">
@@ -642,8 +851,31 @@ export default function VideoMakerPage() {
                     </span>
                   )}
                 </span>
-              </button>
+              </div>
             ))}
+            <div className="mt-1 flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => addCut(cuts.length - 1, "blank")}
+                className="flex-1 rounded-xl border border-dashed border-divider px-2 py-2 text-[12px] font-bold text-ink-soft hover:border-primary hover:text-primary-strong"
+              >
+                + 빈 컷
+              </button>
+              <button
+                type="button"
+                onClick={() => addCut(cuts.length - 1, "stt")}
+                className="flex-1 rounded-xl border border-dashed border-divider px-2 py-2 text-[12px] font-bold text-ink-soft hover:border-primary hover:text-primary-strong"
+              >
+                + 대화 컷 (STT)
+              </button>
+              <button
+                type="button"
+                onClick={() => addCut(cuts.length - 1, "stt-minigame")}
+                className="flex-1 rounded-xl border border-dashed border-divider px-2 py-2 text-[12px] font-bold text-ink-soft hover:border-primary hover:text-primary-strong"
+              >
+                + 대화 컷 (미니게임)
+              </button>
+            </div>
           </aside>
 
           {/* ---------- 미리보기 + 편집 ---------- */}
@@ -658,20 +890,29 @@ export default function VideoMakerPage() {
                       playKey={playKey}
                     >
                       <div className="relative h-full w-full">
-                        <Image
-                          key={cut.image}
-                          src={assetUrl("image", cut.image)}
-                          alt={`${cut.id}. ${cut.title}`}
-                          fill
-                          unoptimized
-                          className="object-contain"
-                        />
+                        {cut.image ? (
+                          <Image
+                            key={cut.image}
+                            src={assetUrl("image", cut.image)}
+                            alt={`${cut.id}. ${cut.title}`}
+                            fill
+                            unoptimized
+                            className="object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-white/50">
+                            <span className="text-[17px] font-extrabold">이미지 없음</span>
+                            <span className="text-[13px] font-bold">
+                              아래 &quot;이미지 교체&quot;에서 골라 주세요
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </CameraLayer>
                   </EnterLayer>
                 </OverlayLayer>
               </div>
-              {currentLine && (
+              {currentLine && currentLine.text !== "" && (
                 <p className="absolute inset-x-6 bottom-4 rounded-xl bg-black/60 px-4 py-3 text-center text-[18px] font-bold text-white">
                   {currentLine.speaker !== "내레이션" && (
                     <span className="mr-2 text-primary">{currentLine.speaker}</span>
@@ -737,10 +978,24 @@ export default function VideoMakerPage() {
               <span className="text-[13px] font-bold text-ink-faint">컷 편집:</span>
               <button
                 type="button"
-                onClick={addCut}
+                onClick={() => addCut(cutIndex, "blank")}
                 className="rounded-xl bg-primary px-4 py-2 text-[13px] font-extrabold text-white"
               >
-                + 아래에 새 컷
+                + 빈 컷
+              </button>
+              <button
+                type="button"
+                onClick={() => addCut(cutIndex, "stt")}
+                className="rounded-xl bg-primary px-4 py-2 text-[13px] font-extrabold text-white"
+              >
+                + 대화 컷 (STT)
+              </button>
+              <button
+                type="button"
+                onClick={() => addCut(cutIndex, "stt-minigame")}
+                className="rounded-xl bg-primary px-4 py-2 text-[13px] font-extrabold text-white"
+              >
+                + 대화 컷 (미니게임)
               </button>
               <button
                 type="button"
@@ -760,7 +1015,7 @@ export default function VideoMakerPage() {
               </button>
               <button
                 type="button"
-                onClick={removeCut}
+                onClick={() => removeCut()}
                 disabled={cuts.length <= 1}
                 className="rounded-xl bg-chip px-4 py-2 text-[13px] font-bold text-point-strong disabled:opacity-40"
               >
@@ -863,6 +1118,13 @@ export default function VideoMakerPage() {
                 </p>
               )}
 
+              {/* 화자 입력 자동완성 — 대사 행의 화자 칸이 참조한다 */}
+              <datalist id="speaker-options">
+                {KNOWN_SPEAKERS.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+
               {cut.lines.map((line, i) => (
                 <div
                   key={`${line.audio}-${i}`}
@@ -877,10 +1139,19 @@ export default function VideoMakerPage() {
                   >
                     ▶
                   </button>
-                  <span className="shrink-0 rounded-lg bg-chip px-2 py-1 text-[12px] font-bold text-ink-mid">
-                    {line.speaker}
-                  </span>
-                  <span className="min-w-0 flex-1 text-[15px] text-ink">{line.text}</span>
+                  <input
+                    list="speaker-options"
+                    value={line.speaker}
+                    onChange={(e) => updateLine(i, { speaker: e.target.value })}
+                    title="화자 — 내레이션이면 자막에 이름이 붙지 않습니다"
+                    className="w-24 shrink-0 rounded-lg border border-transparent bg-chip px-2 py-1 text-center text-[12px] font-bold text-ink-mid outline-none hover:border-divider focus:border-primary"
+                  />
+                  <input
+                    value={line.text}
+                    onChange={(e) => updateLine(i, { text: e.target.value })}
+                    placeholder="자막(대사)을 입력하세요"
+                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-[15px] text-ink outline-none hover:border-divider focus:border-primary"
+                  />
                   <span className="shrink-0 text-[12px] text-ink-faint">
                     {line.durationSec != null ? `${line.durationSec.toFixed(1)}s` : "길이 미상"}
                   </span>
