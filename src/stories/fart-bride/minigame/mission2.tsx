@@ -2,10 +2,14 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { transcribeAudio } from "@/stt/client";
 import { startRecording, type Recording } from "@/stt/record";
 import { STT_DEFAULTS } from "../data";
 import { fillChildName } from "../name";
+import type {
+  MissionApi,
+  MissionCompleteResult,
+  MissionConfig,
+} from "../session-api";
 import { MissionCanvas } from "./canvas";
 import { Mission2Panel, type MicState, type PanelChoice } from "./mission2-panel";
 import {
@@ -16,7 +20,6 @@ import {
   LINES,
   RESULT_LABEL,
   SCENE,
-  SHORT_ANSWER_CHARS,
   type Friend,
 } from "./mission2-script";
 import { useNpcVoice } from "./use-npc-voice";
@@ -29,11 +32,17 @@ import { useNpcVoice } from "./use-npc-voice";
  *   01 친구 고르기   네 친구 카드 중 한 명을 누른다.
  *   02 카드 확대     고민이 적힌 카드가 커지고, 며느리가 아이에게 묻는다.
  *   03 발화중        아이가 마이크를 눌러 이야기한다.
- *   08 되묻기        너무 짧게 답하면 며느리가 한 번만 다시 묻는다.
+ *   08 되묻기        서버(목) 판정이 SHORT/UNCLEAR 면 한 번만 다시 묻는다 (M9).
  *   05 반응          카드의 고민에 줄이 그어지고 아이 말이 자리를 대신한다.
  *                    "다른 친구도 도와줄래요" / "이제 괜찮아요" 를 고른다.
  *   06 2회차         더 돕겠다면 도운 친구에 ✓ 가 붙은 채로 다시 고른다.
  *   07 완료          며느리가 인사하고 "다음으로".
+ *
+ * 대사·판정은 미션 API(주입받은 missionApi — 명세 7절)가 정한다 (이슈 #20):
+ * 카드 선택·계속/그만은 events, 아이 발화는 turns(감탄 요약 · 되묻기), 끝나면
+ * complete 를 병렬로 부르며 config.closing 을 재생한다. 옛 「6자 미만」 클라이언트
+ * 되묻기 규칙은 서버 판정으로 대체돼 지웠다 (M9). 호출이 죽으면 기존 로컬
+ * 대본(mission2-script)으로 떨어진다.
  *
  * 좌표·크기는 전부 시안 캔버스(1366×1024) 기준 값을 그대로 쓴다.
  */
@@ -65,13 +74,23 @@ type Helped = { id: string; quote: string };
 
 export function Mission2({
   childName,
+  sessionId,
+  missionSessionId,
+  config,
+  missionApi,
   onComplete,
   onQuit,
 }: {
   /** 선택된 아이 이름 — 며느리가 아이를 부를 때 쓴다 */
   childName: string | null;
-  onComplete: () => void;
-  /** 왼쪽 위 뒤로가기 */
+  sessionId: string;
+  missionSessionId: string;
+  /** 서버가 준 미션 정의 — 고정 대사의 정본 (명세 6절). 로컬 대본은 폴백 사본 */
+  config: MissionConfig;
+  /** 실구현 또는 목 — submitMissionEvent · submitMissionTurn · completeMission */
+  missionApi: MissionApi;
+  onComplete: (result: MissionCompleteResult | null) => void;
+  /** 왼쪽 위 뒤로가기 — 시도는 abandoned 로 남고 대화로 복귀한다 (M4) */
   onQuit: () => void;
 }) {
   /* 이름을 모르면 "친구" 로 부른다 — 대사에 "ㅇㅇ" 이 그대로 남지 않게 */
@@ -80,69 +99,121 @@ export function Mission2({
   const [phase, setPhase] = useState<Phase>("pick");
   const [friend, setFriend] = useState<Friend | null>(null);
   const [helped, setHelped] = useState<Helped[]>([]);
-  /* 이 친구에게 이미 한 번 되물었는가 (시안 08 은 한 번만 뜬다) */
-  const [reasked, setReasked] = useState(false);
   const [childTurn, setChildTurn] = useState<ChildTurn>("idle");
   const [micError, setMicError] = useState("");
   const [spokenLine, setSpokenLine] = useState("");
   const [replayCount, setReplayCount] = useState(0);
-
-  const line = fillChildName(
-    phase === "pick"
-      ? helped.length === 0
-        ? LINES.intro
-        : LINES.more
-      : phase === "ask"
-        ? LINES.ask
-        : phase === "again"
-          ? (friend?.reask ?? LINES.ask)
-          : phase === "result"
-            ? LINES.react
-            : LINES.done,
-    kid,
+  /* 미션 API 응답을 기다리는 중 — 그동안 마이크·버튼을 잠근다 */
+  const [waiting, setWaiting] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  /* 며느리 대사 한 줄 — 도입은 config, 그 뒤는 미션 API 응답이 채운다 */
+  const [line, setLine] = useState<string>(() =>
+    fillChildName(config.intro ?? LINES.intro, kid),
   );
 
   const voice = useNpcVoice(line, BRIDE);
   /* 대사가 끝났거나, 합성이 실패해 기다릴 음성이 아예 없거나 */
   const npcDone = spokenLine === line || voice.failed;
 
+  /* 종료 요약(complete)은 마무리 인사를 재생하는 동안 병렬로 돈다 (명세 7절 D).
+     진행 중인 호출을 state 로 들고 있어 마무리 버튼이 결과를 기다린다. */
+  const [completing, setCompleting] =
+    useState<Promise<MissionCompleteResult | null> | null>(null);
+  const startComplete = useCallback(() => {
+    const pending = missionApi
+      .completeMission(sessionId, missionSessionId)
+      .catch((error: unknown) => {
+        console.warn("[미션2] complete 실패 — 서버 결과 없이 마친다", error);
+        return null;
+      });
+    setCompleting(pending);
+    return pending;
+  }, [missionApi, sessionId, missionSessionId]);
+
   /* ── 아이 목소리 받기 ─────────────────────────────────────────── */
 
   const recordingRef = useRef<Recording | null>(null);
+  const retriesRef = useRef(0);
 
   useEffect(() => {
     return () => recordingRef.current?.dispose();
   }, []);
 
+  /** 이 친구를 도운 것으로 기록하고 결과 화면으로 — lineText 가 다음 대사다 */
   const remember = useCallback(
-    (quote: string) => {
+    (quote: string, lineText: string) => {
       if (friend) setHelped((list) => [...list, { id: friend.id, quote }]);
       setChildTurn("idle");
+      setMicError("");
       setPhase("result");
+      setLine(fillChildName(lineText, kid));
     },
-    [friend],
+    [friend, kid],
   );
+
+  /* 무음 재시도 소진 — 서버에 건너뜀을 알린다. 카드만 넘어가고 quote 는 비운다 */
+  const skipStep = useCallback(async () => {
+    setWaiting(true);
+    try {
+      const res = await missionApi.submitMissionEvent(sessionId, missionSessionId, {
+        type: "skip",
+      });
+      remember("", res.line?.text ?? config.more ?? LINES.react);
+    } catch (error) {
+      console.warn("[미션2] 건너뜀 알림 실패 — 로컬 대본으로 진행한다", error);
+      remember("", LINES.react);
+    } finally {
+      setWaiting(false);
+    }
+  }, [missionApi, sessionId, missionSessionId, config, remember]);
 
   const handleRecorded = useCallback(
     async (audio: Blob, channelCount: number) => {
       setChildTurn("thinking");
       try {
-        const text = await transcribeAudio(audio, channelCount);
-        /* 한마디만 하고 말면 며느리가 한 번만 되묻는다 (시안 08).
-           두 번째까지 짧으면 그대로 넘어간다 — 아이를 붙잡아 두지 않는다. */
-        if (text.length < SHORT_ANSWER_CHARS && !reasked) {
-          setReasked(true);
-          setChildTurn("idle");
-          setPhase("again");
+        const result = await missionApi.submitMissionTurn(
+          sessionId,
+          missionSessionId,
+          audio,
+          channelCount,
+        );
+        if (result.empty) {
+          /* 무음 — 한 번 더 기다려 보고, 그래도 조용하면 건너뜀으로 기록한다 */
+          if (retriesRef.current < STT_DEFAULTS.retryCount) {
+            retriesRef.current += 1;
+            setChildTurn("listening");
+          } else {
+            retriesRef.current = 0;
+            await skipStep();
+          }
           return;
         }
-        remember(text);
-      } catch {
+        retriesRef.current = 0;
+        if (result.dialogue === null) {
+          /* 되묻기(M9) — 서버(목) 판정. 친구별 되묻기 문구는 config.cards 가 정본 */
+          setChildTurn("idle");
+          setPhase("again");
+          setLine(
+            fillChildName(
+              result.next.fixed_line?.text ?? friend?.reask ?? LINES.ask,
+              kid,
+            ),
+          );
+          return;
+        }
+        /* 감탄(아이대답요약) 대사 + 반복 질문을 한 줄로 묶어 재생한다 */
+        const more = result.next.fixed_line?.text ?? config.more ?? "";
+        remember(
+          result.child.text,
+          more ? `${result.dialogue.text} ${more}` : result.dialogue.text,
+        );
+      } catch (error) {
+        console.warn("[미션2] 미션 턴 실패 — 로컬 대본 폴백", error);
         setMicError("목소리를 알아듣지 못했어요.");
         setChildTurn("failed");
       }
     },
-    [reasked, remember],
+    [missionApi, sessionId, missionSessionId, skipStep, remember, friend, config, kid],
   );
 
   useEffect(() => {
@@ -174,10 +245,84 @@ export function Mission2({
     };
   }, [childTurn, handleRecorded]);
 
+  /* ── 카드 선택·반복 — 서버 알림 ──────────────────────────────── */
+
+  const pickFriend = useCallback(
+    async (picked: Friend) => {
+      setFriend(picked);
+      setPhase("ask");
+      /* 질문은 고정 대사라 낙관적으로 먼저 채운다 — 응답 문구가 다르면 덮는다 */
+      setLine(fillChildName(config.ask ?? LINES.ask, kid));
+      setWaiting(true);
+      try {
+        const res = await missionApi.submitMissionEvent(sessionId, missionSessionId, {
+          type: "friend_select",
+          value: picked.id,
+        });
+        if (res.line) setLine(fillChildName(res.line.text, kid));
+      } catch (error) {
+        console.warn("[미션2] 카드 선택 알림 실패 — 로컬 대본으로 진행한다", error);
+      } finally {
+        setWaiting(false);
+      }
+    },
+    [missionApi, sessionId, missionSessionId, config, kid],
+  );
+
+  /* 미션을 마무리한다 — complete 는 마무리 인사와 병렬 (명세 8절) */
+  const finishMission = useCallback(() => {
+    startComplete();
+    setFriend(null);
+    setMicError("");
+    setPhase("done");
+    setLine(fillChildName(config.closing || LINES.done, kid));
+  }, [startComplete, config, kid]);
+
+  /** "다른 친구도 도와줄래요" / "이제 괜찮아요" — 서버가 반복/종료를 정한다 */
+  const answerMore = useCallback(
+    async (yes: boolean) => {
+      setWaiting(true);
+      try {
+        const res = await missionApi.submitMissionEvent(sessionId, missionSessionId, {
+          type: "more",
+          value: yes ? "yes" : "no",
+        });
+        if (res.done) {
+          finishMission();
+          return;
+        }
+        setFriend(null);
+        setMicError("");
+        setPhase("pick");
+        setLine(fillChildName(res.line?.text ?? config.more_pick ?? LINES.more, kid));
+      } catch (error) {
+        console.warn("[미션2] 계속/그만 알림 실패 — 로컬 분기로 진행한다", error);
+        if (!yes || helped.length >= FRIENDS.length) {
+          finishMission();
+          return;
+        }
+        setFriend(null);
+        setMicError("");
+        setPhase("pick");
+        setLine(fillChildName(LINES.more, kid));
+      } finally {
+        setWaiting(false);
+      }
+    },
+    [missionApi, sessionId, missionSessionId, config, kid, helped, finishMission],
+  );
+
+  const finishDone = useCallback(async () => {
+    if (finishing) return;
+    setFinishing(true);
+    /* 로컬 폴백으로 끝까지 왔으면 여기서라도 한 번 시도한다 (반복 안전 · 명세 7절 D) */
+    onComplete(await (completing ?? startComplete()));
+  }, [finishing, completing, startComplete, onComplete]);
+
   /* ── 화면 상태 ───────────────────────────────────────────────── */
 
   const micActive = phase === "ask" || phase === "again";
-  const micReady = micActive && npcDone && childTurn === "idle";
+  const micReady = micActive && npcDone && childTurn === "idle" && !waiting;
   const micState: MicState = micReady
     ? "ready"
     : micActive && (childTurn === "listening" || childTurn === "thinking")
@@ -200,33 +345,39 @@ export function Mission2({
     else if (micReady) setChildTurn("listening");
   };
 
-  /* 다른 친구를 마저 돕는다 — 넷 다 도왔으면 더 고를 카드가 없어 바로 마무리 */
-  const helpMore = () => {
-    setFriend(null);
-    setReasked(false);
-    setMicError("");
-    setPhase(helped.length >= FRIENDS.length ? "done" : "pick");
-  };
-
   const choices: PanelChoice[] | undefined =
     childTurn === "failed"
       ? [
           {
             label: "다음으로",
             primary: true,
-            onClick: () => {
-              setMicError("");
-              remember("");
-            },
+            onClick: () => remember("", LINES.react),
           },
         ]
       : phase === "result"
         ? [
-            { label: "다른 친구도 도와줄래요", primary: true, onClick: helpMore },
-            { label: "이제 괜찮아요", onClick: () => setPhase("done") },
+            {
+              label: "다른 친구도 도와줄래요",
+              primary: true,
+              onClick: () => {
+                if (!waiting) void answerMore(true);
+              },
+            },
+            {
+              label: "이제 괜찮아요",
+              onClick: () => {
+                if (!waiting) void answerMore(false);
+              },
+            },
           ]
         : phase === "done"
-          ? [{ label: "다음으로", primary: true, onClick: onComplete }]
+          ? [
+              {
+                label: finishing ? "정리하는 중…" : "다음으로",
+                primary: true,
+                onClick: () => void finishDone(),
+              },
+            ]
           : undefined;
 
   const pose =
@@ -303,8 +454,7 @@ export function Mission2({
                   friend={item}
                   done={helped.some((h) => h.id === item.id)}
                   onPick={() => {
-                    setFriend(item);
-                    setPhase("ask");
+                    if (!waiting) void pickFriend(item);
                   }}
                 />
               ))}
