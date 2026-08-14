@@ -99,14 +99,20 @@ export function InteractiveScene({
       return url;
     };
 
-    const substitute = (lines: SpeechLine[]) =>
-      Promise.all(
-        lines.map(async (line) => {
-          if (!line.text.includes("ㅇㅇ")) return line;
-          const text = fillChildName(line.text, childName);
-          return { text, audio: await tts(text) };
-        }),
-      );
+    /* 병렬로 몰아 부르면 구글 분당 한도(429)에 걸리기 쉬워 한 건씩 순차 합성한다.
+       서버가 같은 문장을 캐시하므로 씬 재진입 때는 구글 호출 없이 바로 온다. */
+    const substitute = async (lines: SpeechLine[]) => {
+      const result: SpeechLine[] = [];
+      for (const line of lines) {
+        if (!line.text.includes("ㅇㅇ")) {
+          result.push(line);
+          continue;
+        }
+        const text = fillChildName(line.text, childName);
+        result.push({ text, audio: await tts(text) });
+      }
+      return result;
+    };
 
     (async () => {
       try {
@@ -115,16 +121,14 @@ export function InteractiveScene({
           line.text.includes("ㅇㅇ"),
         );
         /* 이름만 부르는 한마디는 연기가 붕 뜨기 쉬워 호명 전용 지시를 덧붙인다 */
-        const [greetingAudio, question, answer] = await Promise.all([
-          needsGreeting
-            ? tts(
-                greetingText,
-                `${step.speaker.stylePrompt} 지금은 아이에게 말을 걸려고 이름을 부르는 짧은 첫마디입니다 — 이름을 반갑고 다정하게, 자연스럽게 불러 주세요.`,
-              )
-            : Promise.resolve(null),
-          substitute(step.question.lines),
-          substitute(step.answer.lines),
-        ]);
+        const greetingAudio = needsGreeting
+          ? await tts(
+              greetingText,
+              `${step.speaker.stylePrompt} 지금은 아이에게 말을 걸려고 이름을 부르는 짧은 첫마디입니다 — 이름을 반갑고 다정하게, 자연스럽게 불러 주세요.`,
+            )
+          : null;
+        const question = await substitute(step.question.lines);
+        const answer = await substitute(step.answer.lines);
         if (cancelled) return;
         setPreparedLines({
           question: greetingAudio
@@ -192,15 +196,20 @@ export function InteractiveScene({
         /* TTS 반응 생성 — 채팅 패널에도 같은 문구를 말풍선으로 보여 준다 */
         const reaction = buildReaction(text, step.speaker.voice);
         setReactionText(reaction);
-        /* 반응도 gemini-2.5 고정 — 실패는 error 단계(다시 시도·건너뛰기)로 드러난다 */
-        const speech = await requestSpeech({
-          text: reaction,
-          voice: step.speaker.voice,
-          stylePrompt: step.speaker.stylePrompt,
-          geminiOnly: true,
-        });
-        setResponseUrl(URL.createObjectURL(speech));
-        setPhase("responding");
+        /* 반응도 gemini-2.5 고정. 합성이 실패(한도 초과 등)해도 흐름을 막지
+           않는다 — 반응은 글 말풍선으로만 보여 주고 바로 선택 단계로 간다. */
+        try {
+          const speech = await requestSpeech({
+            text: reaction,
+            voice: step.speaker.voice,
+            stylePrompt: step.speaker.stylePrompt,
+            geminiOnly: true,
+          });
+          setResponseUrl(URL.createObjectURL(speech));
+          setPhase("responding");
+        } catch {
+          setPhase("choice");
+        }
       } catch (error) {
         fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
       }
