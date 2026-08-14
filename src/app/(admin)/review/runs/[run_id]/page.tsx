@@ -141,7 +141,7 @@ function 발화({ turn }: { turn: ReviewTurnView }) {
 function 판정칸({ 체크리스트 }: { 체크리스트: readonly { code: string; label: string }[] }) {
   return (
     <>
-      <fieldset className="border border-zinc-300 p-2 text-xs dark:border-zinc-700">
+      <fieldset className="border border-zinc-300 p-2 text-xs">
         <legend className="text-zinc-500">판정 기준</legend>
         {체크리스트.map((항목) => (
           <label key={항목.code} className="flex items-center gap-1">
@@ -150,7 +150,7 @@ function 판정칸({ 체크리스트 }: { 체크리스트: readonly { code: stri
           </label>
         ))}
       </fieldset>
-      <fieldset className="flex flex-wrap gap-4 border border-zinc-300 p-2 text-xs dark:border-zinc-700">
+      <fieldset className="flex flex-wrap gap-4 border border-zinc-300 p-2 text-xs">
         <legend className="text-zinc-500">판정</legend>
         <label className="flex items-center gap-1">
           <input type="radio" name="value" value="pass" required /> 지킴
@@ -181,7 +181,7 @@ function 판정칸({ 체크리스트 }: { 체크리스트: readonly { code: stri
 
 function 분석검수({ run_id, turn }: { run_id: string; turn: ReviewTurnView }) {
   return (
-    <section className="flex flex-col gap-2 border border-zinc-300 p-3 dark:border-zinc-700">
+    <section className="flex flex-col gap-2 border border-zinc-300 p-3">
       <h3 className="font-semibold">분석 검수</h3>
       <p className="font-mono text-xs text-zinc-500">출처: prompts/analysis.md</p>
       <dl className="grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs">
@@ -251,7 +251,7 @@ function 분석검수({ run_id, turn }: { run_id: string; turn: ReviewTurnView }
 
 function 대사검수({ run_id, turn }: { run_id: string; turn: ReviewTurnView }) {
   return (
-    <section className="flex flex-col gap-2 border border-zinc-300 p-3 dark:border-zinc-700">
+    <section className="flex flex-col gap-2 border border-zinc-300 p-3">
       <h3 className="font-semibold">캐릭터 대사 검수</h3>
       <p className="font-mono text-xs text-zinc-500">출처: prompts/character.md</p>
       {/* ⭐ 이 턴에 대사가 없으면 「응답 없음」이다. 다음 턴 대사를 빌려 오지 않는다 (FR-048). */}
@@ -294,7 +294,7 @@ function 요소기준({ run_id, turn }: { run_id: string; turn: ReviewTurnView }
           {turn.criteria.map((기준) => (
             <li key={`${기준.element}-${기준.version}`}>
               <strong>{elementName(기준.element)}</strong> — {기준.criterion}{' '}
-              <mark className="bg-amber-200 px-1 dark:bg-amber-900">
+              <mark className="bg-amber-200 px-1 text-zinc-900">
                 {출처_이름[기준.origin] ?? 기준.origin}
               </mark>{' '}
               기준 {기준.version}판
@@ -348,7 +348,7 @@ function 판정이력({ records }: { records: ReviewRecordView[] }) {
           </thead>
           <tbody>
             {records.map((기록) => (
-              <tr key={기록.id} className="border-b border-zinc-200 dark:border-zinc-800">
+              <tr key={기록.id} className="border-b border-zinc-200">
                 <td className="py-1 pr-3">{기록.target_label}</td>
                 <td className="py-1 pr-3">
                   {판정_글(기록.value)}

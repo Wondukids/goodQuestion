@@ -14,7 +14,7 @@ export { 한칸, 오류띠, 라벨 } from '../ui'
 
 export function 경고띠({ children }: { children: React.ReactNode }) {
   return (
-    <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+    <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
       {children}
     </p>
   )
@@ -33,8 +33,8 @@ export function 소수셋(값: number): string {
 
 const 칸_색 = (행: ResultView | undefined): string => {
   if (행 === undefined) return ''
-  if (행.판정불가) return 'bg-zinc-100 dark:bg-zinc-900'
-  return 행.맞음 ? 'bg-green-50 dark:bg-green-950' : 'bg-red-50 dark:bg-red-950'
+  if (행.판정불가) return 'bg-zinc-100'
+  return 행.맞음 ? 'bg-green-50' : 'bg-red-50'
 }
 
 /**
@@ -61,12 +61,12 @@ export function 결과칸({
       ) : 행.판정불가 ? (
         <>
           <p className="mt-1 font-semibold">판정 불가</p>
-          <p className="break-all text-zinc-600 dark:text-zinc-400">{행.판정불가_사유}</p>
+          <p className="break-all text-zinc-600">{행.판정불가_사유}</p>
         </>
       ) : 행.맞음 ? (
         <>
           <p className="mt-1 font-semibold">맞음</p>
-          <p className="text-zinc-600 dark:text-zinc-400">의도·유효성·요소가 전부 기대와 같습니다.</p>
+          <p className="text-zinc-600">의도·유효성·요소가 전부 기대와 같습니다.</p>
         </>
       ) : (
         <>
