@@ -46,6 +46,17 @@ function buildReaction(transcript: string) {
 /* 서버 턴이 죽으면 아이 발화 원문도 없다(STT 가 서버 안이다) — 발화 없이 되받는 폴백 문구 */
 const FALLBACK_REACTION = "그렇구나, 이야기해 줘서 정말 고마워!";
 
+/* TTS 한 번 더 — 씬 진입 준비와 대사 합성이 몰리면 일시 오류(502)가 잦다. 짧게 쉬고
+   한 번 재시도하면 대부분 살아나, 멀쩡한 LLM 대답이 고정 문구로 떨어지는 일을 줄인다. */
+async function requestSpeechWithRetry(request: Parameters<typeof requestSpeech>[0]) {
+  try {
+    return await requestSpeech(request);
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return requestSpeech(request);
+  }
+}
+
 export function InteractiveScene({
   step,
   childName,
@@ -74,6 +85,9 @@ export function InteractiveScene({
   const serverMode =
     sessionId !== null && step.sceneCode !== "" && step.sceneCode === serverScene;
   const resumeMode = serverMode && resumeLine !== null;
+  /* 진입 시점의 모드 — TTS 준비량을 정하는 데만 쓴다. 장면 도중 추적 갱신(장면끝)으로
+     serverMode 가 변해도 준비를 다시 돌리지 않기 위해 처음 값을 붙잡아 둔다. */
+  const [entryMode] = useState(() => ({ server: serverMode, resume: resumeMode }));
 
   const [phase, setPhase] = useState<Phase>(resumeMode ? "resume" : "question");
   const [lineIndex, setLineIndex] = useState(0);
@@ -88,19 +102,25 @@ export function InteractiveScene({
   const [remainingSec, setRemainingSec] = useState(STT_DEFAULTS.maxListenSec);
 
   /* 이름이 들어간 대사 준비 — 채워지기 전에는 음성을 재생하지 않는다.
-     이름이 없으면 원본 녹음을 그대로 쓴다. */
+     이름이 없으면 원본 녹음을 그대로 쓴다. 복귀 진입도 원본 그대로다 — 질문 연출을
+     건너뛰므로 준비 TTS 를 아예 안 부른다 (진입 때 호출이 몰리면 정작 대사 TTS 가
+     502 로 튕겨 고정 문구로 떨어진다). 폴백으로 정해진 답변을 틀게 되면 원본 녹음이
+     나간다 — 이름만 못 부를 뿐이다. */
   const [preparedLines, setPreparedLines] = useState<{
     question: SpeechLine[];
     answer: SpeechLine[];
   } | null>(
-    childName ? null : { question: step.question.lines, answer: step.answer.lines },
+    childName && !entryMode.resume
+      ? null
+      : { question: step.question.lines, answer: step.answer.lines },
   );
 
   /* "ㅇㅇ" 자리 표시자가 있는 대사는 이름을 넣어 캐릭터 목소리로 TTS 하고,
      질문에 자리 표시자가 없으면 짧은 호명("지훈아!")을 앞에 붙인다.
      TTS 실패 시 원본 녹음으로 폴백 — 이름만 못 부를 뿐 진행은 된다. */
   useEffect(() => {
-    if (!childName) return;
+    /* 복귀 진입은 초기 상태가 이미 원본으로 차 있다 (위 preparedLines 주석) */
+    if (!childName || entryMode.resume) return;
     let cancelled = false;
     const blobUrls: string[] = [];
 
@@ -143,7 +163,8 @@ export function InteractiveScene({
               )
             : Promise.resolve(null),
           substitute(step.question.lines),
-          substitute(step.answer.lines),
+          /* 서버 모드에선 정해진 답변이 재생되지 않는다(502 폴백 전용) — 준비 TTS 절약 */
+          entryMode.server ? Promise.resolve(step.answer.lines) : substitute(step.answer.lines),
         ]);
         if (cancelled) return;
         setPreparedLines({
@@ -166,7 +187,7 @@ export function InteractiveScene({
       cancelled = true;
       for (const url of blobUrls) URL.revokeObjectURL(url);
     };
-  }, [childName, step]);
+  }, [childName, step, entryMode]);
 
   const recordingRef = useRef<Recording | null>(null);
   const retriesRef = useRef(0);
@@ -184,7 +205,7 @@ export function InteractiveScene({
     let url: string | null = null;
     (async () => {
       try {
-        const speech = await requestSpeech({
+        const speech = await requestSpeechWithRetry({
           text: resumeLine,
           voice: step.speaker.voice,
           stylePrompt: step.speaker.stylePrompt,
@@ -235,7 +256,7 @@ export function InteractiveScene({
      gemini-2.5 고정 — 실패는 error 단계(다시 시도·건너뛰기)로 드러난다 */
   const speakReaction = useCallback(
     async (text: string) => {
-      const speech = await requestSpeech({
+      const speech = await requestSpeechWithRetry({
         text,
         voice: step.speaker.voice,
         stylePrompt: step.speaker.stylePrompt,
@@ -465,8 +486,11 @@ export function InteractiveScene({
           src={responseUrl}
           autoPlay
           onEnded={() => {
-            /* 폴백·비서버 흐름은 기존 선택 버튼으로, 서버 턴은 next.kind 가 정한다 (명세 5절) */
-            if (fallbackRef.current || !serverMode) {
+            /* 폴백·비서버 흐름은 기존 선택 버튼으로, 서버 턴은 next.kind 가 정한다 (명세 5절).
+               ⚠️ 여기서 serverMode 를 다시 보면 안 된다 — 장면끝이면 추적(onServerScene)이
+               이미 다음 장면을 가리켜 false 가 된 뒤다. 이 턴이 서버 턴이었다는 사실은
+               nextRef 가 안다 (폴백·비서버 턴은 nextRef 를 채우지 않는다). */
+            if (fallbackRef.current || nextRef.current === null) {
               setPhase("choice");
               return;
             }
