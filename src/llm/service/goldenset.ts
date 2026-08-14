@@ -40,7 +40,7 @@ import { ValueError } from '@/llm/domain/progress'
 import { 분석_스키마 } from '@/llm/engine/analyze'
 import { buildAnalysisMaterial } from '@/llm/engine/material'
 import { complete } from '@/llm/provider'
-import { chooseBody, promptsDir, sendableBody } from '@/llm/prompts'
+import { chooseBody, promptsDir, 보낼것 } from '@/llm/prompts'
 import { getDb, type Conn } from '@/llm/repo/db'
 import {
   createGoldensetRun,
@@ -193,13 +193,20 @@ export function fileDigest(경로: string): string {
 }
 
 /**
- * 분석 프롬프트 파일 **전체 원문**의 지문 — 파이썬 `프롬프트_지문()`.
+ * 분석 프롬프트에서 **LLM 에 나가는 파일**의 지문 — 파이썬 `프롬프트_지문()`.
  *
- * ⚠️ 보낼 층(`sendableBody()`)이 아니라 파일 통째다. 사람이 한글 층만 고쳐도 지문이 바뀌어야
- *    「그때 그 프롬프트였다」를 말할 수 있다.
+ * ⚠️ **뜻이 한 번 바뀌었다** (2026-08-14 · 두 파일로 나누면서).
+ *
+ * 그전에는 `prompts/analysis.md` **파일 통째**의 지문이었다. 한 파일 안에 두 층이
+ * 살았으므로, 사람이 한글 층 오타 하나만 고쳐도 지문이 바뀌었다. 이제는
+ * `analysis/보낼것.md` 만 잰다 — **모델이 실제로 받은 글자가 바뀌었을 때만** 지문이
+ * 바뀐다는 뜻이다. 해설을 아무리 고쳐도 지문은 그대로다.
+ *
+ * 🔴 그래서 **분리 전에 박제된 지문은 어느 파일과도 매칭되지 않는다.** 옛 골든셋 판과
+ *    지금 판을 지문으로 잇지 마라 (분리 전 점수는 버리기로 했다).
  */
 export function promptDigest(): string {
-  return fileDigest(path.join(promptsDir(), 'analysis.md'))
+  return fileDigest(path.join(promptsDir(), 'analysis', 보낼것))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -265,7 +272,7 @@ export async function analyzeGoldenItem(
     previous_character_message: 항목.previous_character_message,
     include_goal: false,
   })
-  const system = sendableBody(chooseBody('analysis', null))
+  const system = chooseBody('analysis', null)
 
   const 결과 = await complete(system, user, {
     json_schema: 분석_스키마,

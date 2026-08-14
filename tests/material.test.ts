@@ -232,73 +232,24 @@ describe('캐릭터 재료', () => {
   })
 })
 
-describe('옛 낱개 자리표시자 (결정 48 — 실험 프롬프트 호환)', () => {
-  const 옛_분석_프롬프트 = [
-    '# 실험 프롬프트',
-    '',
-    '## 받는 것',
-    '',
-    '```',
-    '상황: {scene_description}',
-    '갈등: {conflict}',
-    '아이: {child_utterance}',
-    '직전: {previous_character_message}',
-    '목표요소: {target_elements}',
-    '기준: {element_criteria}',
-    '```',
-  ].join('\n')
-
-  it('분석 — 낱개 이름으로도 채워진다. `description` → `scene_description` 별칭까지', () => {
+describe('낱개 자리표시자는 이제 없다 (2026-08-14)', () => {
+  // 프롬프트를 두 파일로 나누면서 「## 받는 것」 절이 `보낼것.md` 에서 사라졌고,
+  // 틀을 뽑아 `{이름}` 을 채우던 기계 전체를 걷어냈다.
+  //
+  // 그전에는 실험 프롬프트가 `{child_utterance}` 같은 **낱개 이름**을 쓸 수 있었다
+  // (`낱개()` — 스스로 「옛 프롬프트를 살려 두는 다리지 규격이 아니다」라고 적어 뒀다).
+  // ⚠️ **그 다리는 이제 없다.** 실험 프롬프트가 낱개 이름을 쓰면 채워지지 않는다.
+  it('재료는 언제나 JSON 한 덩이다 — 프롬프트 본문과 무관하다', () => {
     const 채운것 = buildAnalysisMaterial({
       scene: 분석_장면,
       child_utterance: '며느리가 창피했을 것 같아',
       previous_character_message: '어쩌면 좋을까…',
-      prompt: 옛_분석_프롬프트,
       include_goal: false,
     })
 
-    expect(채운것).toContain('상황: 며느리가 밥상 앞에서 방귀를 참고 있다')
-    expect(채운것).toContain('아이: 며느리가 창피했을 것 같아')
-    expect(채운것).toContain('목표요소: PERSPECTIVE, EMPATHY, REASON, SOLUTION')
-    expect(채운것).toContain('기준: EMPATHY: 며느리 마음을 헤아린 말이 있어야 한다')
-    expect(채운것).not.toContain('{')
-  })
-
-  it('캐릭터 — `scene_messages` 와 `character_name`·`scene_stance` 별칭', () => {
-    const 옛_캐릭터_프롬프트 = [
-      '## 받는 것',
-      '',
-      '```',
-      '이름: {character_name}',
-      '입장: {scene_stance}',
-      '지난말:',
-      '{scene_messages}',
-      '앞선전개: {previous_scene_descriptions}',
-      '모드: {response_mode}',
-      '```',
-    ].join('\n')
-
-    const 채운것 = buildCharacterMaterial({
-      scene: 캐릭터_장면,
-      precedingNarrations: [{ scene_description: '옛날 옛적에' }],
-      child_utterance: '응',
-      main_point: null,
-      response_mode: 'GUIDED',
-      reaction_key: 'directResponse',
-      pastMessages: [{ speaker_type: 'character', text: '어쩌면 좋을까…' }],
-      prompt: 옛_캐릭터_프롬프트,
-    })
-
-    expect(채운것).toContain('이름: 며느리')
-    expect(채운것).toContain('입장: 아이 편이다')
-    expect(채운것).toContain('며느리: 어쩌면 좋을까…')
-    expect(채운것).toContain('앞선전개: 옛날 옛적에')
-    expect(채운것).toContain('모드: GUIDED')
-  })
-
-  it('본문과 틀은 같은 출처다 — 준 본문에 「받는 것」이 없으면 파일로 몰래 넘어가지 않는다', () => {
-    expect(() =>
-      buildAnalysisMaterial({ scene: 분석_장면, child_utterance: '응', prompt: '틀이 없는 본문' }),
-    ).toThrow(/받는 것/)
+    // JSON 한 덩이. 낱개 이름표(`상황:` 같은 것)가 붙지 않는다.
+    expect(채운것.startsWith('{')).toBe(true)
+    expect(JSON.parse(채운것).child_utterance).toBe('며느리가 창피했을 것 같아')
+    expect(채운것).not.toContain('상황:')
   })
 })
