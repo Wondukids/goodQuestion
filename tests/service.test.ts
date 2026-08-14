@@ -54,7 +54,7 @@ vi.mock('@/llm/repo/content', async (importOriginal) => {
 })
 
 import { loadSettings } from '@/llm/config'
-import { read, sendableBody } from '@/llm/prompts'
+import { read } from '@/llm/prompts'
 import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import { readAttempts } from '@/llm/repo/runs'
 import { latestSeedRevision } from '@/llm/repo/seed'
@@ -1200,7 +1200,7 @@ describe('service — DB 를 안 보는 조각들', () => {
   /**
    * 실험 본문 한 벌. **`## 받는 것` 절이 있어야 한다** — 재료 틀도 이 본문에서 뽑기
    * 때문이다 (`engine/material.ts`). 표식(`<!-- 보내는 것 … -->`)이 없으므로
-   * `sendableBody()` 가 **통째로** system 으로 내보낸다 (결정 48).
+   * `` 가 **통째로** system 으로 내보낸다 (결정 48).
    */
   const 실험_본문 = (이름: string) =>
     [`실험용 ${이름} 지시다. 정본과 한 글자도 안 겹친다.`, '', '## 받는 것', '', '```json', `{${이름}_material}`, '```', ''].join('\n')
@@ -1234,8 +1234,8 @@ describe('service — DB 를 안 보는 조각들', () => {
       const { run_id } = await 회차_준비(tx)
       await submitTurn({ run_id, child_utterance: '며느리가 불쌍해', conn: tx })
 
-      expect(나간_system(기록, '분석')).toBe(sendableBody(read('analysis')))
-      expect(나간_system(기록, '대사')).toBe(sendableBody(read('character')))
+      expect(나간_system(기록, '분석')).toBe(read('analysis'))
+      expect(나간_system(기록, '대사')).toBe(read('character'))
     })
   })
 
@@ -1248,7 +1248,7 @@ describe('service — DB 를 안 보는 조각들', () => {
       await submitTurn({ run_id, child_utterance: '며느리가 불쌍해', conn: tx })
 
       expect(나간_system(기록, '분석')).toBe(실험_분석)
-      expect(나간_system(기록, '대사')).toBe(sendableBody(read('character')))
+      expect(나간_system(기록, '대사')).toBe(read('character'))
     })
   })
 

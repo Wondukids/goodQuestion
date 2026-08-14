@@ -24,7 +24,7 @@
 // - 주소가 `/prompts` → `/prompt-lab` 이다.
 
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -43,7 +43,7 @@ vi.mock('@/llm/repo/db', async (importOriginal) => {
 
 import { saveExperimentPromptAction } from '@/app/(admin)/prompt-lab/actions'
 import { WEB_ROOT } from '@/llm/config'
-import { promptsDir } from '@/llm/prompts'
+import { promptsDir, 보낼것 } from '@/llm/prompts'
 import { closeDb, getDb, type Conn } from '@/llm/repo/db'
 import { readExperimentPrompts, saveExperimentPrompt } from '@/llm/repo/prompt-lab'
 import { createRun, readRun } from '@/llm/repo/runs'
@@ -79,20 +79,30 @@ const 실험_캐릭터_프롬프트 = `# 실험용 캐릭터 프롬프트 (SENTI
 // ⭐ 경계 6 ① — `prompts/*.md` 가 한 글자도 안 바뀐다
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** `prompts/*.md` 전부의 내용 해시 + 고쳐진 시각. 한 글자만 달라도 값이 달라진다. */
+/**
+ * `prompts/` 아래 **모든 md** 의 내용 해시 + 고쳐진 시각. 한 글자만 달라도 값이 달라진다.
+ *
+ * ⚠️ 프롬프트 하나가 **폴더 하나**가 되면서(2026-08-14) 한 겹 더 내려간다.
+ *    최상위만 훑으면 `README.md` 하나만 보게 되어 그물이 사실상 사라진다.
+ *    **나가는 파일과 사람이 읽는 파일을 다 센다** — 화면이 어느 쪽도 못 건드려야 한다.
+ */
 function 프롬프트_지문(): Record<string, string> {
   const 자리 = promptsDir()
   const 모은것: Record<string, string> = {}
-  for (const 이름 of readdirSync(자리).filter((하나) => hasMd(하나))) {
-    const 경로 = path.join(자리, 이름)
-    const 해시 = createHash('sha256').update(readFileSync(경로)).digest('hex')
-    모은것[이름] = `${해시}:${statSync(경로).mtimeMs}`
+  const 훑기 = (여기: string, 앞: string) => {
+    for (const 항목 of readdirSync(여기, { withFileTypes: true })) {
+      const 경로 = path.join(여기, 항목.name)
+      const 이름 = 앞 === '' ? 항목.name : `${앞}/${항목.name}`
+      if (항목.isDirectory()) {
+        훑기(경로, 이름)
+      } else if (항목.name.endsWith('.md')) {
+        const 해시 = createHash('sha256').update(readFileSync(경로)).digest('hex')
+        모은것[이름] = `${해시}:${statSync(경로).mtimeMs}`
+      }
+    }
   }
+  훑기(자리, '')
   return 모은것
-}
-
-function hasMd(이름: string): boolean {
-  return 이름.endsWith('.md')
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -157,18 +167,23 @@ describe('정본 읽기', () => {
   })
 
   it('md 를 캐시하지 않는다 — 고친 다음 호출부터 바로 반영된다', async () => {
+    // ⚠️ 프롬프트 하나가 **폴더 하나**다 (2026-08-14). 나가는 파일 이름은 `보낼것.md` 다.
     const 임시 = mkdtempSync(path.join(tmpdir(), 'prompt-lab-'))
+    const 넣기 = (이름: string, 글: string) => {
+      mkdirSync(path.join(임시, 이름), { recursive: true })
+      writeFileSync(path.join(임시, 이름, 보낼것), 글)
+    }
     try {
-      writeFileSync(path.join(임시, 'analysis.md'), '처음 내용')
+      넣기('analysis', '처음 내용')
       const 처음 = await promptLabView({ 디렉터리: 임시 })
       expect(처음.prompts[0].canonical_body).toBe('처음 내용')
 
-      writeFileSync(path.join(임시, 'analysis.md'), '고친 내용')
+      넣기('analysis', '고친 내용')
       const 다음 = await promptLabView({ 디렉터리: 임시 })
       expect(다음.prompts[0].canonical_body).toBe('고친 내용')
 
-      // 파일이 늘어난 것도 다음 호출에서 바로 보인다
-      writeFileSync(path.join(임시, 'character.md'), '새 파일')
+      // 폴더가 늘어난 것도 다음 호출에서 바로 보인다
+      넣기('character', '새 프롬프트')
       expect((await promptLabView({ 디렉터리: 임시 })).prompts.map((하나) => 하나.name)).toEqual([
         'analysis',
         'character',

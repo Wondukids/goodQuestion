@@ -55,7 +55,7 @@
 // 파이썬이 랭퓨즈를 몰랐던 것과 같은 선이다 — 점수를 어디에 남기느냐는 서비스 층 몫이다.
 
 import { type Settings } from '@/llm/config'
-import { chooseBody, sendableBody } from '@/llm/prompts'
+import { chooseBody } from '@/llm/prompts'
 
 /**
  * 장면 목표 누출 판정 기준. 목표 문장의 어절이 이만큼 **연달아** 대사에 나오면 샌 것으로 본다.
@@ -387,9 +387,8 @@ async function runJudge(args: {
   const { name, 프롬프트_이름, 사용자_블록, 대사, options } = args
   const 호출 = options.call ?? 기본_호출()
   // ⛔ 프롬프트 **글자**는 우리 것이 아니다 (8차 사람 확정). 읽어 보낼 뿐이다.
-  //    표식(`<!-- 보내는 것 시작 -->`)이 없으면 `sendableBody` 는 통째로 돌려주므로
-  //    오늘 심판 프롬프트 셋에서는 파이썬 `_프롬프트_읽기()` 와 **한 글자도 안 다르다**.
-  const system = sendableBody(chooseBody(프롬프트_이름, options.prompt))
+  //    `보낼것.md` 가 곧 나가는 글자다 — 오리거나 다듬는 자리가 없다 (2026-08-14 분리).
+  const system = chooseBody(프롬프트_이름, options.prompt)
 
   let 응답: { text: string }
   try {

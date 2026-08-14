@@ -29,7 +29,7 @@ import {
   parseGuidanceGoldenset,
   type GuidanceItem,
 } from '@/llm/goldenset-guidance'
-import { chooseBody, sendableBody } from '@/llm/prompts'
+import { chooseBody } from '@/llm/prompts'
 import { promptDigest } from '@/llm/service/goldenset'
 import {
   appendItem,
@@ -158,18 +158,18 @@ describe('채점 재료가 캐릭터에게 새지 않는다', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('엔진과 같은 프롬프트로 낸다', () => {
-  it('system 은 영어층만 간다', () => {
-    // 🔴 한글층은 사람이 읽는 곳이다. LLM 에 가면 안 된다.
+  it('system 은 `보낼것.md` 통째다 — 엔진과 같은 글자', () => {
+    // 🔴 2026-08-14 에 프롬프트가 두 파일로 갈렸다. 그전에는 한 파일 안에서 표식 사이를
+    //    오려 냈고(`sendableBody()`), 그 오려내기가 CRLF 체크아웃에서 깨졌었다.
+    //    이제 **오릴 것이 없다** — 파일이 곧 나가는 글자다.
     const { system } = lineRequest(항목())
-    const 본문 = chooseBody('character', null)
-
-    expect(system).toBe(sendableBody(본문))
-    expect(system.length).toBeLessThan(본문.length) // 자르지 않고 통째로 보내고 있다
+    expect(system).toBe(chooseBody('character', null))
   })
 
-  it('system 에 한글층의 표시가 없다', () => {
+  it('system 에 사람용 표시가 없다', () => {
+    // 사람이 읽는 글은 옆 파일에 산다. 이쪽에 새어 오면 안 된다.
     const { system } = lineRequest(항목())
-    for (const 새면_안_되는_것 of ['한글 층', '📄', '✏️', '결정 48']) {
+    for (const 새면_안_되는_것 of ['한글 층', '📄', '✏️', '결정 48', 'docs/', 'CLAUDE.md']) {
       expect(system).not.toContain(새면_안_되는_것)
     }
   })

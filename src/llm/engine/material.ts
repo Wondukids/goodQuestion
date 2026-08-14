@@ -17,14 +17,16 @@
 // 원인은 재료를 만드는 자리가 둘이었던 것이다(`lib/prompts/parse.ts` 의 `materialJson` 머리말).
 // 그래서 이 파일은 JSON 을 직접 만들지 않고 그 함수만 부른다. 또 나누면 또 갈라진다.
 //
-// ## 왜 `render()` 를 안 쓰고 `chooseBody`+`materialTemplate`+`fill` 을 따로 부르나
+// ## ⛔ 이 파일은 프롬프트 본문을 아예 모른다 (2026-08-14)
 //
-// `render()` 는 **언제나 파일을 읽는다.** 여기서는 관리 페이지가 써 넣은 실험 프롬프트가
-// 인자로 올 수 있고, 그때는 **그 본문의** 「받는 것」 블록을 틀로 써야 한다.
-// 틀을 파일에서만 뽑으면 실험 프롬프트가 재료 목록을 바꿨을 때 system 과 user 가
-// 서로 다른 재료를 말한다 — 본문과 틀은 **같은 출처**여야 한다 (`runner.py:182-184`).
+// 그전에는 md 의 「## 받는 것」 절 뒤 코드블록을 틀로 뽑아 `{analysis_material}` 을 채웠다.
+// 그 절은 **사람이 읽는 층**에 있었고, 나가는 쪽과 사람 쪽을 다른 파일로 나누면서
+// `보낼것.md` 에서 사라졌다. 채울 자리도 파일마다 하나뿐이라 틀을 뽑을 이유가 없었다.
+//
+// 그래서 지금은 **user 본문이 곧 `materialJson(재료)`** 다. 프롬프트 본문은 system 으로만
+// 나가고(`analyze.ts`·`character.ts`), 이 파일은 그 글자를 한 번도 안 본다.
 
-import { chooseBody, fill, materialJson, materialTemplate } from '@/llm/prompts'
+import { materialJson } from '@/llm/prompts'
 
 // ── 장면 · 메시지가 이 층에 보이는 모양 ─────────────────────────────────────
 //
@@ -92,67 +94,6 @@ export function analysisGoalEnabled(): boolean {
   return 값 === '' ? true : !끄는_값.has(값)
 }
 
-// ── 옛 낱개 자리표시자 (결정 48) ───────────────────────────────────────────
-
-/**
- * 값 하나를 자리표시자에 넣을 글자로 편다 (파이썬 `_평평하게()`).
- *
- * 목록 안이 `{speaker, text}` 인 경우만 대화 줄로 본다 — `said_so_far` 다.
- */
-function 평평하게(값: unknown): string {
-  if (typeof 값 === 'string') return 값
-  if (값 === null || 값 === undefined) return ''
-  if (Array.isArray(값)) {
-    if (값.length > 0 && typeof 값[0] === 'object' && 값[0] !== null) {
-      return 값
-        .map((줄) => {
-          const 하나 = 줄 as Record<string, unknown>
-          return `${하나.speaker ?? ''}: ${하나.text ?? ''}`
-        })
-        .join('\n')
-    }
-    return 값.map((하나) => String(하나)).join(', ')
-  }
-  if (typeof 값 === 'object') {
-    return Object.entries(값 as Record<string, unknown>)
-      .map(([열쇠, 속값]) => `${열쇠}: ${String(속값)}`)
-      .join('\n')
-  }
-  return String(값)
-}
-
-/** 속을 펴서 보여 주는 묶음 열쇠. 파이썬과 같은 넷이다. */
-const 펴는_열쇠 = new Set(['scene', 'character', 'latest', 'direction'])
-
-/**
- * JSON 재료를 옛 낱개 자리표시자 이름으로도 펼친다 (결정 48 — 실험 프롬프트 호환).
- *
- * ⚠️ **여기에 새 이름을 더하지 마라.** 이건 옛 프롬프트를 살려 두는 다리지 규격이 아니다.
- * 정본 `prompts/*.md` 는 `{analysis_material}` · `{character_material}` 하나만 쓴다.
- * `fill()` 은 **틀에 있는 것만** 바꾸므로 남는 값은 비용이 0 이다.
- */
-function 낱개(재료: Readonly<Record<string, unknown>>): Record<string, string> {
-  const 편것: Record<string, string> = {}
-
-  for (const [열쇠, 값] of Object.entries(재료)) {
-    if (펴는_열쇠.has(열쇠) && 값 !== null && typeof 값 === 'object' && !Array.isArray(값)) {
-      for (const [속열쇠, 속값] of Object.entries(값 as Record<string, unknown>)) {
-        편것[속열쇠] = 평평하게(속값)
-      }
-    } else {
-      편것[열쇠] = 평평하게(값)
-    }
-  }
-
-  // 옛 이름과 새 이름이 다른 자리 (뜻은 같다)
-  if ('description' in 편것) 편것.scene_description = 편것.description
-  if ('stance' in 편것) 편것.scene_stance = 편것.stance
-  if ('name' in 편것) 편것.character_name = 편것.name
-  if ('story_so_far' in 편것) 편것.previous_scene_descriptions = 편것.story_so_far
-
-  return 편것
-}
-
 // ── 분석 재료 ──────────────────────────────────────────────────────────────
 
 export interface AnalysisMaterialArgs {
@@ -161,8 +102,6 @@ export interface AnalysisMaterialArgs {
   precedingNarrations?: readonly NarrationScene[]
   child_utterance: string
   previous_character_message?: string | null
-  /** 주면 **그 본문의** 「받는 것」 블록을 틀로 쓴다. 안 주면 `prompts/analysis.md` 를 읽는다. */
-  prompt?: string | null
   /** 안 주면 `analysisGoalEnabled()`(환경변수, 기본 켬). */
   include_goal?: boolean
 }
@@ -181,7 +120,7 @@ export interface AnalysisMaterialArgs {
  * **직전 전개 장면 하나**로 메운다 (결정 25).
  */
 export function buildAnalysisMaterial(args: AnalysisMaterialArgs): string {
-  const { scene, precedingNarrations = [], child_utterance, prompt = null } = args
+  const { scene, precedingNarrations = [], child_utterance } = args
   const 앞선 = precedingNarrations
   const 장면_상황 =
     scene.scene_description || (앞선.length > 0 ? 앞선[앞선.length - 1].scene_description : '')
@@ -203,18 +142,7 @@ export function buildAnalysisMaterial(args: AnalysisMaterialArgs): string {
     재료.goal = scene.scene_goal ?? ''
   }
 
-  const 출처 = prompt === null || prompt === undefined ? 'prompts/analysis.md' : '주어진 본문'
-  const 본문 = chooseBody('analysis', prompt)
-  return fill(
-    materialTemplate(본문, 출처),
-    {
-      analysis_material: materialJson(재료),
-      // ⚠️ **옛 이름표도 함께 준다** (결정 48). 정본은 JSON 하나만 쓰지만,
-      //    관리 페이지에서 사람이 써 넣은 실험 프롬프트는 낱개 자리표시자를 쓸 수 있다.
-      ...낱개(재료),
-    },
-    출처,
-  )
+  return materialJson(재료)
 }
 
 // ── 캐릭터 재료 ────────────────────────────────────────────────────────────
@@ -229,7 +157,6 @@ export interface CharacterMaterialArgs {
   guidance_target?: string | null
   /** 이 장면에서 오간 말. **이번 발화는 빼고** 준다 — 부르는 쪽이 잘라서 넘긴다. */
   pastMessages?: readonly PastMessage[]
-  prompt?: string | null
 }
 
 /**
@@ -304,29 +231,17 @@ export function buildCharacterMaterialBundle(
 }
 
 /**
- * 만들어 둔 재료 묶음을 캐릭터 프롬프트 틀에 채운다 (파이썬 `runner.캐릭터_재료()` 의 뒷대목).
+ * 만들어 둔 재료 묶음을 user 본문으로 (파이썬 `runner.캐릭터_재료()` 의 뒷대목).
  *
  * 묶음이 어디서 왔는지 모른다 — 방금 만든 것이든 골든셋 파일에서 읽어 온 것이든 같다.
- * **채우는 자리도 하나여야 한다**(위 `buildCharacterMaterialBundle()` 머리말과 같은 이유).
+ * **JSON 으로 만드는 자리도 하나여야 한다**(위 `buildCharacterMaterialBundle()` 머리말과
+ * 같은 이유 — 자리가 둘이면 회차와 골든셋이 갈린다).
  */
-export function renderCharacterMaterial(
-  재료: Readonly<Record<string, unknown>>,
-  prompt: string | null = null,
-): string {
-  const 출처 = prompt === null || prompt === undefined ? 'prompts/character.md' : '주어진 본문'
-  const 본문 = chooseBody('character', prompt)
-  return fill(
-    materialTemplate(본문, 출처),
-    {
-      character_material: materialJson(재료),
-      ...낱개(재료), // 실험 프롬프트 호환. `낱개()` 주석을 볼 것
-      scene_messages: 평평하게(재료.said_so_far),
-    },
-    출처,
-  )
+export function renderCharacterMaterial(재료: Readonly<Record<string, unknown>>): string {
+  return materialJson(재료)
 }
 
 /** 캐릭터 LLM 에 보낼 user 본문 (파이썬 `runner.캐릭터_재료()`). 위 둘을 이어 부른다. */
 export function buildCharacterMaterial(args: CharacterMaterialArgs): string {
-  return renderCharacterMaterial(buildCharacterMaterialBundle(args), args.prompt ?? null)
+  return renderCharacterMaterial(buildCharacterMaterialBundle(args))
 }
