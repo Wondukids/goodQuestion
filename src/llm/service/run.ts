@@ -84,6 +84,23 @@ export class TurnInProgress extends Error {
   }
 }
 
+/**
+ * 미완 턴이 있어 새 발화를 받을 수 없다 — 무엇이 미완인지(`pending`)를 실어 던진다.
+ *
+ * `TurnNotAllowed` 의 하위라 관리자 v1 봉투는 이 구분을 모른 채 409 `TURN_NOT_ALLOWED`
+ * 그대로다. 아이 앱 봉투만 이것을 먼저 알아보고 409 `TURN_INCOMPLETE` 에 `pending` 을
+ * 싣는다 (`docs/대화턴_이어하기_명세.md` 4.1절 — 앱은 이걸 받으면 resume 을 부른다).
+ */
+export class TurnIncomplete extends TurnNotAllowed {
+  readonly pending: PendingTurn
+
+  constructor(메시지: string, pending: PendingTurn) {
+    super(메시지)
+    this.name = 'TurnIncomplete'
+    this.pending = pending
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 두 번 보내기 잠금 (파이썬 `goodquestion_admin/진행중.py`)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -545,8 +562,9 @@ export async function submitTurn(args: SubmitTurnArgs): Promise<TurnResult> {
     // 턴 수가 어긋난다 (FR-035). 그 턴은 재호출로만 이어진다 (결정 44 · 계약 8절).
     const 미완 = await pendingTurn(conn, { session_id: run.session_id })
     if (미완 !== null) {
-      throw new TurnNotAllowed(
+      throw new TurnIncomplete(
         `끝나지 않은 턴이 있다 (${미완.stage}). 그 턴을 이어서 돌려라: ${미완.message_id}`,
+        미완,
       )
     }
 
