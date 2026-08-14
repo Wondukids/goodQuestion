@@ -164,3 +164,35 @@ export async function resumeSessionTurn(sessionId: string): Promise<ResumeResult
   });
   return unwrap<ResumeResult>(res);
 }
+
+/**
+ * 스킵 + 미완 턴 복구 체인 (명세 4.5절) — 화면이 대화 씬을 혼자 떠나는 모든 지점
+ * (상단 건너뛰기 · 무음 「넘어가기」 · 폴백 「계속하기」 · 오류 「건너뛰고 계속」)이 같이 쓴다.
+ *
+ * 스킵이 409 TURN_INCOMPLETE(미완 턴이 걸려 있음)로 막히면 resume 으로 이어 돌린 뒤
+ * **한 번만** 재시도한다. resume 이 이미 장면을 끝냈으면(장면끝) 재스킵 없이 다시 열어
+ * 따라잡는다 — 장면 전진은 열기 몫이라 서버는 아직 그 장면에 서 있다 (명세 4.3절).
+ *
+ * 반환: 이제 서버가 기다리는 대화 장면 code — null 이면 서버 대화가 남지 않았다.
+ * 실패(409 외·체인 도중 사망)는 그대로 던진다 — 부르는 쪽이 로그만 남기고 진행한다.
+ */
+export async function skipSessionSceneWithResume(
+  sessionId: string,
+  sceneCode: string,
+  story: string,
+): Promise<string | null> {
+  try {
+    return (await skipSessionScene(sessionId, sceneCode)).scene?.code ?? null;
+  } catch (error) {
+    if (!(error instanceof SessionApiError) || error.code !== "TURN_INCOMPLETE") {
+      throw error;
+    }
+    const resumed = await resumeSessionTurn(sessionId);
+    if (resumed.next.kind === "장면끝") {
+      /* 이어 돌린 턴이 장면을 끝냈다 — 스킵할 것이 없다. 열기 따라잡기로 대기 장면만 얻는다 */
+      const reopened = await openSession(story);
+      return reopened.status === "in_progress" ? (reopened.scene?.code ?? null) : null;
+    }
+    return (await skipSessionScene(sessionId, sceneCode)).scene?.code ?? null;
+  }
+}

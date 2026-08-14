@@ -102,6 +102,18 @@ export default function FartBridePlay({
           } else {
             goTo(target);
           }
+        } else {
+          /* 서버가 기다리는 장면이 앱에 아직 없다(대화 10·16 미연결 — 컷 플랜이 채워지면
+             생긴다). 처음부터 다시 틀면 이어하기가 아닌 것처럼 보인다(2026-08-14 실사용) —
+             이미 지나온 **마지막 대화의 다음 스텝**부터 이어 튼다. 장면 code 는 사전순 =
+             진행순(sc_banggui_03 < 05 < 07)이라 문자열 비교로 충분하다. */
+          let passed = -1;
+          steps.forEach((s, i) => {
+            if (s.kind === "interactive" && s.sceneCode !== "" && s.sceneCode < scene.code) {
+              passed = i;
+            }
+          });
+          if (passed >= 0 && passed + 1 < steps.length) goTo(passed + 1);
         }
       }
     } catch (error) {
@@ -129,8 +141,8 @@ export default function FartBridePlay({
       if (session && step.sceneCode !== "" && step.sceneCode === serverScene) {
         /* 응답이 오기 전에 이 씬으로 턴이 나가지 않게 추적을 먼저 끊는다 */
         setServerScene(null);
-        skipSessionScene(session.session_id, step.sceneCode)
-          .then((result) => setServerScene(result.scene?.code ?? null))
+        skipSessionSceneWithResume(session.session_id, step.sceneCode, "fart-bride")
+          .then((code) => setServerScene(code))
           .catch((error: unknown) => {
             /* 실패해도 이야기는 멈추지 않는다 — 남은 대화는 고정 문구로 돌고,
                서버 기록은 그대로라 다음 진입 때 건너뛴 대화로 복귀한다. */
@@ -169,7 +181,12 @@ export default function FartBridePlay({
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={restart}
+              onClick={() => {
+                /* 다시 보기는 완전한 처음부터 — 남아 있을 수 있는 재개 지시를 소거한다 */
+                setResumeLine(null);
+                setResumeCutStart(null);
+                restart();
+              }}
               className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
             >
               다시 보기
