@@ -63,15 +63,17 @@ export type CutsStep = {
 export type Step = VideoStep | InteractiveStep | CutsStep;
 
 /**
- * 기획 원본 씬 번호(1~18) → 서버 `story_scenes.code` (명세 3절 — 대화 4쌍이 전부다).
- * 영상 구간은 프론트 순번으로만 진행하므로 여기 없는 번호는 서버가 모르는 씬이다 (결정 ⑧).
+ * 서버 대화 장면 code 4개 — **이야기 진행 순서대로**다 (명세 3절 — 대화 4쌍이 전부다).
+ * 플랜의 n번째 질문 컷이 n번째 code 에 잇는다. scene 번호·컷 id 는 컷 편집(재넘버링)에서
+ * 바뀔 수 있어 열쇠로 쓰지 않는다 — 2026-08-14 재넘버링에서 실제로 둘 다 바뀌었다.
+ * 영상 구간은 프론트 순번으로만 진행하므로 질문 컷 아닌 씬은 서버가 모른다 (결정 ⑧).
  */
-export const SCENE_CODES: Record<number, string> = {
-  4: "sc_banggui_03",
-  7: "sc_banggui_05",
-  10: "sc_banggui_07",
-  16: "sc_banggui_09",
-};
+export const SCENE_CODES_IN_ORDER = [
+  "sc_banggui_03",
+  "sc_banggui_05",
+  "sc_banggui_07",
+  "sc_banggui_09",
+] as const;
 
 /** story_database.json 의 meta.sttDefaults — maxListenSec 만 10→20초로 늘렸다 */
 export const STT_DEFAULTS = {
@@ -91,7 +93,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene4",
     sceneId: 4,
-    sceneCode: SCENE_CODES[4],
+    sceneCode: SCENE_CODES_IN_ORDER[0],
     speaker: {
       label: "며느리",
       voice: "Leda",
@@ -127,7 +129,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene7",
     sceneId: 7,
-    sceneCode: SCENE_CODES[7],
+    sceneCode: SCENE_CODES_IN_ORDER[1],
     speaker: {
       label: "시아버지",
       voice: "Schedar",
@@ -163,7 +165,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene10",
     sceneId: 10,
-    sceneCode: SCENE_CODES[10],
+    sceneCode: SCENE_CODES_IN_ORDER[2],
     speaker: {
       label: "이장님",
       voice: "Sadachbia",
@@ -199,7 +201,7 @@ export const SEQUENCE: Step[] = [
     kind: "interactive",
     id: "scene16",
     sceneId: 16,
-    sceneCode: SCENE_CODES[16],
+    sceneCode: SCENE_CODES_IN_ORDER[3],
     speaker: {
       label: "며느리",
       voice: "Leda",

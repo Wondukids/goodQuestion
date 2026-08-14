@@ -6,12 +6,15 @@
  *
  * - 연속된 linear 컷 → CutsStep 하나 (파트처럼 묶어 cuts-player 가 재생)
  * - question 컷 + 바로 뒤 answer 컷 → InteractiveStep (기존 STT→TTS 대화 씬).
+ *   서버 장면 code 는 질문 컷의 **등장 순서**로 잇는다 — n번째 질문 컷이
+ *   n번째 code (data.ts SCENE_CODES_IN_ORDER). scene 번호·컷 id 는 재넘버링되면
+ *   바뀌어서 열쇠로 못 쓴다.
  *   이미지나 대사가 아직 비어 있는 짝은 대화 씬을 만들 수 없으니 linear 로 둔다.
  * - after: "stt-minigame" 의 미니게임 단계는 아직 없다 — stt 와 같게 동작한다.
  * - 이미지도 대사도 없는 빈 컷은 보여 줄 게 없어 건너뛴다.
  */
 
-import { SCENE_CODES, type CutsStep, type InteractiveStep, type SpeechLine, type Step } from "./data";
+import { SCENE_CODES_IN_ORDER, type CutsStep, type InteractiveStep, type SpeechLine, type Step } from "./data";
 import { SPEAKER_VOICES, type ScriptSpeaker } from "./script";
 import { assetUrl, VIDEO_PLAN, type PlanCut } from "./video-plan";
 
@@ -61,13 +64,17 @@ function isDialoguePair(
   );
 }
 
-function toInteractive(question: PlanCut, answer: PlanCut): InteractiveStep {
+function toInteractive(
+  question: PlanCut,
+  answer: PlanCut,
+  sceneCode: string,
+): InteractiveStep {
   return {
     kind: "interactive",
     id: question.id,
     sceneId: question.scene,
-    /* 매핑에 없는 씬 번호면 서버 장면이 없다 — 대화 씬은 기존 고정 문구 흐름으로 돈다 */
-    sceneCode: SCENE_CODES[question.scene] ?? "",
+    /* 빈 문자열이면 서버 장면이 없는 씬 — 대화 씬은 기존 고정 문구 흐름으로 돈다 */
+    sceneCode,
     speaker: pickSpeaker(question),
     question: {
       image: assetUrl("image", question.image),
@@ -85,6 +92,9 @@ export function buildPlanSequence(cuts: PlanCut[] = VIDEO_PLAN.cuts): Step[] {
   const steps: Step[] = [];
   let run: PlanCut[] = [];
   let partNo = 0;
+  /* 질문 컷 순번 — n번째 질문 컷이 n번째 서버 장면 code 다 (data.ts SCENE_CODES_IN_ORDER).
+     미완성 짝(대화 씬이 못 되는 것)도 세어, 하나가 비어도 뒤 대화들이 앞 code 로 밀리지 않는다. */
+  let questionNo = 0;
 
   const flush = () => {
     if (run.length === 0) return;
@@ -96,9 +106,12 @@ export function buildPlanSequence(cuts: PlanCut[] = VIDEO_PLAN.cuts): Step[] {
 
   for (let i = 0; i < cuts.length; i++) {
     const cut = cuts[i];
+    if (cut.kind === "question") questionNo += 1;
     if (isDialoguePair(cut, cuts[i + 1])) {
       flush();
-      steps.push(toInteractive(cut, cuts[i + 1]));
+      steps.push(
+        toInteractive(cut, cuts[i + 1], SCENE_CODES_IN_ORDER[questionNo - 1] ?? ""),
+      );
       i += 1;
       continue;
     }
@@ -106,5 +119,11 @@ export function buildPlanSequence(cuts: PlanCut[] = VIDEO_PLAN.cuts): Step[] {
     run.push(cut);
   }
   flush();
+  if (questionNo !== SCENE_CODES_IN_ORDER.length) {
+    console.warn(
+      `[플랜] 질문 컷 ${questionNo}개 ≠ 서버 대화 장면 ${SCENE_CODES_IN_ORDER.length}개 — ` +
+        "순서 매핑이 어긋난다. 컷 플랜과 data.ts 의 SCENE_CODES_IN_ORDER 를 맞춰야 한다.",
+    );
+  }
   return steps;
 }
