@@ -22,10 +22,9 @@
 // 실험 본문은 그 위에 덧씌우기만 한다. 모듈 전역에 담아 두는 것이 하나도 없다.
 
 import { readdirSync } from 'node:fs'
-import path from 'node:path'
 
 import { ValueError } from '@/llm/domain/progress'
-import { promptsDir, read } from '@/llm/prompts'
+import { promptsDir, read, 프롬프트가_아닌_md } from '@/llm/prompts'
 import { getDb, type Conn } from '@/llm/repo/db'
 import {
   readExperimentPrompts,
@@ -59,12 +58,20 @@ export interface PromptLabView {
   experiment_names: string[]
 }
 
-/** `prompts/` 안의 `*.md` 이름들. **부를 때마다 다시 읽는다** (캐시하지 않는다). */
+/**
+ * `prompts/` 안의 프롬프트 이름들. **부를 때마다 다시 읽는다** (캐시하지 않는다).
+ *
+ * 프롬프트 하나가 **폴더 하나**다 (2026-08-14). 그전에는 `*.md` 파일 이름을 셌다.
+ *
+ * ⛔ `README.md` 처럼 프롬프트가 아닌 문서는 파일이라 애초에 안 걸리지만,
+ *    `프롬프트가_아닌_md` 로 한 번 더 거른다 — 나중에 폴더로 바뀌어도 같은 규칙이 선다.
+ */
 export function listPromptNames(디렉터리?: string): string[] {
   const 자리 = 디렉터리 ?? promptsDir()
-  return readdirSync(자리)
-    .filter((이름) => 이름.endsWith('.md'))
-    .map((이름) => path.basename(이름, '.md'))
+  return readdirSync(자리, { withFileTypes: true })
+    .filter((항목) => 항목.isDirectory())
+    .map((항목) => 항목.name)
+    .filter((이름) => !프롬프트가_아닌_md.includes(이름))
     .sort()
 }
 

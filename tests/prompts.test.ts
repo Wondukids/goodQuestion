@@ -1,52 +1,61 @@
-// `prompts/*.md` 파서 검사 (이슈 #26 말-2).
+// `prompts/` 읽기와 **두 파일이 어긋나지 않는지** 재는 검사.
 //
-// **가짜 md 를 만들어 놓고 통과시키지 않는다.** 정본 다섯 개를 그대로 파싱한다 —
-// 이 파서가 지키는 성질은 「md 를 고치면 코드가 따라온다」이고, 그건 진짜 파일로만 확인된다.
+// **가짜 md 를 만들어 놓고 통과시키지 않는다.** 정본 여섯을 그대로 읽는다 —
+// 이 층이 지키는 성질은 「md 를 고치면 코드가 따라온다」이고, 그건 진짜 파일로만 확인된다.
 // 손으로 만든 본문은 실패 경로(깨진 입력)에만 쓴다.
 //
-// ⚠️ `prompts/*.md` 는 정본이라 검사가 고치지 않는다. 읽기만 한다.
+// ⚠️ `prompts/` 는 정본이라 검사가 고치지 않는다. 읽기만 한다.
+//
+// ## 두 파일 체제 (2026-08-14)
+//
+// 프롬프트 하나가 폴더 하나이고 그 안에 두 파일이 있다.
+//
+// ```
+// prompts/analysis/
+//   보낼것.md   ← LLM 에 나가는 것
+//   해설.md     ← 사람이 읽는 것. 한 글자도 안 나간다
+// ```
+//
+// 나누면 오려낼 일이 없어지는 대신 **두 파일이 서로 모르게 어긋나는** 새 위험이 생긴다.
+// 아래 「어긋남 검사 셋」이 그것을 잡는다. 파이썬 레포에 `test_프롬프트_두층.py` 가
+// 있었지만 이식되지 않았고, 그 구멍을 여기서 메운다.
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import {
-  PlaceholderRemainingError,
   PromptError,
   chooseBody,
-  fill,
   materialJson,
-  materialTemplate,
-  placeholders,
   promptsDir,
   read,
-  render,
-  sendableBody,
+  보낼것,
+  프롬프트가_아닌_md,
 } from '@/llm/prompts'
 
-// 재료 틀을 가진 셋. 열쇠 이름은 `runner.py` 가 넘기던 것 그대로다.
-const 틀을_가진_것: ReadonlyArray<[이름: string, 자리표시자: string]> = [
-  ['analysis', 'analysis_material'],
-  ['character', 'character_material'],
-  ['child', 'child_material'],
-]
+/** 사람이 읽는 쪽. ⛔ **이름이 이 검사 파일에만 있다** — 엔진은 이 파일을 모른다. */
+const 해설 = '해설.md'
 
-// 심판 프롬프트 셋은 「받는 것」 절이 없다. 채점기가 사용자 블록을 직접 만들어 붙인다.
-//
-// ⚠️ `judge_guided_toward_target` 은 이슈 #22 가 새로 만든 과녁 심판이다. TS 는 아직
-//    이 심판을 부르지 않지만(`scoring.py` 가 파이썬에만 있다) 프롬프트 정본은 레포 루트
-//    하나이므로 파일은 여기 있다. 아래 단언이 목록을 **정확히 일치**로 보기 때문에
-//    이 줄을 빼면 파일이 늘어난 것만으로 빨개진다.
-const 틀이_없는_것 = [
+/** 재료 JSON 이 들어가는 셋. 열쇠 이름은 `runner.py` 가 넘기던 것 그대로다. */
+const 재료를_받는_것 = ['analysis', 'character', 'child']
+
+/** 심판 셋. 나가는 쪽이 **한국어**다 — 한국어 대사를 읽고 판정하기 때문. */
+const 심판 = [
   'judge_gave_away_element',
   'judge_guided_toward_target',
   'judge_invented_setting',
 ]
 
-const md들 = readdirSync(promptsDir())
-  .filter((이름) => 이름.endsWith('.md'))
-  .map((이름) => 이름.slice(0, -'.md'.length))
+/** 규칙 한 덩이에 붙는 태그. 두 파일에 같은 것이 있어야 한다. */
+const 태그 = (글: string): string[] =>
+  [...new Set([...글.matchAll(/\[([A-Z])-([A-Z0-9]+)\]/g)].map((맞은것) => 맞은것[0]))].sort()
+
+const 프롬프트들 = readdirSync(promptsDir(), { withFileTypes: true })
+  .filter((항목) => 항목.isDirectory())
+  .map((항목) => 항목.name)
+  .filter((이름) => !프롬프트가_아닌_md.includes(이름))
   .sort()
 
 describe('prompts/ 찾기', () => {
@@ -56,16 +65,29 @@ describe('prompts/ 찾기', () => {
     expect(path.basename(path.dirname(promptsDir()))).not.toBe('web')
   })
 
-  it('정본 여섯 개가 다 읽힌다', () => {
-    expect(md들).toEqual([...틀이_없는_것, ...틀을_가진_것.map(([이름]) => 이름)].sort())
-    for (const 이름 of md들) {
+  it('정본 여섯이 다 읽힌다', () => {
+    expect(프롬프트들).toEqual([...심판, ...재료를_받는_것].sort())
+    for (const 이름 of 프롬프트들) {
       expect(read(이름).length).toBeGreaterThan(0)
     }
   })
 
+  it('폴더마다 두 파일이 다 있다', () => {
+    for (const 이름 of 프롬프트들) {
+      const 안 = readdirSync(path.join(promptsDir(), 이름)).sort()
+      expect(안).toEqual([보낼것, 해설].sort())
+    }
+  })
+
+  it('README.md 는 프롬프트가 아니다 — 목록에 안 낀다', () => {
+    // 규칙 문서다. 끼면 작업대 화면에 프롬프트인 척 뜬다.
+    expect(프롬프트들).not.toContain('README')
+    expect(readdirSync(promptsDir())).toContain('README.md')
+  })
+
   it('없는 이름은 경로를 적어 터진다', () => {
     expect(() => read('없는프롬프트')).toThrow(PromptError)
-    expect(() => read('없는프롬프트')).toThrow(/없는프롬프트\.md/)
+    expect(() => read('없는프롬프트')).toThrow(/없는프롬프트/)
   })
 
   it('디렉터리를 직접 주면 그쪽을 본다', () => {
@@ -74,111 +96,96 @@ describe('prompts/ 찾기', () => {
   })
 })
 
-describe('재료 틀 — md 가 출처다', () => {
-  it.each(틀을_가진_것)('%s.md 의 틀은 {%s} 하나다', (이름, 자리표시자) => {
-    const 틀 = materialTemplate(read(이름))
-    expect(틀).toBe(`{${자리표시자}}`)
-    expect([...placeholders(틀)]).toEqual([자리표시자])
+// ═══════════════════════════════════════════════════════════════════════════
+// 어긋남 검사 셋 — 나누면서 생긴 새 위험을 잡는 자리
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('① 태그 짝 — 규칙이 한쪽에만 있으면 잡는다', () => {
+  it.each(재료를_받는_것)('%s 는 두 파일의 태그 집합이 같다', (이름) => {
+    const 나가는쪽 = 태그(read(이름))
+    const 사람쪽 = 태그(readFileSync(path.join(promptsDir(), 이름, 해설), 'utf-8'))
+
+    // 한쪽에만 있는 것을 **이름까지 찍어** 알려 준다 — 개수만 맞추면 못 고친다.
+    expect(사람쪽.filter((t) => !나가는쪽.includes(t))).toEqual([])
+    expect(나가는쪽.filter((t) => !사람쪽.includes(t))).toEqual([])
+    expect(나가는쪽.length).toBeGreaterThan(0)
   })
 
-  it.each(틀을_가진_것)('%s.md 의 틀은 파일에 있는 글자 그대로다', (이름) => {
-    // ⛔ 코드에 베껴 넣지 않았는지 보는 자리다. 베끼면 md 를 고쳤을 때 조용히 어긋난다.
-    const 본문 = read(이름)
-    const 틀 = materialTemplate(본문)
-    expect(본문).toContain(틀)
-    // 「받는 것」 절 **뒤**에서 뽑았나 — 앞쪽 코드블록을 잘못 집으면 여기서 걸린다.
-    expect(본문.indexOf(틀)).toBeGreaterThan(본문.indexOf('## 받는 것'))
+  it('셋을 합치면 32쌍이다 (2026-08-14 기준선)', () => {
+    // 규칙을 더하거나 지우면 이 숫자가 바뀐다. 바뀌었으면 **의도한 것인지 확인하고** 고쳐라.
+    const 합 = 재료를_받는_것.reduce((센것, 이름) => 센것 + 태그(read(이름)).length, 0)
+    expect(합).toBe(32)
   })
 
-  it('본문이 바뀌면 틀도 따라 바뀐다', () => {
-    const 본문 = '# 머리\n\n## 받는 것\n\n```json\n{새_재료}\n```\n'
-    // ⚠️ 이름은 소문자 snake_case 만 잡는다. 한글은 자리표시자가 아니다.
-    expect(materialTemplate(본문)).toBe('{새_재료}')
-    expect(placeholders(materialTemplate(본문)).size).toBe(0)
-  })
-})
-
-describe('깨진 입력은 어디가 깨졌는지 말하고 터진다', () => {
-  it.each(틀이_없는_것)('%s.md 는 「받는 것」 절이 없다', (이름) => {
-    const 부르기 = () => materialTemplate(read(이름), `prompts/${이름}.md`)
-    expect(부르기).toThrow(PromptError)
-    expect(부르기).toThrow(new RegExp(`prompts/${이름}\\.md.*받는 것`))
-  })
-
-  it('출처를 안 주면 「주어진 본문」이라고 말한다', () => {
-    expect(() => materialTemplate('절이 없는 본문')).toThrow(/주어진 본문/)
-  })
-
-  it('절은 있는데 코드블록이 없으면 그렇다고 말한다', () => {
-    const 부르기 = () => materialTemplate('## 받는 것\n\n표만 있다.\n', 'prompts/가짜.md')
-    expect(부르기).toThrow(PromptError)
-    expect(부르기).toThrow(/prompts\/가짜\.md.*코드블록이 없다/)
+  it('⚠️ 뜻이 어긋난 것은 못 잡는다', () => {
+    // 이 검사가 보는 것은 **태그가 양쪽에 있느냐**뿐이다. 같은 태그 아래 두 파일이
+    // 서로 다른 말을 하고 있어도 통과한다. 그건 사람이 두 파일을 나란히 놓고 읽어야 한다.
+    expect(태그('[E-A] 하늘은 파랗다')).toEqual(태그('[E-A] 하늘은 빨갛다'))
   })
 })
 
-describe('채우기', () => {
-  it('이름을 값으로 바꾼다', () => {
-    expect(fill('{a}와 {b}', { a: '하나', b: '둘' })).toBe('하나와 둘')
+describe('② 인용 누출 — 사람용 글이 LLM 쪽으로 새면 잡는다', () => {
+  // 나가는 쪽에 있으면 안 되는 것. 앞의 넷은 **이 레포에 없는 문서**를 가리키고,
+  // 뒤의 셋은 사람이 읽는 출처 표식·회의 이력이다. 모델에게 쓸모가 없고 토큰만 먹는다.
+  //
+  // 🔴 2026-08-14 분리 전에는 `judge_gave_away_element` 가 여기 걸렸다 —
+  //    심판이 `CLAUDE.md` 와 `docs/조사/…` 를 근거로 받고 회의 이력까지 읽고 있었다.
+  const 새면_안_되는_것: ReadonlyArray<[글자: string, 무엇: string]> = [
+    ['docs/', '이 레포에 없는 문서 경로'],
+    ['CLAUDE.md', '이 레포에 없는 문서'],
+    ['notes/', '이 레포에 없는 폴더'],
+    ['이슈 #', '이슈 번호'],
+    ['📄', '출처 인용 표식'],
+    ['✏️', '출처 인용 표식'],
+  ]
+
+  it.each(프롬프트들)('%s/보낼것.md 는 깨끗하다', (이름) => {
+    const 나가는것 = read(이름)
+    const 걸린것 = 새면_안_되는_것.filter(([글자]) => 나가는것.includes(글자))
+    expect(걸린것.map(([글자, 무엇]) => `${글자} (${무엇})`)).toEqual([])
   })
 
-  it('JSON 예시의 중괄호는 건드리지 않는다', () => {
-    // 이게 `str.format` 을 버린 이유였다 (`parse.ts` 머리말).
-    const 틀 = '{ "type": "REASON" } · { "a": 1 } · {material}'
-    expect(fill(틀, { material: '{"x":1}' })).toBe('{ "type": "REASON" } · { "a": 1 } · {"x":1}')
-  })
-
-  it('못 채운 자리가 남으면 이름을 적어 터진다', () => {
-    const 부르기 = () => fill('{zebra} {apple} {ok}', { ok: '됨' }, 'prompts/가짜.md')
-    expect(부르기).toThrow(PlaceholderRemainingError)
-    // 이름은 정렬해서 낸다 — 메시지가 호출 순서에 따라 흔들리지 않게.
-    expect(부르기).toThrow(/prompts\/가짜\.md.*apple, zebra/)
-  })
-
-  it('프로토타입 이름이 값 행세를 하지 못한다', () => {
-    // `constructor` 는 소문자 규칙을 통과한다. `이름 in 값` 으로 짰다면
-    // `function Object()` 가 프롬프트에 실렸을 것이다.
-    expect(() => fill('{constructor}', {})).toThrow(PlaceholderRemainingError)
-  })
-
-  it('값 안에 들어온 `{이름}` 도 못 채운 자리로 잡힌다', () => {
-    // ⚠️ 파이썬과 같은 자리에서 터진다. 아이가 `{scene}` 이라고 말하면 여기다.
-    //    고치는 것은 이식이 아니라 고도화다 — 지금은 모양을 맞춰 둔다.
-    expect(() => fill('{material}', { material: '아이가 {scene} 라고 말했다' })).toThrow(
-      PlaceholderRemainingError,
+  it('사람 쪽에는 있어도 된다 — 거기가 인용이 사는 자리다', () => {
+    // 뒤집힌 단언이다. 해설에서 인용을 지우라는 뜻이 아니라는 것을 못박아 둔다.
+    const 해설들 = 프롬프트들.map((이름) =>
+      readFileSync(path.join(promptsDir(), 이름, 해설), 'utf-8'),
     )
-  })
-
-  it('빈 문자열로 채우는 것은 채운 것이다', () => {
-    expect(fill('[{material}]', { material: '' })).toBe('[]')
+    expect(해설들.some((글) => 글.includes('docs/'))).toBe(true)
   })
 })
 
-describe('보낼 층 자르기', () => {
-  it.each(틀을_가진_것)('%s.md 는 영어 층만 나간다', (이름) => {
-    const 전체 = read(이름)
-    const 보낼것 = sendableBody(전체)
+describe('③ 경로 봉인 — 해설을 LLM 경로에 실을 길이 없다', () => {
+  // `tests/prompt-lab.test.ts` 의 「소스 훑기」와 같은 방식이다. 아직 안 불리는 길도 잡는다.
+  const 훑을_파일 = [
+    'src/llm/prompts/render.ts',
+    'src/llm/prompts/parse.ts',
+    'src/llm/prompts/index.ts',
+    'src/llm/engine/analyze.ts',
+    'src/llm/engine/character.ts',
+    'src/llm/engine/material.ts',
+    'src/llm/judge.ts',
+  ]
 
-    expect(보낼것.length).toBeGreaterThan(0)
-    expect(전체).toContain(보낼것) // 글자를 고치지 않고 잘라내기만 한다
-    expect(보낼것.length).toBeLessThan(전체.length)
-
-    // 표식도, 한글 층의 출처 인용도 따라가지 않는다 (결정 48 — 모델에게 쓸모가 없다).
-    expect(보낼것).not.toContain('보내는 것 시작')
-    expect(보낼것).not.toContain('보내는 것 끝')
-    expect(보낼것).not.toContain('한글 층 — 사람이 읽는 것')
-    expect(보낼것).not.toContain('📄')
-    expect(보낼것).not.toContain('✏️')
+  it.each(훑을_파일)('%s 에 「해설」이라는 글자가 없다', (자리) => {
+    const 소스 = readFileSync(path.join(path.dirname(promptsDir()), 자리), 'utf-8')
+    expect(소스).not.toContain(해설)
   })
 
-  it.each(틀이_없는_것)('%s.md 는 표식이 없어 통째로 간다', (이름) => {
-    // 실험 프롬프트도 같은 길을 지난다 — 못 찾겠으면 다 보내는 쪽이 안전하다.
-    expect(sendableBody(read(이름))).toBe(read(이름))
-  })
-
-  it('표식이 없는 본문은 그대로 돌려준다', () => {
-    expect(sendableBody('사람이 써 넣은 실험 프롬프트')).toBe('사람이 써 넣은 실험 프롬프트')
+  it('읽는 파일 이름은 `보낼것.md` 한 곳이 갖는다', () => {
+    // 이름을 여러 곳에 베껴 적으면 하나를 고칠 때 나머지가 조용히 갈라진다.
+    expect(보낼것).toBe('보낼것.md')
+    const 소스 = readFileSync(
+      path.join(path.dirname(promptsDir()), 'src/llm/prompts/render.ts'),
+      'utf-8',
+    )
+    // 상수를 정의하는 줄 하나뿐이다.
+    expect(소스.split("'보낼것.md'").length - 1).toBe(1)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 나머지
+// ═══════════════════════════════════════════════════════════════════════════
 
 describe('본문 고르기 — 「안 주면 파일」', () => {
   it('안 주면 파일을 읽는다', () => {
@@ -197,7 +204,7 @@ describe('본문 고르기 — 「안 주면 파일」', () => {
 })
 
 describe('재료 JSON', () => {
-  it('한글을 그대로, 공백 없이 낸다', () => {
+  it('한글을 부풀리지 않고 공백도 안 넣는다', () => {
     // 한글을 `\uXXXX` 로 부풀리면 글자 하나가 토큰 여럿이 된다. 공백도 토큰이다.
     expect(materialJson({ child_utterance: '며느리가 창피했을 것 같아', turn: 1 })).toBe(
       '{"child_utterance":"며느리가 창피했을 것 같아","turn":1}',
@@ -205,30 +212,14 @@ describe('재료 JSON', () => {
   })
 })
 
-describe('render — (system, user) 한 쌍', () => {
-  it('system 은 보낼 층, user 는 채운 재료다', () => {
-    const 재료 = materialJson({ child_utterance: '며느리가 불쌍해요' })
-    const { system, user } = render('analysis', { analysis_material: 재료 })
-
-    expect(system).toBe(sendableBody(read('analysis')))
-    expect(user).toBe(재료)
-  })
-
-  it('재료를 안 주면 파일 이름을 적어 터진다', () => {
-    const 부르기 = () => render('character', {})
-    expect(부르기).toThrow(PlaceholderRemainingError)
-    expect(부르기).toThrow(/prompts\/character\.md.*character_material/)
-  })
-})
-
-describe('정본 md 는 검사가 건드리지 않는다', () => {
-  it('다섯 파일 모두 읽기만 해도 같은 내용이다', () => {
-    // 파서에 부작용이 없는지 보는 자리 — 읽고 파싱한 뒤에도 파일이 그대로여야 한다.
-    for (const 이름 of md들) {
-      const 경로 = path.join(promptsDir(), `${이름}.md`)
-      const 처음 = readFileSync(경로, 'utf-8')
-      sendableBody(처음)
-      expect(readFileSync(경로, 'utf-8')).toBe(처음)
+describe('정본은 검사가 건드리지 않는다', () => {
+  it('열두 파일 모두 읽어도 그대로다', () => {
+    for (const 이름 of 프롬프트들) {
+      for (const 파일 of [보낼것, 해설]) {
+        const 경로 = path.join(promptsDir(), 이름, 파일)
+        const 처음 = readFileSync(경로, 'utf-8')
+        expect(readFileSync(경로, 'utf-8')).toBe(처음)
+      }
     }
   })
 })
