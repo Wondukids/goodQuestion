@@ -42,7 +42,9 @@ export default async function ChildrenPage() {
           )}
         </header>
 
-        <div className="flex h-[431px] items-start gap-10">
+        {/* 한 줄에 넉 장(295×4 + 간격 40×3 = 1300px). 다섯 장째부터 아래로 접힌다 —
+            카드 밑에 30px 겹쳐 깔리는 타원 그림자만큼 세로 간격을 더 준다. */}
+        <div className="flex max-w-[1300px] flex-wrap items-start justify-center gap-x-10 gap-y-[70px] pb-[30px]">
           {children?.map((child) => (
             <ChildCard
               key={child.id}

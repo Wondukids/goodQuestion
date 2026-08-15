@@ -1,3 +1,4 @@
+import { EmailLogin } from "@/components/auth/email-login";
 import { GoogleLogin } from "@/components/auth/google-login";
 import { Logo } from "@/components/brand/logo";
 
@@ -23,6 +24,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </div>
 
             <GoogleLogin initialError={error} />
+
+            {/* 구분선 — 이메일 로그인은 이미 계정이 있는 보호자용이다(가입 경로는 구글 하나뿐). */}
+            <div className="flex w-[400px] max-w-full items-center gap-4">
+              <span className="h-px flex-1 bg-ink/15" />
+              <span className="text-[14px] font-bold text-ink-soft">또는</span>
+              <span className="h-px flex-1 bg-ink/15" />
+            </div>
+
+            <EmailLogin />
           </div>
         </section>
       </div>
