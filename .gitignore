@@ -40,3 +40,6 @@ yarn-error.log*
 
 # 생성형 이미지 스크래치 — 코드에서 참조하지 않음
 images/
+
+# 병렬 작업용 워크트리 — 리포 하위에 중첩으로 생긴다
+.claude/worktrees/
