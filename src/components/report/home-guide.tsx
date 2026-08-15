@@ -19,29 +19,37 @@ export function HomeGuide({ guide }: { guide: Report["guide"] }) {
       </p>
 
       {/* ── 이야기 속 질문 · 일상 질문 */}
-      <div className="flex h-[700px] gap-5">
-        <GuideColumn
-          step={1}
-          stepColor="#45a9d3"
-          title="이야기 주제 이어가기"
-          caption={guide.story.caption}
-        >
-          {guide.story.questions.map((question) => (
-            <StoryQuestionCard key={question.type} question={question} />
-          ))}
-        </GuideColumn>
+      {/* 문장이 아직 없는 리포트에서는 두 기둥이 통째로 빈다 — 안내를 낸다 (계약 2절 ②) */}
+      {guide.notice ? (
+        <p className="flex h-[700px] items-center justify-center rounded-[20px] border border-[#bdbdbd] bg-story-bg px-10 text-center text-[16px] leading-[1.6] font-bold text-ink-faint">
+          {guide.notice}
+        </p>
+      ) : (
+        <div className="flex h-[700px] gap-5">
+          <GuideColumn
+            step={1}
+            stepColor="#45a9d3"
+            title="이야기 주제 이어가기"
+            caption={guide.story.caption}
+          >
+            {/* 키를 배지 이름으로 잡지 않는다 — 같은 요소가 두 번 뽑힐 수 있다 */}
+            {guide.story.questions.map((question, index) => (
+              <StoryQuestionCard key={index} question={question} />
+            ))}
+          </GuideColumn>
 
-        <GuideColumn
-          step={2}
-          stepColor="#fd7649"
-          title="일상생활로 연결하기"
-          caption={guide.daily.caption}
-        >
-          {guide.daily.questions.map((question) => (
-            <DailyQuestionCard key={question.type} question={question} />
-          ))}
-        </GuideColumn>
-      </div>
+          <GuideColumn
+            step={2}
+            stepColor="#fd7649"
+            title="일상생활로 연결하기"
+            caption={guide.daily.caption}
+          >
+            {guide.daily.questions.map((question, index) => (
+              <DailyQuestionCard key={index} question={question} />
+            ))}
+          </GuideColumn>
+        </div>
+      )}
 
       {/* ── 대답이 짧을 때 쓰는 3단계 */}
       <section className="flex h-24 items-center gap-5 rounded-[20px] border-2 border-primary-pale bg-[#f7f5fd] px-6">
@@ -135,24 +143,30 @@ function StoryQuestionCard({ question }: { question: StoryQuestion }) {
         <span className="rounded-full bg-[#eaf6fb] px-2.5 py-1 text-[11px] font-extrabold text-primary-strong">
           {question.type}
         </span>
-        <span className="flex items-center gap-[5px] rounded-full bg-surface-muted px-3 py-1.5">
-          <MaterialSymbol
-            name="photo_library"
-            size={13}
-            className="text-ink-mid"
-          />
-          <span className="text-[12px] font-bold text-[#575757]">
-            {question.scene}
+        {/* 「장면 3 · …」 과 「미션 · 배 따기」 두 꼴이 온다 — 그대로 찍는다 (M7) */}
+        {question.scene && (
+          <span className="flex items-center gap-[5px] rounded-full bg-surface-muted px-3 py-1.5">
+            <MaterialSymbol
+              name="photo_library"
+              size={13}
+              className="text-ink-mid"
+            />
+            <span className="text-[12px] font-bold text-[#575757]">
+              {question.scene}
+            </span>
           </span>
-        </span>
+        )}
       </div>
 
-      <p className="flex items-center gap-1.5 rounded-lg bg-primary-pale px-2.5 py-2 text-[#226f90]">
-        <MaterialSymbol name="format_quote" size={16} />
-        <span className="min-w-0 flex-1 text-[13px] font-extrabold">
-          {question.quote}
-        </span>
-      </p>
+      {/* 인용을 못 찾으면 근거 줄 없이 질문만 그린다 (계약 1절) */}
+      {question.quote && (
+        <p className="flex items-center gap-1.5 rounded-lg bg-primary-pale px-2.5 py-2 text-[#226f90]">
+          <MaterialSymbol name="format_quote" size={16} />
+          <span className="min-w-0 flex-1 text-[13px] font-extrabold">
+            {question.quote}
+          </span>
+        </p>
+      )}
 
       <p className="text-[16px] leading-[1.5] font-extrabold text-ink-strong">
         {question.question}

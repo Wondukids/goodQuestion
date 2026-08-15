@@ -57,7 +57,14 @@ export function SpeechAnalysis({
             <p className="text-[13px] font-bold text-[#8a8a8a]">이번 활동 기준</p>
           </div>
 
-          <RadarChart axes={report.radar.axes} />
+          {/* 축이 전부 0 이면 그릴 오각형이 없다 — 자리를 비우지 않고 안내를 낸다 (계약 2절 ①) */}
+          {report.radar.notice ? (
+            <p className="flex h-[264px] w-full items-center justify-center px-8 text-center text-[15px] leading-[1.6] font-bold text-ink-faint">
+              {report.radar.notice}
+            </p>
+          ) : (
+            <RadarChart axes={report.radar.axes} />
+          )}
 
           <p className="flex items-start gap-2 rounded-xl bg-surface-muted px-3.5 py-[11px]">
             <MaterialSymbol
@@ -87,13 +94,17 @@ export function SpeechAnalysis({
           </div>
 
           <div className="flex min-h-0 flex-1 gap-3.5 pt-3.5">
-            {report.skills.map((skill) => (
-              <SkillCard
-                key={skill.name}
-                skill={skill}
-                quoteLabel={report.quoteLabel}
-              />
-            ))}
+            {report.skillsNotice ? (
+              <EmptyNotice text={report.skillsNotice} />
+            ) : (
+              report.skills.map((skill) => (
+                <SkillCard
+                  key={skill.name}
+                  skill={skill}
+                  quoteLabel={report.quoteLabel}
+                />
+              ))
+            )}
           </div>
         </section>
       </div>
@@ -110,28 +121,34 @@ export function SpeechAnalysis({
             <h2 className="text-[20px] leading-[1.3] font-extrabold text-[#575757]">
               오늘의 대표 발화
             </h2>
-            <span className="flex items-center gap-1.5 py-1.5 whitespace-nowrap">
-              <MaterialSymbol
-                name="photo_library"
-                size={13}
-                className="text-ink-faint"
-              />
-              <span className="text-[12px] font-bold text-[#575757]">
-                {report.highlight.scene}
+            {/* 「장면 3 · …」 과 「미션 · 배 따기」 두 꼴이 온다 — 그대로 찍는다 (M7) */}
+            {report.highlight?.scene && (
+              <span className="flex items-center gap-1.5 py-1.5 whitespace-nowrap">
+                <MaterialSymbol
+                  name="photo_library"
+                  size={13}
+                  className="text-ink-faint"
+                />
+                <span className="text-[12px] font-bold text-[#575757]">
+                  {report.highlight.scene}
+                </span>
               </span>
-            </span>
+            )}
           </div>
 
+          {/* 뽑힌 발화가 없으면 빈 판이 아니라 안내를 낸다 (계약 2절 ②·④) */}
           <p className="flex min-h-0 flex-1 items-center rounded-[14px] p-4 text-[18px] leading-[1.6] font-extrabold text-ink-strong">
-            {report.highlight.quote}
+            {report.highlight?.quote ?? report.highlightNotice}
           </p>
 
-          <p className="flex items-center gap-2 rounded-xl bg-surface-muted px-3.5 py-[11px]">
-            <MaterialSymbol name="star" size={16} className="text-[#fd7649]" />
-            <span className="text-[14px] leading-[1.5] font-bold text-[#575757]">
-              {report.highlight.comment}
-            </span>
-          </p>
+          {report.highlight && (
+            <p className="flex items-center gap-2 rounded-xl bg-surface-muted px-3.5 py-[11px]">
+              <MaterialSymbol name="star" size={16} className="text-[#fd7649]" />
+              <span className="text-[14px] leading-[1.5] font-bold text-[#575757]">
+                {report.highlight.comment}
+              </span>
+            </p>
+          )}
         </section>
 
         <section className={`${CARD} min-w-0 flex-1 gap-3.5`}>
@@ -195,20 +212,23 @@ function SkillCard({
       </p>
 
       <div className="flex min-h-0 flex-1 flex-col gap-5">
-        <div
-          className="flex flex-col gap-3 rounded-[10px] px-3 py-2.5"
-          style={{ backgroundColor: skill.tint }}
-        >
-          <span
-            className="text-[11px] font-bold"
-            style={{ color: skill.color }}
+        {/* LLM 이 인용을 못 고르면 `quote` 가 없다 — 근거 박스째 그리지 않는다 (계약 1절) */}
+        {skill.quote && (
+          <div
+            className="flex flex-col gap-3 rounded-[10px] px-3 py-2.5"
+            style={{ backgroundColor: skill.tint }}
           >
-            {quoteLabel}
-          </span>
-          <p className="text-[12px] leading-[1.5] font-extrabold text-ink-strong">
-            {skill.quote}
-          </p>
-        </div>
+            <span
+              className="text-[11px] font-bold"
+              style={{ color: skill.color }}
+            >
+              {quoteLabel}
+            </span>
+            <p className="text-[12px] leading-[1.5] font-extrabold text-ink-strong">
+              {skill.quote}
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-5">
           <Verdict icon="check_circle" color="#5aa860" text={skill.good} />
@@ -262,17 +282,33 @@ function WordCard({ group }: { group: WordGroup }) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {group.words.map((word) => (
-          <span
-            key={word}
-            className="rounded-full px-[11px] py-[5px] text-[12px] font-bold"
-            style={{ backgroundColor: group.chipBg, color: group.color }}
-          >
-            {word}
-          </span>
-        ))}
-      </div>
+      {/* 중단한 활동에서는 한 칸이 통째로 빌 수 있다 (계약 2절 ④) */}
+      {group.words.length === 0 ? (
+        <p className="text-[12px] leading-[1.5] font-bold text-ink-faint">
+          {group.empty}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {group.words.map((word) => (
+            <span
+              key={word}
+              className="rounded-full px-[11px] py-[5px] text-[12px] font-bold"
+              style={{ backgroundColor: group.chipBg, color: group.color }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+      )}
     </article>
+  );
+}
+
+/** 값이 없는 칸을 빈 판으로 두지 않는다 — 자리를 채우고 왜 비었는지 말한다. */
+function EmptyNotice({ text }: { text: string }) {
+  return (
+    <p className="flex min-w-0 flex-1 items-center justify-center rounded-2xl border border-[#d6d6d6] px-6 text-center text-[14px] leading-[1.6] font-bold text-ink-faint">
+      {text}
+    </p>
   );
 }

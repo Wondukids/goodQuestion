@@ -3,14 +3,42 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
+import { fetchReportList } from "@/lib/report-api";
 
 /**
  * 보호자 리포트로 들어가는 문(시안 21-1449).
  * 누르면 보호자 확인 모달(시안 21-1347)이 뜨고, 아직 비밀번호를 저장하는 곳이
  * 없어서 아무 숫자든 4자리가 차면 리포트로 넘어간다.
+ *
+ * 아직 안 읽은 리포트가 있으면 제목 옆에 점을 찍는다 (결정 R24). 목록을 못 받으면
+ * 점만 없다 — 마이페이지가 리포트 API 때문에 막히지 않게 조용히 넘긴다.
  */
-export function ParentReportCard({ childName }: { childName: string }) {
+export function ParentReportCard({
+  childName,
+  childId,
+}: {
+  childName: string;
+  childId: string;
+}) {
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const reports = await fetchReportList(childId);
+        if (!cancelled) setUnread(reports.some((report) => report.unread));
+      } catch {
+        /* 점은 다음에 들어올 때 다시 확인한다 */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [childId]);
 
   return (
     <>
@@ -23,8 +51,14 @@ export function ParentReportCard({ childName }: { childName: string }) {
           <MaterialSymbol name="description" size={28} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1.5 font-gothic">
-          <span className="text-[21px] font-extrabold text-ink-strong">
+          <span className="flex items-center gap-2 text-[21px] font-extrabold text-ink-strong">
             보호자 리포트
+            {unread && (
+              <span
+                aria-label="안 읽은 리포트가 있어요"
+                className="size-2.5 rounded-full bg-[#fd7649]"
+              />
+            )}
           </span>
           <span className="text-[15px] leading-[1.45] font-extrabold text-[#707070]">
             {childName}의 말하기 성장 기록과 가정 학습 가이드를 확인해요
