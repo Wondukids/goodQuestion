@@ -230,6 +230,8 @@ const NOTICE = {
   fewWords: "이번엔 모인 말이 적어요.",
   /** 축이 전부 0 — 그릴 오각형이 없다 */
   noAxes: "이번엔 모인 말이 적어 그래프를 그리지 못했어요.",
+  /** 점수가 선 축이 하나뿐 — 오각형이 아니라 바늘이 된다 (D1 · 명세 4.2) */
+  oneAxis: "이번엔 한 갈래에서만 나타나 그래프로 그리기 어려웠어요.",
 } as const;
 
 const KST = "Asia/Seoul";
@@ -330,6 +332,15 @@ export function toReportView(
   const scores = RADAR_AXES.map((style) => metrics.axes[style.axis]?.score ?? 0);
   const maxScore = Math.max(...scores);
 
+  /* 🔴 **점수가 선 축이 하나뿐이면 그리지 않는다** (D1 · 명세 4.2).
+     활동 안에서 정규화하므로 그 축 혼자 100% 가 되어 오각형이 아니라 **바늘 하나**가 선다.
+     거의 말 없이 중단한 활동(발화 3건에 「되묻기 회복」 한 점만 있는 판)이 그 꼴이었다.
+
+     경계를 발화 수가 아니라 **선 축의 개수**로 잡은 이유: 문제는 말이 적은 것 자체가 아니라
+     **그래프의 모양**이다. 말이 많아도 한 갈래에서만 나타나면 똑같이 바늘이 된다.
+     ⛔ 지표는 손대지 않는다 — 축 점수는 사실 그대로 세어 두고(R17), 그릴지 말지만 여기서 정한다. */
+  const 선축수 = scores.filter((score) => score > 0).length;
+
   const skills = (narrative?.cards ?? [])
     .filter((card) => card.axis in SKILL_STYLE)
     .map((card) => {
@@ -402,7 +413,8 @@ export function toReportView(
         color: style.color,
         label: style.label,
       })),
-      notice: maxScore === 0 ? NOTICE.noAxes : null,
+      notice:
+        선축수 === 0 ? NOTICE.noAxes : 선축수 === 1 ? NOTICE.oneAxis : null,
       comment: textOr(narrative?.overall),
     },
 

@@ -140,6 +140,31 @@ describe('오각형 — 그 활동 안에서만 정규화한다 (계약 2절 ①
     // 0 으로 나누지 않는다 — 값은 전부 0 이다
     expect(view.radar.axes.map((axis) => axis.value)).toEqual([0, 0, 0, 0, 0])
   })
+
+  it('🔴 점수가 선 축이 하나뿐이면 그리지 않는다 — 오각형이 아니라 바늘이 된다 (D1)', () => {
+    /* 거의 말 없이 중단한 활동의 꼴 — 발화 3건에 「되묻기 회복」 한 점만 선다.
+       활동 안에서 정규화하므로 그 축 혼자 100% 가 되어 바늘 하나가 그려지던 판이다. */
+    const 바늘 = 사본(짧게_답한_아이)
+    const 축들 = Object.values(바늘.metrics.axes)
+    for (const axis of 축들) axis.score = 0
+    축들[1].score = 1
+
+    const view = 지우(바늘)
+
+    expect(view.radar.notice).toContain('한 갈래에서만')
+    // 축 값 자체는 그대로 옮긴다 — 지표를 손대는 결정이 아니다 (R17)
+    expect(view.radar.axes.filter((axis) => axis.value > 0)).toHaveLength(1)
+  })
+
+  it('두 축부터는 그린다 — 경계는 발화 수가 아니라 선 축의 개수다', () => {
+    const 둘 = 사본(짧게_답한_아이)
+    const 축들 = Object.values(둘.metrics.axes)
+    for (const axis of 축들) axis.score = 0
+    축들[1].score = 1
+    축들[3].score = 1
+
+    expect(지우(둘).radar.notice).toBeNull()
+  })
 })
 
 describe('계약 4.2 — 문장이 없고 첫 활동이다', () => {

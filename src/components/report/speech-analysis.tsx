@@ -58,7 +58,7 @@ export function SpeechAnalysis({
             <p className="text-[13px] font-bold text-[#8a8a8a]">이번 활동 기준</p>
           </div>
 
-          {/* 축이 전부 0 이면 그릴 오각형이 없다 — 자리를 비우지 않고 안내를 낸다 (계약 2절 ①) */}
+          {/* 점수가 선 축이 하나 이하면 그릴 오각형이 없다(D1) — 자리를 비우지 않고 안내를 낸다 (계약 2절 ①) */}
           {report.radar.notice ? (
             <p className="flex h-[264px] w-full items-center justify-center px-8 text-center text-[15px] leading-[1.6] font-bold text-ink-faint">
               {report.radar.notice}
