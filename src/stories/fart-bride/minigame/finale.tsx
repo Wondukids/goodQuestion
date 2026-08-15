@@ -1,17 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { transcribeAudio } from "@/stt/client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { startRecording, type Recording } from "@/stt/record";
 import { fillChildName } from "../name";
+import type { PostActivityWiring } from "../session-api";
 import { MissionCanvas } from "./canvas";
+import { resumeFrom, toScenes, toTrayOrder } from "./finale-config";
 import {
   MAX_TELL_SEC,
   SCENE,
-  SCENES,
   TEXT,
-  TRAY_ORDER,
   TRAY_TILT,
   type StoryScene,
 } from "./finale-script";
@@ -27,6 +26,22 @@ import {
  *                   처음부터 끝까지 들려주고, 그 목소리를 받아 적는다.
  *
  * 좌표·크기는 전부 시안 캔버스(1366×1024) 기준 값을 그대로 쓴다.
+ *
+ * ## 서버와 이어진 자리 넷 (이슈 #46 · `docs/말하기후활동_명세.md` 8절 ③)
+ *
+ * 1. **카드 제목·핵심 단어는 서버 `post_activity_config` 가 정본이다** (F1 · 수용 2).
+ *    상수(`finale-script.ts`)는 서버가 안 열렸을 때의 비상용으로 남아 있고, 둘을 잇는
+ *    자리는 `finale-config.ts` 하나다.
+ * 2. **「다 놓았어요!」마다 `order` 를 부른다 — 답을 기다리지 않는다.** 순서 판정과
+ *    「맞은 카드는 남기고 나머지만 트레이로」는 지금까지 하던 그대로 화면이 한다.
+ *    아이 화면이 네트워크를 기다리면 안 된다.
+ * 3. **받아쓰기는 이제 앱이 안 한다** (F6). 녹음을 통째로 `retelling` 에 보내면 서버가
+ *    받아쓰고 단어를 판정한다. 🔴 판정 실패(`analyzed: false`)는 **오류가 아니다** —
+ *    아이 말은 이미 저장됐고 화면은 끝까지 진행된다 (F4·F8 · 수용 10).
+ * 4. **「마치기」가 보호자 리포트를 띄우는 신호다** (F11). 실패해도 팝업은 닫힌다.
+ *
+ * ⛔ 문구·색·좌표는 하나도 바꾸지 않았다. 「/ 4장」처럼 카드 수가 박혀 있던 자리만
+ *    서버 값에서 세도록 옮겼다 — 카드 넉 장이면 글자가 똑같다.
  */
 
 const CANVAS = { w: 1366, h: 1024 };
@@ -34,29 +49,41 @@ const CANVAS = { w: 1366, h: 1024 };
 /** 카드 한 장 (시안 01 트레이·슬롯 공통) */
 const CARD = { w: 270, h: 210, art: 158 };
 
-const byId = (id: string) => SCENES.find((s) => s.id === id);
-
 export function Finale({
   childName,
+  postActivity,
   onComplete,
   onQuit,
 }: {
   /** 선택된 아이 이름 — 녹음 중 안내에 쓴다 */
   childName: string | null;
+  /** 후활동 API 배선 — 카드의 정본과 호출 4벌 (명세 8절 ②). 미션 배선과는 남남이다 */
+  postActivity: PostActivityWiring;
   onComplete: () => void;
   /** 오른쪽 위 닫기 */
   onQuit: () => void;
 }) {
-  const [step, setStep] = useState<"order" | "tell">("order");
-  /* 칸 넷에 놓인 카드 id (아직 비었으면 null) */
-  const [slots, setSlots] = useState<(string | null)[]>([null, null, null, null]);
+  /* 서버 config 가 정본, 없으면 화면 상수 — 가르는 자리는 finale-config.ts 하나다 */
+  const scenes = useMemo(() => toScenes(postActivity.config), [postActivity.config]);
+  const trayOrder = useMemo(
+    () => toTrayOrder(postActivity.config, scenes),
+    [postActivity.config, scenes],
+  );
+  /* 중간에 나갔다 돌아온 자리 — 팝업이 열릴 때 한 번만 본다 (명세에 없는 판단) */
+  const [resume] = useState(() => resumeFrom(postActivity.result));
+
+  const [step, setStep] = useState<"order" | "tell">(resume.step);
+  /* 칸마다 놓인 카드 id (아직 비었으면 null) — 칸 수는 서버 카드 수를 따른다 */
+  const [slots, setSlots] = useState<(string | null)[]>(() => scenes.map(() => null));
   /* 트레이에서 눌러 든 카드 — 칸을 누르면 거기 놓인다 */
   const [held, setHeld] = useState<string | null>(null);
   /* 틀렸을 때 안내를 나눠 준다 — 하나도 못 맞혔으면 문구가 달라진다 */
   const [wrong, setWrong] = useState<"none" | "some" | null>(null);
 
-  const tray = TRAY_ORDER.filter((id) => !slots.includes(id));
+  const byId = (id: string) => scenes.find((s) => s.id === id);
+  const tray = trayOrder.filter((id) => !slots.includes(id));
   const placed = slots.filter(Boolean).length;
+  const total = scenes.length;
 
   const place = (index: number, id: string) => {
     setWrong(null);
@@ -80,13 +107,25 @@ export function Finale({
   /* 순서가 맞아야 다음 단계로 간다. 틀리면 자리가 맞는 카드는 그대로 두고
      나머지만 트레이로 돌려보낸다 — 처음부터 다시 놓게 하지 않는다. */
   const submitOrder = () => {
-    const right = slots.filter((id, i) => id === SCENES[i].id).length;
-    if (right === SCENES.length) {
+    /* 🔴 기록용 호출 — 답을 **기다리지 않는다** (명세 8절 ③). 아래 화면 판정이 정본이고,
+       서버는 받은 순서를 스스로 다시 대조해 「첫 제출」과 횟수를 남긴다 (F7·F18).
+       실패해도 아이는 모른다 — 활동을 멈출 이유가 없다. */
+    const submitted = slots.filter((id): id is string => id !== null);
+    if (submitted.length === total) {
+      postActivity.api
+        .submitPostActivityOrder(postActivity.sessionId, submitted)
+        .catch((error: unknown) => {
+          console.info("[후활동] 순서 기록 실패 — 활동은 그대로 진행한다", error);
+        });
+    }
+
+    const right = slots.filter((id, i) => id === scenes[i].id).length;
+    if (right === total) {
       setStep("tell");
       return;
     }
     setWrong(right === 0 ? "none" : "some");
-    setSlots((current) => current.map((id, i) => (id === SCENES[i].id ? id : null)));
+    setSlots((current) => current.map((id, i) => (id === scenes[i].id ? id : null)));
   };
 
   return (
@@ -110,13 +149,13 @@ export function Finale({
                     {placed}
                   </span>
                   <span className="text-[15px] leading-[1.5] font-extrabold text-[#8a8a8a]">
-                    / 4장 놓았어요
+                    / {total}장 놓았어요
                   </span>
                 </p>
                 <div className="h-[10px] w-[200px] overflow-hidden rounded-full bg-surface-muted">
                   <div
                     className="h-full rounded-full bg-primary-strong transition-[width] duration-300"
-                    style={{ width: placed === 0 ? 6 : (placed / 4) * 200 }}
+                    style={{ width: placed === 0 ? 6 : (placed / total) * 200 }}
                   />
                 </div>
               </div>
@@ -214,9 +253,9 @@ export function Finale({
               <button
                 type="button"
                 onClick={submitOrder}
-                disabled={placed < 4}
+                disabled={placed < total}
                 className={`flex h-[54px] w-[179px] items-center justify-center rounded-lg px-6 py-3 text-[20px] leading-[1.5] font-extrabold text-[#fcfcfc] ${
-                  placed < 4 ? "bg-brand-900/40" : "bg-brand-900"
+                  placed < total ? "bg-brand-900/40" : "bg-brand-900"
                 }`}
               >
                 {TEXT.orderSubmit}
@@ -224,7 +263,13 @@ export function Finale({
             </div>
           </>
         ) : (
-          <TellStep childName={childName} onComplete={onComplete} />
+          <TellStep
+            childName={childName}
+            scenes={scenes}
+            postActivity={postActivity}
+            savedRetelling={resume.retelling}
+            onComplete={onComplete}
+          />
         )}
       </>
     </MissionCanvas>
@@ -358,14 +403,22 @@ type TellPhase = "ready" | "recording" | "recorded" | "sending" | "done";
 /** 2단계 — 맞춘 카드와 핵심 단어를 보며 줄거리를 들려준다 (시안 41:1571) */
 function TellStep({
   childName,
+  scenes,
+  postActivity,
+  savedRetelling,
   onComplete,
 }: {
   childName: string | null;
+  /** 순서대로 선 장면 — 서버 config 가 정본이다 (F1) */
+  scenes: StoryScene[];
+  postActivity: PostActivityWiring;
+  /** 지난번에 이미 들려준 줄거리. 있으면 「다 말한 뒤」 자리에서 연다 */
+  savedRetelling: string | null;
   onComplete: () => void;
 }) {
-  const [phase, setPhase] = useState<TellPhase>("ready");
+  const [phase, setPhase] = useState<TellPhase>(savedRetelling === null ? "ready" : "done");
   const [seconds, setSeconds] = useState(0);
-  const [retelling, setRetelling] = useState("");
+  const [retelling, setRetelling] = useState(savedRetelling ?? "");
   const [error, setError] = useState("");
 
   const recordingRef = useRef<Recording | null>(null);
@@ -413,24 +466,52 @@ function TellStep({
     };
   }, [phase, handleRecorded]);
 
+  /**
+   * 녹음을 통째로 서버에 보낸다 (F6). 받아쓰기도 단어 판정도 서버가 한다 —
+   * 앱은 이제 `transcribeAudio()` 를 부르지 않는다 (명세 8절 ③).
+   *
+   * 🔴 **판정 실패는 오류가 아니다.** `{ text, analyzed: false, keywords: null }` 이
+   *    200 으로 오고, 그때도 아이 말은 이미 저장돼 있다. 화면은 그대로 끝까지 간다
+   *    (F4·F8 · 수용 기준 10). 빨간 화면을 띄우지 않는다.
+   */
   const send = async () => {
     const clip = clipRef.current;
     if (!clip) return;
     setPhase("sending");
     try {
-      const text = await transcribeAudio(clip.audio, clip.channels);
-      /* 무음이면 다시 말할 기회를 준다 — 빈 이야기를 담아 두지 않는다 */
-      if (!text) {
+      const result = await postActivity.api.submitPostActivityRetelling(
+        postActivity.sessionId,
+        clip.audio,
+        clip.channels,
+      );
+      /* 무음이면 다시 말할 기회를 준다 — 빈 이야기를 담아 두지 않는다 (서버도 안 저장한다) */
+      if (result.empty) {
         setError("목소리가 담기지 않았어요. 한 번 더 들려줄래?");
         setPhase("ready");
         return;
       }
-      setRetelling(text);
+      setRetelling(result.text);
       setPhase("done");
     } catch {
+      /* 여기까지 오는 것은 받아쓰기 자체가 실패한 것뿐이다 (502 STT_FAILED — 재시도 가능) */
       setError("이야기를 담지 못했어요. 한 번 더 해볼까?");
       setPhase("recorded");
     }
+  };
+
+  /**
+   * 「마치기」 — ⭐ **보호자 리포트를 띄우는 신호다** (F11 · 명세 5.D).
+   *
+   * 답을 기다리지 않고 팝업을 닫는다. 실패해도 아이를 붙잡지 않는다 (F4) — 그때는
+   * 보호자가 리포트를 열 때 만들어진다 (F12).
+   */
+  const finish = () => {
+    postActivity.api
+      .completePostActivity(postActivity.sessionId, "finished")
+      .catch((error: unknown) => {
+        console.info("[후활동] 마치기 알림 실패 — 리포트는 보호자 열람 때 만들어진다", error);
+      });
+    onComplete();
   };
 
   const recording = phase === "recording";
@@ -461,7 +542,7 @@ function TellStep({
 
       {/* 맞춘 순서 그대로 — 장면마다 핵심 단어를 붙여 준다 */}
       <div className="flex w-full items-start gap-6">
-        {SCENES.map((scene, index) => (
+        {scenes.map((scene, index) => (
           <div
             key={scene.id}
             className="flex flex-1 flex-col self-stretch overflow-hidden rounded-[18px] border border-[#bdbdbd] bg-story-bg"
@@ -507,7 +588,7 @@ function TellStep({
         </div>
 
         {phase === "done" ? (
-          /* 받아 적은 이야기 — 리포트로 보낼 자리다 (아직 연결 전) */
+          /* 받아 적은 이야기 — 서버가 이미 저장했고 단어 판정까지 끝냈다 (명세 5.C) */
           <p className="flex h-[210px] w-full items-center justify-center overflow-y-auto px-8 text-center text-[20px] leading-[1.6] font-bold text-ink-strong">
             “{retelling}”
           </p>
@@ -546,7 +627,7 @@ function TellStep({
 
       <button
         type="button"
-        onClick={finished ? onComplete : send}
+        onClick={finished ? finish : send}
         disabled={!submitActive}
         className={`flex h-[61px] w-[300px] items-center justify-center rounded-lg px-6 py-3.5 text-[22px] leading-[1.5] font-extrabold text-[#fcfcfc] ${
           submitActive ? "bg-primary-strong" : "bg-primary-line"
