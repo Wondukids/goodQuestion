@@ -56,6 +56,60 @@ export interface Quote {
   elements: string[]
 }
 
+/**
+ * 말하기 후 활동에서 필수 단어 하나가 어떻게 됐나 (`post_activity_keywords` 한 행).
+ *
+ * 정본은 `docs/말하기후활동_명세.md` 4.3 · 7.2 다.
+ */
+export interface PostActivityWord {
+  /** 어느 카드의 단어인가 (`'endure'` · `'burst'` · `'pear'` · `'pride'`) */
+  card_id: string
+  word: string
+  /** `used` 그 글자 그대로 씀 · `similar` 비슷한 말로 씀 · `missing` 안 씀 */
+  status: 'used' | 'similar' | 'missing'
+  /**
+   * 그렇게 본 근거 — 아이 말 **원문에서 떼어 온 조각**이다.
+   *
+   * 🔴 **`null` 이 정본이다** (빈 글자가 아니다). `missing` 은 인용할 말이 없어서,
+   *    `used` 는 찾힌 조각이 「당당하」처럼 어간이라 안 싣기로 해서 비어 있다
+   *    (`src/post-activity/domain/keywords.ts`). 실제로 차는 것은 `similar` 뿐이다.
+   */
+  evidence: string | null
+}
+
+/** 아이가 들려준 줄거리와 그 판정 (후활동 명세 7.2). */
+export interface PostActivityRetelling {
+  /**
+   * 🔴 `false` 면 **판정을 못 했다** (LLM 실패 — `analyzed_at` 이 NULL).
+   * 「단어를 하나도 안 썼다」와 **다르다** — 그쪽은 `true` 이고 12개가 전부 `missing` 이다.
+   */
+  analyzed: boolean
+  /** 서버가 받아쓴 아이 원문 */
+  text: string
+  used: number
+  similar: number
+  missing: number
+  /** 판정한 단어 **전부** (카드 넉 장 × 셋 = 12). `analyzed === false` 면 빈 배열이다 */
+  words: PostActivityWord[]
+}
+
+/** 이야기를 다 본 뒤의 활동 한 건 (후활동 명세 7.2 · F16). */
+export interface PostActivity {
+  order: {
+    /**
+     * 🔴 **「끝내 맞췄나」**다 (F18). 「첫 제출이 정답이었나」가 **아니다** —
+     * 그건 `attempts === 1` 로 안다.
+     */
+    correct: boolean
+    /** 「다 놓았어요!」를 누른 횟수. `0` 이면 순서를 한 번도 안 냈다 */
+    attempts: number
+    /** 아이의 **첫 제출** 순서 (`card_id` 넷). 안 냈으면 빈 배열 */
+    first_submission: string[]
+  }
+  /** 순서만 하고 나갔으면 `null` — 카드에 순서 줄만 보인다 (F16) */
+  retelling: PostActivityRetelling | null
+}
+
 export interface ReportMetrics {
   activity: {
     story_slug: string
@@ -82,6 +136,19 @@ export interface ReportMetrics {
     new: { word: string; first_scene_code: string }[]
   }
   quotes: Quote[]
+  /**
+   * 말하기 후 활동 (후활동 명세 7.2 · #47). **활동을 아예 안 했으면 `null`** 이고
+   * 그때 화면은 카드를 그리지 않는다.
+   *
+   * 🔴 **칸이 아예 없을 수도 있다.** 리포트는 한 번 만들면 다시 안 만들고
+   *    (`queueReport()` — 행이 있으면 그냥 돌아간다), #47 이전에 저장된 리포트의 jsonb 에는
+   *    이 이름이 없다. 그래서 `?` 다 — 읽는 쪽이 `undefined` 를 만나게 두고 `?? null` 로
+   *    받게 한다. 없는 것을 「있다」로 적으면 `!== null` 이 그 옛 리포트에서 참이 된다.
+   *
+   * ⛔ 이 덩이는 **옆에 놓인다.** 위 `counts`·`words`·`axes` 는 후활동을 해도 값이
+   *    변하지 않는다 (F15 · 수용 기준 15).
+   */
+  post_activity?: PostActivity | null
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -27,6 +27,8 @@ import {
   child_words,
   messages,
   parent_reports,
+  post_activity_keywords,
+  post_activity_results,
   runs,
   stories,
   story_scenes,
@@ -212,14 +214,20 @@ interface 씨앗 {
 /**
  * 말하기 후 활동이 붙은 이야기의 `stories.post_activity_config` (후활동 명세 4.1).
  *
- * 🔴 이 갈래(#43)가 보는 것은 **이 칸이 비었나 찼나** 하나뿐이다 — 리포트를 언제 만들지가
- *    그것으로 갈린다 (F10·F13). 카드 넉 장과 단어 12개의 정본은 `sql/007_post_activity.sql`
- *    이고 그 모양을 쓰는 것은 #45·#47 이다. 그래서 여기서는 한 장만 넣어 둔다.
+ * 🔴 #43 이 보는 것은 **이 칸이 비었나 찼나** 하나뿐이다 — 리포트를 언제 만들지가 그것으로
+ *    갈린다 (F10·F13). 알맹이까지 쓰는 것은 #47 이다: 리포트가 칩을 그릴 **차례**를 여기서
+ *    읽으므로(`cards[]` 를 카드×단어로 편 것), 카드 넉 장 × 단어 셋을 다 세워 둔다.
+ *    정본은 `sql/007_post_activity.sql` 이고 값도 그것과 같다.
  */
 const 후활동_설정 = {
-  cards: [{ id: 'endure', title: '방귀를 참는 며느리', keywords: ['시집', '참다', '걱정'] }],
-  answer_order: ['endure'],
-  tray_order: ['endure'],
+  cards: [
+    { id: 'endure', title: '방귀를 참는 며느리', keywords: ['시집', '참다', '걱정'] },
+    { id: 'burst', title: '들켜버린 큰 방귀', keywords: ['방귀', '깜짝', '기둥'] },
+    { id: 'pear', title: '배나무 앞 방귀 대작전', keywords: ['배나무', '힘껏', '우수수'] },
+    { id: 'pride', title: '마을의 자랑이 된 며느리', keywords: ['당당하다', '칭찬', '고마워'] },
+  ],
+  answer_order: ['endure', 'burst', 'pear', 'pride'],
+  tray_order: ['pear', 'pride', 'endure', 'burst'],
 }
 
 /**
@@ -908,6 +916,217 @@ async function 리포트_수(tx: Conn, session_id: string): Promise<number> {
       expect(내것.status).toBe(200)
       await __testing.마지막작업
       expect(await 리포트_수(tx, 씨앗.session_id)).toBe(0)
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 후활동 결과가 리포트에 실린다 — 이슈 #47 (후활동 명세 7.2 · 수용 기준 11·12·15)
+//
+// 앞의 절들이 「리포트를 **언제** 만드나」였다면 여기는 「만들 때 후활동 두 표를 **읽어
+// 싣나**」다. 층을 통째로 지난다: `post_activity_results`·`post_activity_keywords`
+// → `readReportMaterial()` → `aggregateMetrics()` → `parent_reports.metrics`(jsonb)
+// → 라우트 응답.
+//
+// 🔴 **jsonb 왕복을 여기서만 잰다.** 지표 검사(`tests/report-metrics.test.ts`)는 순수 함수라
+//    저장을 안 지난다 — `evidence: null` 이 빈 글자로 바뀌거나 칩 차례가 흔들리는 것은
+//    이 자리에서만 보인다.
+// ═══════════════════════════════════════════════════════════════════════════
+
+검사('후활동 결과가 리포트에 실린다 (후활동 명세 7.2) × 진짜 DB', () => {
+  /** 판정 셋 — 그대로 쓴 낱말 셋 · 비슷하게 말한 둘 · 나머지 일곱은 안 나왔다. */
+  const 판정갈래: Record<string, 'used' | 'similar' | 'missing'> = {
+    시집: 'used',
+    참다: 'similar',
+    걱정: 'missing',
+    방귀: 'used',
+    깜짝: 'missing',
+    기둥: 'missing',
+    배나무: 'used',
+    힘껏: 'missing',
+    우수수: 'missing',
+    당당하다: 'similar',
+    칭찬: 'missing',
+    고마워: 'missing',
+  }
+
+  /** 설정의 카드 차례대로 편 낱말 12개 — 화면이 칩을 그릴 차례이기도 하다 (명세 7.3). */
+  const 낱말_차례 = 후활동_설정.cards.flatMap((카드) =>카드.keywords)
+
+  /**
+   * 후활동 결과 한 행(+ 판정했으면 낱말 12행)을 넣는다.
+   *
+   * ⚠️ 낱말은 **거꾸로** 넣는다. `post_activity_keywords` 에 순번 칸이 없어서 넣은 차례에
+   *    기대면 안 되고, 리포트가 설정을 보고 다시 세우는지가 이 검사의 알맹이 하나다.
+   */
+  async function 후활동_넣기(
+    tx: Conn,
+    session_id: string,
+    것: {
+      줄거리?: string | null
+      판정?: '됨' | '못함'
+      시도?: number
+      맞음?: boolean | null
+    } = {},
+  ): Promise<void> {
+    const 줄거리 = 것.줄거리 === undefined ? '며느리가 시집에서 방귀를 꾹 참았어요.' : 것.줄거리
+    const 판정됨 = 줄거리 !== null && (것.판정 ?? '됨') === '됨'
+
+    const [결과] = await tx
+      .insert(post_activity_results)
+      .values({
+        session_id,
+        submitted_order: ['endure', 'burst', 'pear', 'pride'],
+        is_order_correct: 것.맞음 === undefined ? true : 것.맞음,
+        attempt_count: 것.시도 ?? 2,
+        retelling_text: 줄거리,
+        analyzed_at: 판정됨 ? sql`now()` : null,
+        analysis_version: 판정됨 ? 'retelling_v1' : null,
+        completed_at: sql`now()`,
+      })
+      .returning({ id: post_activity_results.id })
+
+    if (!판정됨) return
+
+    const 행들 = 후활동_설정.cards.flatMap((카드) =>
+      카드.keywords.map((word) => ({
+        result_id: 결과.id,
+        card_id: 카드.id,
+        word,
+        status: 판정갈래[word],
+        // 근거는 「비슷한 말로 말했다」에만 있다. 나머지는 **NULL** 이고 빈 글자가 아니다
+        evidence: 판정갈래[word] === 'similar' ? `${word} 대신 말한 조각` : null,
+        decided_by: 판정갈래[word] === 'used' ? ('rule' as const) : ('llm' as const),
+      })),
+    )
+    await tx.insert(post_activity_keywords).values(행들.reverse())
+  }
+
+  function 리포트_만들기(tx: Conn, 씨앗: 씨앗) {
+    return generateReport({
+      session_id: 씨앗.session_id,
+      conn: tx,
+      call: 가짜_리포트_호출({
+        quote_message_id: 씨앗.quote_message_id,
+        scene_code: 씨앗.scene_code,
+        extracted: ['부끄럽다'],
+      }),
+    })
+  }
+
+  it('수용 11 — 마친 활동의 리포트에 낱말 12개가 카드 차례로 실린다', async () => {
+    await 트랜잭션(async (tx) => {
+      const 씨앗 = await 활동_넣기(tx, { 후활동: true })
+      await 후활동_넣기(tx, 씨앗.session_id)
+
+      const 행 = await 리포트_만들기(tx, 씨앗)
+      const 후활동 = 행?.metrics.post_activity
+
+      expect(후활동?.order).toEqual({
+        correct: true,
+        attempts: 2,
+        first_submission: ['endure', 'burst', 'pear', 'pride'],
+      })
+      expect(후활동?.retelling?.analyzed).toBe(true)
+      expect(후활동?.retelling?.text).toBe('며느리가 시집에서 방귀를 꾹 참았어요.')
+      expect(후활동?.retelling?.words).toHaveLength(12)
+      // ⭐ 넣은 차례(거꾸로)가 아니라 **설정의 카드 차례**로 선다
+      expect(후활동?.retelling?.words.map((것) => 것.word)).toEqual(낱말_차례)
+      expect(후활동?.retelling?.used).toBe(3)
+      expect(후활동?.retelling?.similar).toBe(2)
+      expect(후활동?.retelling?.missing).toBe(7)
+    })
+  })
+
+  it('🔴 jsonb 를 지나도 `evidence` 가 NULL 그대로다 — 빈 글자가 아니다', async () => {
+    await 트랜잭션(async (tx) => {
+      const 씨앗 = await 활동_넣기(tx, { 후활동: true })
+      await 후활동_넣기(tx, 씨앗.session_id)
+      await 리포트_만들기(tx, 씨앗)
+
+      상자.보호자 = randomUUID()
+      상자.아이들 = [씨앗.child_id]
+      const 응답 = await 리포트_라우트(
+        new Request('http://x'),
+        경로({ session_id: 씨앗.session_id }),
+      )
+      const 알맹이 = (await 응답.json()) as ParentReport
+      const 낱말들 = 알맹이.metrics.post_activity?.retelling?.words ?? []
+
+      expect(낱말들).toHaveLength(12)
+      for (const 것 of 낱말들) {
+        if (것.status === 'similar') expect(것.evidence).toBe(`${것.word} 대신 말한 조각`)
+        else expect(것.evidence).toBeNull()
+      }
+    })
+  })
+
+  it('수용 12 — 활동을 안 하고 떠나도 리포트가 만들어지고 `post_activity` 는 null 이다', async () => {
+    await 트랜잭션(async (tx) => {
+      // 후활동이 붙은 이야기인데 결과 행이 하나도 없다 (`reason: 'left'` 는 아무것도 안 쓴다).
+      const 씨앗 = await 활동_넣기(tx, { 후활동: true })
+
+      const 행 = await 리포트_만들기(tx, 씨앗)
+
+      expect(행?.status).toBe('complete')
+      expect(행?.metrics.post_activity).toBeNull()
+      expect(await 리포트_수(tx, 씨앗.session_id)).toBe(1)
+    })
+  })
+
+  it('순서만 맞추고 나갔으면 `retelling` 이 null 이다 (수용 4 의 짝)', async () => {
+    await 트랜잭션(async (tx) => {
+      const 씨앗 = await 활동_넣기(tx, { 후활동: true })
+      await 후활동_넣기(tx, 씨앗.session_id, { 줄거리: null, 시도: 1 })
+
+      const 후활동 = (await 리포트_만들기(tx, 씨앗))?.metrics.post_activity
+
+      expect(후활동?.retelling).toBeNull()
+      expect(후활동?.order.attempts).toBe(1)
+      expect(후활동?.order.correct).toBe(true)
+    })
+  })
+
+  it('수용 10 의 짝 — 판정을 못 했으면 말은 남고 `analyzed` 가 false 다', async () => {
+    await 트랜잭션(async (tx) => {
+      const 씨앗 = await 활동_넣기(tx, { 후활동: true })
+      await 후활동_넣기(tx, 씨앗.session_id, { 판정: '못함' })
+
+      const 후활동 = (await 리포트_만들기(tx, 씨앗))?.metrics.post_activity
+
+      expect(후활동?.retelling?.analyzed).toBe(false)
+      expect(후활동?.retelling?.text).toBe('며느리가 시집에서 방귀를 꾹 참았어요.')
+      expect(후활동?.retelling?.words).toEqual([])
+    })
+  })
+
+  it('🔴 수용 15 — 후활동이 붙어도 기존 지표가 한 칸도 안 변한다', async () => {
+    await 트랜잭션(async (tx) => {
+      const 씨앗 = await 활동_넣기(tx, { 후활동: true })
+
+      // ① 후활동 없이 한 번 만든다.
+      const 전 = await 리포트_만들기(tx, 씨앗)
+      expect(전?.metrics.post_activity).toBeNull()
+
+      // ② 같은 활동에 후활동을 붙이고 다시 만든다 — 리포트 행은 덮어쓰인다 (R1).
+      await 후활동_넣기(tx, 씨앗.session_id)
+      const 후 = await 리포트_만들기(tx, 씨앗)
+
+      expect(후?.metrics.counts).toEqual(전?.metrics.counts)
+      expect(후?.metrics.words).toEqual(전?.metrics.words)
+      expect(후?.metrics.axes).toEqual(전?.metrics.axes)
+      expect(후?.metrics.quotes).toEqual(전?.metrics.quotes)
+      // 늘어난 것은 덩이 하나뿐이다.
+      expect(후?.metrics.post_activity?.retelling?.words).toHaveLength(12)
+    })
+  })
+
+  it('후활동이 없는 이야기의 리포트에도 칸은 있고 값이 null 이다', async () => {
+    await 트랜잭션(async (tx) => {
+      // 후활동 설정이 아예 없는 이야기 (F13 — 지금까지의 이야기 그대로).
+      const 씨앗 = await 활동_넣기(tx)
+
+      expect((await 리포트_만들기(tx, 씨앗))?.metrics.post_activity).toBeNull()
     })
   })
 })

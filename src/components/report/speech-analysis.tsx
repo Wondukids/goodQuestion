@@ -1,7 +1,12 @@
 import { CharacterAvatar } from "@/components/child/character-avatar";
 import { RadarChart } from "@/components/report/radar-chart";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
-import type { Report, SkillDetail, WordGroup } from "@/lib/report";
+import type {
+  PostActivityView,
+  Report,
+  SkillDetail,
+  WordGroup,
+} from "@/lib/report";
 
 /** 카드 공통 — 흰 판에 옅은 그림자(시안 47-1885 · 47-1906 · 47-1962 · 47-1974). */
 const CARD =
@@ -184,7 +189,86 @@ export function SpeechAnalysis({
           </p>
         </section>
       </div>
+
+      {/* ── 말하기 후 활동 — 활동을 안 했으면 카드째 없다 (후활동 명세 7.3 · F16) */}
+      {report.postActivity && <PostActivityCard card={report.postActivity} />}
     </div>
+  );
+}
+
+/**
+ * 이야기를 다 본 뒤의 활동 카드 (후활동 명세 7.3).
+ *
+ * 위에 순서 한 줄, 아래에 아이가 들려준 줄거리와 낱말 칩. 칩이 없는 판이 둘이고
+ * (안 들려줬다 · 판정을 못 했다) 그때는 자리를 비우지 않고 `card.notice` 를 낸다.
+ */
+function PostActivityCard({ card }: { card: PostActivityView }) {
+  return (
+    <section className={`${CARD} gap-3.5`}>
+      <div className="flex h-[30px] items-center gap-2.5 whitespace-nowrap">
+        <MaterialSymbol name="extension" size={22} className="text-[#a78bfa]" />
+        <h2 className="text-[20px] leading-[1.3] font-extrabold text-ink-strong">
+          {card.title}
+        </h2>
+        <p className="text-[12px] font-bold text-[#8a8a8a]">{card.caption}</p>
+      </div>
+
+      {/* 순서 한 줄 — 줄거리를 안 들려준 아이에게도 이 줄은 있다 */}
+      <p className="flex items-center gap-2 rounded-xl bg-surface-muted px-3.5 py-[11px]">
+        <MaterialSymbol name="stairs" size={16} className="text-primary" />
+        <span className="text-[14px] leading-[1.5] font-bold text-[#575757]">
+          {card.orderLine}
+        </span>
+      </p>
+
+      {/* 아이가 들려준 줄거리 원문. 판정을 못 했어도 말한 것은 그대로 보여 준다 */}
+      {card.retelling && (
+        <p className="rounded-[14px] border border-[#eef2f6] bg-[#fbfcfd] px-4 py-3.5 text-[14px] leading-[1.6] font-bold text-ink-strong">
+          {`“${card.retelling}”`}
+        </p>
+      )}
+
+      {card.notice ? (
+        <p className="text-[13px] leading-[1.6] font-bold text-ink-faint">
+          {card.notice}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <p className="text-[13px] font-extrabold text-ink-strong">
+              {card.wordsCaption}
+            </p>
+            {card.legend.map((one) => (
+              <span key={one.label} className="flex items-center gap-1.5">
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: one.color }}
+                />
+                <span className="text-[12px] font-bold text-[#8a8a8a]">
+                  {one.label}
+                </span>
+              </span>
+            ))}
+          </div>
+
+          {/* 카드 넉 장의 단어를 한 줄로 늘어놓는다 — 차례가 곧 카드 차례다 */}
+          <div className="flex flex-wrap gap-1.5">
+            {card.chips.map((chip) => (
+              <span
+                key={`${chip.card_id}-${chip.word}`}
+                /* 근거는 「비슷한 말로 말했다」에만 있다. 칩을 덮으면 말이 길어져서
+                   붙임말로만 둔다 (`title`) */
+                title={chip.evidence ?? undefined}
+                className="rounded-full px-[11px] py-[5px] text-[12px] font-bold"
+                style={{ backgroundColor: chip.chipBg, color: chip.color }}
+              >
+                {chip.word}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

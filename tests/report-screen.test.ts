@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest'
 
 import { 사본, 짧게_답한_아이, 잘한_아이 } from '@/app/dev/report/sample-reports'
 import { toActivityChoices, toReportView } from '@/lib/report'
-import type { ParentReport, ReportListItem } from '@/report/types'
+import type { ParentReport, PostActivity, ReportListItem } from '@/report/types'
 
 const 지우 = (report: ParentReport) => toReportView('s-1', report, '지우')
 
@@ -353,5 +353,199 @@ describe('🔴 한 편만 실패한 리포트 — 빈 글자가 빈 줄로 그�
 
     expect(지우(공백).radar.comment.trim().length).toBeGreaterThan(0)
     expect(지우(공백).radar.comment).not.toBe('   ')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 말하기 후 활동 카드 (이슈 #47 · 후활동 명세 7.3 · F16)
+//
+// 🔴 **`null` 이 세 겹이고 셋 다 다르게 그려진다.** 그 갈래가 이 절의 뼈대다:
+//   ① `post_activity` 가 없다/`null` → 카드를 **안 그린다**
+//   ② `retelling: null`            → 순서 줄만 + 「아직 들려주지 않았어요」
+//   ③ `analyzed: false`            → 아이 말은 보여 주고 「담지 못했어요」
+//
+// 계약 4절 샘플 둘에는 후활동이 없다 — 그게 ①의 재료이고(옛 리포트도 같은 꼴이다),
+// 나머지는 사본에 덩이를 얹어 세운다.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const 후활동_낱말 = [
+  { card_id: 'endure', word: '시집', status: 'used' as const, evidence: null },
+  { card_id: 'endure', word: '참다', status: 'similar' as const, evidence: '꾹 눌렀어요' },
+  { card_id: 'endure', word: '걱정', status: 'missing' as const, evidence: null },
+  { card_id: 'burst', word: '방귀', status: 'used' as const, evidence: null },
+  { card_id: 'burst', word: '깜짝', status: 'missing' as const, evidence: null },
+  { card_id: 'burst', word: '기둥', status: 'missing' as const, evidence: null },
+  { card_id: 'pear', word: '배나무', status: 'used' as const, evidence: null },
+  { card_id: 'pear', word: '힘껏', status: 'missing' as const, evidence: null },
+  { card_id: 'pear', word: '우수수', status: 'missing' as const, evidence: null },
+  { card_id: 'pride', word: '당당하다', status: 'similar' as const, evidence: '어깨를 폈어요' },
+  { card_id: 'pride', word: '칭찬', status: 'missing' as const, evidence: null },
+  { card_id: 'pride', word: '고마워', status: 'missing' as const, evidence: null },
+]
+
+/** 계약 샘플에 후활동 덩이 하나를 얹은 사본. 샘플 자체는 건드리지 않는다. */
+function 후활동_붙인(덩이: PostActivity | null, 바탕: ParentReport = 잘한_아이): ParentReport {
+  const report = 사본(바탕)
+  report.metrics.post_activity = 덩이
+  return report
+}
+
+function 덩이(고칠것: Partial<PostActivity> = {}): PostActivity {
+  return {
+    order: { correct: true, attempts: 2, first_submission: ['endure', 'burst', 'pear', 'pride'] },
+    retelling: {
+      analyzed: true,
+      text: '며느리가 시집에서 방귀를 꾹 참았어요.',
+      used: 3,
+      similar: 2,
+      missing: 7,
+      words: 후활동_낱말,
+    },
+    ...고칠것,
+  }
+}
+
+describe('후활동 카드 — 활동을 했을 때만 그린다 (F16)', () => {
+  it('🔴 후활동을 모르는 리포트에는 카드가 없다 — 칸이 아예 없어도 안 터진다', () => {
+    // #47 이전에 만들어진 리포트가 이 꼴이다 (`queueReport()` 는 한 번 만들면 다시 안 만든다).
+    expect(잘한_아이.metrics.post_activity).toBeUndefined()
+    expect(지우(잘한_아이).postActivity).toBeNull()
+    expect(지우(짧게_답한_아이).postActivity).toBeNull()
+  })
+
+  it('활동을 안 하고 떠난 아이도 카드가 없다 (수용 12)', () => {
+    expect(지우(후활동_붙인(null)).postActivity).toBeNull()
+  })
+
+  it('낱말 12개가 카드 차례 그대로 칩이 된다 (수용 11)', () => {
+    const card = 지우(후활동_붙인(덩이())).postActivity!
+
+    expect(card.chips).toHaveLength(12)
+    expect(card.chips.map((chip) => chip.word)).toEqual(후활동_낱말.map((것) => 것.word))
+    expect(card.notice).toBeNull()
+    expect(card.wordsCaption).toBe('낱말 12개 중 5개를 이야기에 담았어요')
+  })
+
+  it('쓴 것 · 비슷하게 말한 것 · 안 나온 것이 색으로 갈린다 (7.3)', () => {
+    const { chips, legend } = 지우(후활동_붙인(덩이())).postActivity!
+
+    const 색 = new Map(chips.map((chip) => [chip.status, chip.color]))
+    expect(색.size).toBe(3)
+    expect(new Set(색.values()).size).toBe(3)
+    // 이름표 셋이 칩 색과 짝을 이룬다 — 보호자가 색을 읽을 수 있어야 한다
+    expect(legend).toHaveLength(3)
+    expect(legend.map((one) => one.color)).toEqual([...색.values()])
+  })
+
+  it('근거는 「비슷한 말로 말했다」에만 붙는다', () => {
+    const { chips } = 지우(후활동_붙인(덩이())).postActivity!
+
+    for (const chip of chips) {
+      if (chip.status === 'similar') expect(chip.evidence).not.toBeNull()
+      else expect(chip.evidence).toBeNull()
+    }
+    expect(chips.find((chip) => chip.word === '참다')?.evidence).toBe('꾹 눌렀어요')
+  })
+
+  it('② 순서만 맞추고 나갔으면 순서 줄만 두고 안내를 낸다', () => {
+    const card = 지우(후활동_붙인(덩이({ retelling: null }))).postActivity!
+
+    expect(card.orderLine).toBe('순서를 두 번 만에 맞췄어요.')
+    expect(card.retelling).toBeNull()
+    expect(card.chips).toEqual([])
+    expect(card.legend).toEqual([])
+    expect(card.wordsCaption).toBeNull()
+    expect(card.notice).toBe('줄거리는 아직 들려주지 않았어요.')
+  })
+
+  it('③ 판정을 못 했으면 아이 말은 보여 주고 「담지 못했어요」를 낸다 (수용 10)', () => {
+    const 못한판 = 덩이({
+      retelling: {
+        analyzed: false,
+        text: '며느리가 방귀를 뀌었어요.',
+        used: 0,
+        similar: 0,
+        missing: 0,
+        words: [],
+      },
+    })
+    const card = 지우(후활동_붙인(못한판)).postActivity!
+
+    expect(card.retelling).toBe('며느리가 방귀를 뀌었어요.')
+    expect(card.chips).toEqual([])
+    expect(card.notice).toBe('들려준 줄거리에서 낱말을 담지 못했어요.')
+    // 「아직 안 들려줬다」와 **다른 문구**여야 한다 — 아이는 말을 했다
+    expect(card.notice).not.toBe('줄거리는 아직 들려주지 않았어요.')
+  })
+
+  it('🔴 한 낱말도 못 담은 판은 「판정을 못 했다」가 아니다 — 회색 칩 12개가 선다', () => {
+    const 하나도_못담은 = 덩이({
+      retelling: {
+        analyzed: true,
+        text: '음… 그냥 재밌었어요.',
+        used: 0,
+        similar: 0,
+        missing: 12,
+        words: 후활동_낱말.map((것) => ({ ...것, status: 'missing' as const, evidence: null })),
+      },
+    })
+    const card = 지우(후활동_붙인(하나도_못담은)).postActivity!
+
+    expect(card.chips).toHaveLength(12)
+    expect(card.notice).toBeNull()
+    expect(card.wordsCaption).toBe('낱말 12개 중 0개를 이야기에 담았어요')
+    expect(new Set(card.chips.map((chip) => chip.color)).size).toBe(1)
+  })
+})
+
+describe('후활동 순서 한 줄 — 「끝내 맞췄나」와 「한 번에 맞췄나」가 다르다 (F18)', () => {
+  const 줄 = (order: Partial<PostActivity['order']>) =>
+    지우(후활동_붙인(덩이({ order: { ...덩이().order, ...order } }))).postActivity!.orderLine
+
+  it('한 번에 맞추면 「한 번에」다', () => {
+    expect(줄({ correct: true, attempts: 1 })).toBe('순서를 한 번에 맞췄어요.')
+  })
+
+  it('두 번 만에 맞추면 명세 7.3 의 그 문장이다', () => {
+    expect(줄({ correct: true, attempts: 2 })).toBe('순서를 두 번 만에 맞췄어요.')
+  })
+
+  it('세 번 만에 맞춘 아이를 「못 맞췄다」로 적지 않는다', () => {
+    expect(줄({ correct: true, attempts: 3 })).toBe('순서를 세 번 만에 맞췄어요.')
+  })
+
+  it('끝내 못 맞췄으면 그렇게 적는다', () => {
+    expect(줄({ correct: false, attempts: 4 })).toBe(
+      '순서를 네 번 놓아 봤지만 아직 완성하지 못했어요.',
+    )
+  })
+
+  it('한 번도 안 냈으면 「아직 하지 않았어요」다 — 「못 맞췄다」가 아니다', () => {
+    expect(줄({ correct: false, attempts: 0 })).toBe('순서 맞추기는 아직 하지 않았어요.')
+  })
+
+  it('열한 번을 넘으면 숫자로 적는다', () => {
+    expect(줄({ correct: true, attempts: 12 })).toBe('순서를 12번 만에 맞췄어요.')
+  })
+})
+
+describe('🔴 F15 — 후활동 카드가 붙어도 나머지 화면이 안 흔들린다 (수용 15)', () => {
+  it('요약 스트립 · 오각형 · 어휘 칸이 후활동 유무와 무관하게 같다', () => {
+    const 없는판 = 지우(잘한_아이)
+    const 있는판 = 지우(후활동_붙인(덩이()))
+
+    expect(있는판.summary).toEqual(없는판.summary)
+    expect(있는판.radar).toEqual(없는판.radar)
+    expect(있는판.words).toEqual(없는판.words)
+    expect(있는판.skills).toEqual(없는판.skills)
+    expect(있는판.guide).toEqual(없는판.guide)
+  })
+
+  it('문장이 없는 리포트에도 후활동 카드는 그대로 선다 — 서술을 안 탄다', () => {
+    // 후활동은 숫자 쪽이라 「다시 만들기」로 채워지는 칸이 아니다 (후활동 7.3 끝줄).
+    const card = 지우(후활동_붙인(덩이(), 짧게_답한_아이)).postActivity!
+
+    expect(card.chips).toHaveLength(12)
+    expect(card.orderLine).toBe('순서를 두 번 만에 맞췄어요.')
   })
 })
