@@ -17,6 +17,11 @@ export function vocative(name: string) {
   return hasBatchim(name) ? "아" : "야";
 }
 
+/** 동반 조사 — "며느리" → "와", "이장님" → "과" */
+export function comitative(name: string) {
+  return hasBatchim(name) ? "과" : "와";
+}
+
 /** 대사 속 "ㅇㅇ" 자리에 이름을 넣는다. */
 export function fillChildName(text: string, name: string) {
   return text
