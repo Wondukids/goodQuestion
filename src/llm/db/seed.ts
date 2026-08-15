@@ -23,6 +23,7 @@
  *     stories        ← slug  ⚠️ **여기만 갱신하지 않는다** (아래)
  *     characters     ← (story_id, code)
  *     story_scenes   ← (story_id, code)
+ *     story_missions ← (story_id, code)  — 002 에 없다. 정본은 docs/미션_명세.md (이슈 #17)
  *   `stories.id` 가 안 바뀌므로 이미 쌓인 세션·메시지가 살아 있는 채로 콘텐츠만 갱신된다.
  *
  * ── 🔴 `stories` 만 `onConflictDoNothing` 이다 (2026-08-13 결정 4 · 4차) ──
@@ -67,12 +68,15 @@
  *   (`fart-bride` — 41행 중 유일한 `published` 행. 파이썬 판 `_슬러그` 와 같은 글자다).
  */
 
+import { pathToFileURL } from 'node:url'
+
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
 import { loadEnvFile } from '../config'
-import { characters, stories, story_scenes, test_children } from './schema'
+import type { Conn } from '../repo/db'
+import { characters, stories, story_missions, story_scenes, test_children } from './schema'
 
 // ⚠️ cwd 기준으로 `.env.local` 을 직접 읽던 자리다 — `web/` 하나만 봤다.
 //    `loadEnvFile()` 은 web → 레포 루트 순으로 둘 다 본다 (`drizzle.config.ts` 와 같은 이유).
@@ -422,6 +426,106 @@ const 대화장면들: 대화장면[] = [
 ]
 
 // ─────────────────────────────────────────────────────────────
+// 미션(미니게임) 2개 — story_missions (sql/005_missions.sql · 이슈 #17)
+//
+// config 의 **모양** 정본은 docs/미션_명세.md 6절 config 예시다. 임의 키를 더하거나
+// 빼지 말 것 — #18(도메인·엔진)·#20(프론트)이 같은 모양을 본다.
+//
+// 문구의 출처 (프론트 원문은 한 글자도 다듬지 않았다):
+//   📄 소품 3개 이름·설명 — src/stories/fart-bride/minigame/mission1-script.ts 의 PROPS.
+//      desc 는 프론트가 말풍선 두 줄로 나눠 둔 것을 한 문장으로 이었다
+//      (명세 6절 예시와 같은 글자가 된다).
+//   📄 미션1 closing — 같은 파일 LINES.finish 의 **첫 문장만**이다. 뒤의 배 잔치 문장은
+//      config 에 넣지 않는다 — 그 정본은 story_scenes.character_closing 이다
+//      (명세 6절 「대사 정본 주의」 · 확정 결정 M6. 명세 예시는 끝이 마침표인데
+//       프론트 원문이 느낌표라 원문을 따랐다).
+//   📄 미션2 intro·cards(4명 trouble/reask)·ask·more_pick·closing — mission2-script.ts 의
+//      FRIENDS·LINES (intro↔intro · ask↔ask · more_pick↔more · closing↔done).
+//      more 는 프론트 react 문장의 꼬리 질문만이다 — 앞의 감탄 자리는 미션 턴의
+//      생성 대사(아이대답요약)가 대신한다 (명세 6절).
+//   ✏️ 미션1 steps 의 ask 둘과 reask — 프론트에 없는 문구라 명세 6절 예시 그대로다
+//      (되묻기 M9 와 {item} 치환 질문은 이 명세에서 처음 생겼다).
+//   mission_goal — 명세 3절 대응 씬의 scene_goal 문장 (미션 목적 한 문장).
+// ─────────────────────────────────────────────────────────────
+const 미션들 = [
+  {
+    // 미션1 배 따기 — 대화3(마을 이장). SOLUTION 감지 즉시 또는 아이 턴 2회면 발동 (명세 5절)
+    scene_code: 'sc_banggui_07',
+    code: 'ms_banggui_pear',
+    title: '배 따기',
+    mission_type: 'prop_choice',
+    mission_goal:
+      '높은 배나무의 배를 떨어뜨릴 방법을 생각하고, 며느리의 큰 방귀를 안전하게 사용할 수 있는 해결책을 제안한다.',
+    config: {
+      trigger: { any_elements: ['SOLUTION'], min_turns: 2 },
+      items: [
+        { id: 'sokuri', name: '소쿠리', desc: '물건을 담는 대나무 바구니예요.' },
+        { id: 'bojagi', name: '보자기', desc: '물건을 감쌀 수 있어요.' },
+        { id: 'byeotjip', name: '볏짚', desc: '바닥에 깔아 둘 수 있어요.' },
+      ],
+      steps: [
+        {
+          key: 'use',
+          expect: 'speech',
+          ask: '{item} 말인가? {item}(으)로 어떻게 해야 배를 안전하게 딸 수 있겠는가?',
+        },
+        {
+          key: 'request',
+          expect: 'speech',
+          ask: '그것 좋은 생각이군. 그런데 며느리가 부끄럽다고 안 해 주면 어쩌나… 뭐라고 부탁을 해야 할까?',
+        },
+      ],
+      // M9 — 미션1 되묻기 공통 문구
+      reask: '조금만 더 자세히 말해 줄 수 있겠는가?',
+      closing: '그래! 그렇게 말하면 되겠구려!',
+    },
+  },
+  {
+    // 미션2 친구 돕기 — 대화4(며느리). PERSPECTIVE 감지 즉발 허용 (M7)
+    scene_code: 'sc_banggui_09',
+    code: 'ms_banggui_friend',
+    title: '친구 돕기',
+    mission_type: 'card_help',
+    mission_goal: '다름을 인정하고, 자신의 특징을 긍정적으로 받아들이는 태도를 말한다.',
+    config: {
+      trigger: { any_elements: ['PERSPECTIVE'], min_turns: 2 },
+      intro:
+        'ㅇㅇ아, 나한테 용기를 줘서 고마워. 내 주위에도 나처럼 고민이 있는 친구들이 있는데 너가 도와줄 수 있어?',
+      cards: [
+        {
+          id: 'scared',
+          name: '겁이 많은 친구',
+          trouble: '겁이 많아서 겁쟁이라는 말을 들어요.',
+          reask: '정말? 겁쟁이라고 놀림받았는데도 괜찮을까?',
+        },
+        {
+          id: 'loud',
+          name: '목소리가 큰 친구',
+          trouble: '목소리가 커서 시끄럽다는 말을 들어요.',
+          reask: '정말? 시끄럽다고 놀림받았는데도 괜찮을까?',
+        },
+        {
+          id: 'talkative',
+          name: '말이 많은 친구',
+          trouble: '말이 많아서 그만하라는 말을 들어요.',
+          reask: '정말? 그만하라는 말을 들었는데도 괜찮을까?',
+        },
+        {
+          id: 'strong',
+          name: '힘이 센 친구',
+          trouble: '힘이 세서 무섭다는 말을 들어요.',
+          reask: '정말? 무섭다고 놀림받았는데도 괜찮을까?',
+        },
+      ],
+      ask: '이 고민이 있는 친구한테는 내가 어떻게 이야기해 주면 좋을까?',
+      more: '다른 친구도 도와줄래?',
+      more_pick: '또 도와주고 싶은 친구는 누구야?',
+      closing: '도와줘서 고마워! ㅇㅇ이 덕분에 내 친구들도 나처럼 용기를 얻었을 것 같아.',
+    },
+  },
+]
+
+// ─────────────────────────────────────────────────────────────
 // 시험용 아이 4명 — sql/003_admin.sql:227 의 INSERT 를 그대로 옮겼다
 //
 // ✏️ 전부 합성이다 (헌법 원칙 IV). 실제 아이 정보가 아니다.
@@ -446,11 +550,10 @@ const 시험아이들 = [
 // ─────────────────────────────────────────────────────────────
 // 넣기 — 지우지 않고 code 로 upsert 한다
 // ─────────────────────────────────────────────────────────────
-type DB = ReturnType<typeof drizzle>
-/** 트랜잭션 핸들. 시드는 db 로도 tx 로도 돌 수 있어야 한다 */
-type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
-
-export async function seed(db: DB | Tx) {
+// 시드는 db 로도 tx 로도 돌 수 있어야 한다 — repo 함수들과 같은 공통 조상(`Conn`)으로 받는다.
+// 구체 타입(`ReturnType<typeof drizzle>` 과 그 트랜잭션)으로 받으면 스키마 타입 인자가
+// 어긋나서 tests 가 여는 트랜잭션이 안 들어온다 (tests/missions.test.ts 가 tx 로 부른다).
+export async function seed(db: Conn) {
   // 이야기 --------------------------------------------------------------
   // ⛔ **덮어쓰지 않는다** (결정 4 · 4차). 저쪽 `fart-bride` 행의 여섯 칸은 저쪽 값이 맞다.
   //    `onConflictDoNothing` 은 충돌하면 아무 행도 안 돌려주므로, 그때는 있던 행을 읽어 온다.
@@ -537,14 +640,36 @@ export async function seed(db: DB | Tx) {
     })),
   ].sort((a, b) => a.scene_order - b.scene_order)
 
+  // 미션이 scene_id 를 필요로 하므로 캐릭터처럼 code → id 표를 만들어 둔다.
+  const 장면_id: Record<string, string> = {}
   for (const 장 of 장면들) {
-    await db
+    const [행] = await db
       .insert(story_scenes)
       .values(장)
       .onConflictDoUpdate({
         target: [story_scenes.story_id, story_scenes.code],
         // 열쇠인 story_id·code 까지 set 에 들어가지만 값이 같아 아무 일도 하지 않는다.
         set: 장,
+      })
+      .returning({ id: story_scenes.id, code: story_scenes.code })
+    장면_id[행.code] = 행.id
+  }
+
+  // 미션 ----------------------------------------------------------------
+  // 씬은 code 로 찾아 잇는다 — 장면 upsert 가 방금 만든(또는 이미 있던) 행의 id 다.
+  for (const { scene_code, ...미션 } of 미션들) {
+    await db
+      .insert(story_missions)
+      .values({ story_id, scene_id: 장면_id[scene_code], ...미션 })
+      .onConflictDoUpdate({
+        target: [story_missions.story_id, story_missions.code],
+        set: {
+          scene_id: 장면_id[scene_code],
+          title: 미션.title,
+          mission_type: 미션.mission_type,
+          mission_goal: 미션.mission_goal,
+          config: 미션.config,
+        },
       })
   }
 
@@ -570,6 +695,7 @@ export async function seed(db: DB | Tx) {
     stories: 1,
     characters: 캐릭터들.length,
     story_scenes: 장면들.length,
+    story_missions: 미션들.length,
     test_children: 시험아이들.length,
   }
 }
@@ -587,7 +713,7 @@ async function main() {
     const 결과 = await drizzle(sql).transaction((tx) => seed(tx))
     console.log(
       `[시드] ${이야기.title} — stories ${결과.stories} · characters ${결과.characters} · story_scenes ${결과.story_scenes}` +
-        ` · test_children ${결과.test_children}`,
+        ` · story_missions ${결과.story_missions} · test_children ${결과.test_children}`,
     )
   } finally {
     await sql.end()
@@ -595,7 +721,10 @@ async function main() {
 }
 
 // 이 파일을 직접 돌렸을 때만 main 을 부른다 (import 만 하면 안 돈다).
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// ⚠️ `file://${process.argv[1]}` 글자 잇기가 아니라 `pathToFileURL` 이어야 한다 —
+//    윈도우에서는 argv[1] 이 백슬래시 경로(`C:\…`)라 글자 잇기로는 **영원히 안 같아서**
+//    시드가 조용히 아무것도 안 하고 0 으로 끝났다 (2026-08-14 실측).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((e) => {
     console.error(e)
     process.exit(1)

@@ -276,7 +276,11 @@ afterAll(async () => {
 
 describe('sql 파일과 표 선언', () => {
   it('sql 파일의 표가 전부 schema.ts 에 있고, 그 반대도 그렇다', () => {
-    const 적힌_표 = [...sql파일의_표들('001_schema.sql'), ...sql파일의_표들('003_admin.sql')].sort()
+    const 적힌_표 = [
+      ...sql파일의_표들('001_schema.sql'),
+      ...sql파일의_표들('003_admin.sql'),
+      ...sql파일의_표들('005_missions.sql'),
+    ].sort()
 
     expect(선언된_표_이름).toEqual(적힌_표)
   })
@@ -309,12 +313,19 @@ describe('sql 파일과 표 선언', () => {
       'gq_admin.test_children',
       'gq_admin.turn_conditions',
     ])
+    // 미션 3표는 엔진 쪽(`public`)이다 — 본 제품이 읽고 쓰는 표라 관리 도구가 아니다 (이슈 #17).
+    expect(sql파일의_표들('005_missions.sql').sort()).toEqual([
+      'public.mission_messages',
+      'public.mission_sessions',
+      'public.story_missions',
+    ])
   })
 
   it('sql 파일이 이름 붙여 건 제약이 전부 schema.ts 에 있다', () => {
     const 적힌_제약 = [
       ...sql파일의_제약이름들('001_schema.sql'),
       ...sql파일의_제약이름들('003_admin.sql'),
+      ...sql파일의_제약이름들('005_missions.sql'),
     ]
     const 선언한_제약 = new Set(선언된_제약이름들())
 
@@ -326,6 +337,7 @@ describe('sql 파일과 표 선언', () => {
     const 적힌_본문 = new Map([
       ...sql파일의_CHECK본문('001_schema.sql'),
       ...sql파일의_CHECK본문('003_admin.sql'),
+      ...sql파일의_CHECK본문('005_missions.sql'),
     ])
 
     const 어긋난: string[] = []
