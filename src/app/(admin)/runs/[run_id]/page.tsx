@@ -21,7 +21,6 @@
 //    `service/view.pendingDraft()` 가 저장된 사실(`utterance_analyses`·`turn_conditions`)에서
 //    「어디까지 갔나」를 다시 세우기 때문이다 (FR-040).
 
-import Link from 'next/link'
 import { connection } from 'next/server'
 
 import { elementName } from '@/llm/elements'
@@ -36,6 +35,7 @@ import {
   turnAction,
 } from '../actions'
 import { 보내기 } from '../submit'
+import { 개발자용, 곁링크, 화면머리말 } from '../../ui'
 import { 대화줄, 라벨, 시도링크, 어느_패널, 오류띠, 칸들, 표기, 한칸 } from '../ui'
 
 export const metadata = { title: '회차 진행 — 굿퀘스천 관리자' }
@@ -69,42 +69,63 @@ export default async function RunPage({
 function 머리({ 상세 }: { 상세: RunDetail }) {
   const { run, session, next_action } = 상세
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h2 className="font-semibold">
-          {session.story_title}{' '}
-          <span className="font-mono text-xs text-zinc-500">{run.id}</span>
-        </h2>
-        <Link href={`/runs/${run.id}/log`} className="text-xs underline">
-          턴 로그 →
-        </Link>
-        {/* ⚠️ 이게 없으면 회차에서 검수로 갈 방법이 없다. */}
-        <Link href={`/review/runs/${run.id}`} className="text-xs underline">
-          검수 →
-        </Link>
-        <Link href="/runs" className="text-xs underline">
-          ← 회차 목록
-        </Link>
-      </div>
-      <칸들
-        값들={[
-          ['session_id', session.id],
-          ['status', session.status],
-          ['scope', run.scope],
-          ['scene_order', run.scene_order],
-          ['prompt_version', run.prompt_version],
-          ['analysis_model', run.analysis_model],
-          // ⭐ 강도도 함께 적는다 — 모델만으로는 「무엇으로 돌렸나」가 반쪽이다.
-          //    `runSettings()` 가 이 한 값을 **두 공급자에 다** 흘린다 (2026-08-11).
-          ['analysis_effort', run.analysis_effort],
-          ['character_model', run.character_model],
-          ['character_effort', run.character_effort],
-          ['다음 할 일', `${next_action.kind}${next_action.reason ? ` (${next_action.reason})` : ''}`],
-        ]}
+    <section className="flex flex-col gap-4">
+      <화면머리말
+        제목={session.story_title}
+        설명="이 회차에서 아이와 AI 가 주고받은 말과, 무엇으로 돌렸는지를 봅니다."
+        곁들이기={
+          <span className="flex flex-wrap items-baseline gap-4">
+            <곁링크 href="/runs">← 회차 목록</곁링크>
+            <곁링크 href={`/runs/${run.id}/log`}>차례별 기록 →</곁링크>
+            {/* ⚠️ 이게 없으면 회차에서 검수로 갈 방법이 없다. */}
+            <곁링크 href={`/review/runs/${run.id}`}>검수 →</곁링크>
+          </span>
+        }
       />
+
+      {/* 🔴 목록에서 뺀 넷(어디까지·지시문 판·시작한 사람·끝난 시각)이 여기 있다 (규칙 1-5).
+          보이는 이름은 사람 말이고, DB 컬럼명은 아래 「개발자용」에 그대로 남는다 (규칙 1-1). */}
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-[14px]">
+        {(
+          [
+            ['어디까지 진행', run.scope === 'scene' ? `${run.scene_order}번째 장면만` : '이야기 전체'],
+            ['지금 상태', session.status],
+            ['아이 말을 알아듣는 AI', `${run.analysis_model ?? '기록 없음'} · 생각 깊이 ${run.analysis_effort ?? '기록 없음'}`],
+            // ⭐ 강도도 함께 적는다 — 모델만으로는 「무엇으로 돌렸나」가 반쪽이다.
+            //    `runSettings()` 가 이 한 값을 **두 공급자에 다** 흘린다 (2026-08-11).
+            ['캐릭터가 되어 말하는 AI', `${run.character_model ?? '기록 없음'} · 생각 깊이 ${run.character_effort ?? '기록 없음'}`],
+            ['지시문 판 번호', run.prompt_version],
+            ['다음 할 일', `${next_action.kind}${next_action.reason ? ` (${next_action.reason})` : ''}`],
+          ] as const
+        ).map(([이름, 값]) => (
+          <div key={이름} className="contents">
+            <dt className="whitespace-nowrap font-bold text-ink-soft">{이름}</dt>
+            <dd className="break-all text-ink">{값}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <개발자용 제목="이 회차의 원래 값">
+        <칸들
+          값들={[
+            ['run_id', run.id],
+            ['session_id', session.id],
+            ['status', session.status],
+            ['scope', run.scope],
+            ['scene_order', run.scene_order],
+            ['prompt_version', run.prompt_version],
+            ['analysis_model', run.analysis_model],
+            ['analysis_effort', run.analysis_effort],
+            ['character_model', run.character_model],
+            ['character_effort', run.character_effort],
+          ]}
+        />
+      </개발자용>
+
       {상세.progress !== null && (
-        <p className="border border-blue-500 px-3 py-1 font-mono text-xs text-blue-700">
-          진행 중: {상세.progress}
+        <p className="rounded-2xl border border-primary bg-primary-soft px-5 py-3 text-[15px] text-primary-strong">
+          <span className="mr-1.5 animate-pulse">●</span>
+          지금 도는 중입니다 — {상세.progress}
         </p>
       )}
       {상세.failure !== null && <실패띠 상세={상세} />}
@@ -137,7 +158,7 @@ function 실패띠({ 상세 }: { 상세: RunDetail }) {
   if (실패 === null) return null
   const 이름 = 단계이름[실패.stage] ?? 실패.stage
   return (
-    <div className="flex flex-col gap-1 border border-amber-500 px-3 py-2 text-xs">
+    <div className="flex flex-col gap-1 border border-warn px-3 py-2 text-xs">
       {실패.failed ? (
         <p>
           <strong>두 공급자가 다 실패했다</strong> — {이름} 단계에서 끊겼다.
@@ -149,26 +170,26 @@ function 실패띠({ 상세 }: { 상세: RunDetail }) {
           </p>
           {/* ⚠️ 실패라고 단정하지 않는다. 사유가 없다는 것은 「안 났다」가 아니라 「기록될
               틈이 없었다」일 수 있다 (파이썬 `turn.html` 의 같은 문장). */}
-          <p className="text-zinc-600">
+          <p className="text-ink-muted">
             기록된 실패 사유가 하나도 없다. 실패라고 단정하지 않는다 — 서버가 도중에
             내려갔거나, 시도 기록이 남기 전에 끊긴 옛 턴이다.
           </p>
         </>
       )}
-      <p className="font-mono text-zinc-600">
+      <p className="font-mono text-ink-muted">
         stage={실패.stage} · message_id={실패.message_id}{' '}
         {/* ⭐ 「왜 죽었나」의 원문이 저기 있다 — 사유 한 줄만으로는 보낸 프롬프트를 못 본다. */}
         <시도링크 run_id={상세.run.id} message_id={실패.message_id} />
       </p>
       {실패.reasons.map((사유) => (
-        <p key={사유.id} className="font-mono text-zinc-600">
+        <p key={사유.id} className="font-mono text-ink-muted">
           {사유.purpose} #{사유.attempt_no} {사유.provider}/{사유.model}: {사유.error}
         </p>
       ))}
       <form action={resumeAction} className="mt-1">
         <input type="hidden" name="run_id" value={상세.run.id} />
         <input type="hidden" name="child_message_id" value={실패.message_id} />
-        <보내기 className="border border-zinc-700 px-2 py-1" 도는중="이어 돌리는 중…">
+        <보내기 className="border border-divider px-2 py-1" 도는중="이어 돌리는 중…">
           죽은 단계부터 이어 돌리기
         </보내기>
       </form>
@@ -179,14 +200,14 @@ function 실패띠({ 상세 }: { 상세: RunDetail }) {
 function 현재장면({ 상세 }: { 상세: RunDetail }) {
   const 장면 = 상세.current_scene
   if (장면 === null) {
-    return <p className="text-xs text-zinc-500">아직 어느 장면에도 들어가지 않았다.</p>
+    return <p className="text-xs text-ink-muted">아직 어느 장면에도 들어가지 않았다.</p>
   }
   const { session } = 상세
   return (
-    <section className="flex flex-col gap-3 border border-zinc-300 p-3">
+    <section className="flex flex-col gap-3 border border-divider p-3">
       <h3 className="font-semibold">
         장면 {장면.scene_order} · {장면.character_name ?? '(전개)'}{' '}
-        <span className="font-mono text-xs text-zinc-500">{장면.code}</span>
+        <span className="font-mono text-xs text-ink-muted">{장면.code}</span>
       </h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <칸들
@@ -248,7 +269,7 @@ function 단계패널({ 상세 }: { 상세: RunDetail }) {
   if (패널 === '분석에서끊김' && pending !== null) {
     // ① 이 죽었다. 실패띠의 「이어 돌리기」가 그 자리다 — 도는 중이 아니므로 그 띠가 있다.
     return (
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-muted">
         이 턴은 분석 단계에서 끊겼다 (message_id={pending.message_id}). 위의 「이어 돌리기」로
         잇는다.
       </p>
@@ -282,13 +303,13 @@ function 단계패널({ 상세 }: { 상세: RunDetail }) {
           <보내기 표식="turn" 도는중="한 턴 도는 중… (LLM 2회)">한 턴 돌리기 (①②③)</보내기>
           <보내기
             formAction={analysisAction}
-            className="border border-zinc-400 px-3 py-1"
+            className="border border-divider px-3 py-1"
             도는중="분석 중… (LLM)"
           >
             ① 분석만 (검수)
           </보내기>
         </form>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           ⚠️ 진짜 LLM 이 나간다. 기본은 무료 `flash-lite` 지만 실제 호출이다.
           <br />
           「① 분석만」을 누르면 ②③ 패널이 차례로 뜬다. 중간에 그만두면 위의 「이어 돌리기」가 남은
@@ -346,8 +367,8 @@ function 판단폼({
         <input type="hidden" name="message_id" value={pending.message_id} />
         <input type="hidden" name="child_intent" value={분석.child_intent} />
         <input type="hidden" name="utterance_validity" value={분석.utterance_validity} />
-        <fieldset className="flex flex-wrap items-center gap-3 border border-zinc-300 p-2">
-          <legend className="font-mono text-xs text-zinc-500">detected_elements (후처리 뒤)</legend>
+        <fieldset className="flex flex-wrap items-center gap-3 border border-divider p-2">
+          <legend className="font-mono text-xs text-ink-muted">detected_elements (후처리 뒤)</legend>
           {분석.detected_elements_kept.length === 0 && (
             <span className="font-mono text-xs">[] — 남은 요소가 없다</span>
           )}
@@ -358,7 +379,7 @@ function 판단폼({
             </label>
           ))}
         </fieldset>
-        <보내기 className="w-fit border border-zinc-700 px-3 py-1 font-semibold">판단</보내기>
+        <보내기 className="w-fit border border-divider px-3 py-1 font-semibold">판단</보내기>
       </form>
     </section>
   )
@@ -433,7 +454,7 @@ function 대사폼({
         </라벨>
         <보내기 도는중="대사 만드는 중… (LLM)">대사</보내기>
       </form>
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-muted">
         ⭐ 같은 message_id 로 다시 눌러도 된다 — 캐릭터 `messages` 행을 덮어쓴다 (계약 8절).
       </p>
     </section>

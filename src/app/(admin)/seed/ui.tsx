@@ -33,10 +33,10 @@ export function 숨은칸들({
 export function 칸머리({ 이름, 출처 }: { 이름: string; 출처: string }) {
   return (
     <span className="flex items-baseline gap-2">
-      <span className="font-semibold">{이름}</span>
-      <mark className="bg-zinc-200 px-1 font-mono text-[11px] text-zinc-900">
+      <span className="text-[15px] font-bold text-ink">{이름}</span>
+      <span className="rounded-md bg-chip px-2 py-0.5 text-[12px] font-bold text-ink-mid">
         {출처_이름[출처] ?? 출처}
-      </mark>
+      </span>
     </span>
   )
 }
@@ -49,9 +49,13 @@ export function 출처고르개({ 지금 }: { 지금: string }) {
   // 지금 값이 `unmarked` 면 고르개에 그 값이 없다. 그때는 `draft` 가 첫 값이 된다.
   const 처음 = 지금 in 고를_수_있는_출처 ? 지금 : 'draft'
   return (
-    <label className="flex items-center gap-1 text-xs text-zinc-500">
-      출처
-      <select name="origin" defaultValue={처음} className="border px-1 py-0.5 text-xs">
+    <label className="flex items-center gap-2 text-[14px] text-ink-soft">
+      이 값의 출처
+      <select
+        name="origin"
+        defaultValue={처음}
+        className="rounded-lg border border-divider bg-surface px-2 py-1.5 text-[14px] text-ink outline-none focus:border-primary"
+      >
         {Object.entries(고를_수_있는_출처).map(([값, 글]) => (
           <option key={값} value={값}>
             {글}
@@ -69,19 +73,28 @@ export function 출처고르개({ 지금 }: { 지금: string }) {
  */
 export function 시드파일값({ 값 }: { 값: string | null }) {
   return (
-    <details className="text-xs">
-      <summary className="cursor-pointer text-zinc-500">▸ 시드 파일 값 보기</summary>
-      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 text-zinc-900">
-        {값 ?? '값 없음'}
+    <details>
+      <summary className="w-fit cursor-pointer text-[13px] text-ink-faint">
+        원본 파일에 있는 값과 견주기
+      </summary>
+      <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-chip p-3 text-[13px] text-ink">
+        {값 ?? '원본 파일에 이 값이 없습니다.'}
       </pre>
     </details>
   )
 }
 
-/** 이 칸 저장 단추. 파이썬 템플릿의 「이 칸 저장」·「입장 저장」 자리다. */
+/**
+ * 이 칸 저장 단추. 파이썬 템플릿의 「이 칸 저장」·「입장 저장」 자리다.
+ *
+ * ⭐ AI 를 부르지 않고 되돌리기도 있는 저장이라 **보통 단추**다 (규칙 3-5 갈래 A).
+ */
 export function 저장단추({ 글 = '이 칸 저장' }: { 글?: string }) {
   return (
-    <button type="submit" className="border border-zinc-700 px-2 py-1 text-xs font-semibold">
+    <button
+      type="submit"
+      className="rounded-xl border border-divider bg-surface px-4 py-2 text-[14px] font-bold text-ink hover:border-primary"
+    >
       {글}
     </button>
   )

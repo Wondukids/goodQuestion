@@ -21,6 +21,8 @@ import {
   type Origin,
 } from '@/llm/service/characters'
 
+import { 경고상자, 곁링크, 카드, 화면머리말 } from '../ui'
+
 export const metadata = { title: '캐릭터 보기 — 굿퀘스천 관리자' }
 
 export default async function CharactersPage() {
@@ -30,58 +32,71 @@ export default async function CharactersPage() {
 
   return (
     <main className="flex flex-col gap-8">
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">캐릭터 보기</h2>
-        <p className="text-xs text-zinc-500">
-          원문에서 온 값과 우리가 지어낸 값을 가르는 자리다. 고치려면 시드 편집 화면으로 간다.
-        </p>
-        <p className="flex flex-wrap gap-2">
+      <화면머리말
+        제목="캐릭터 보기"
+        설명="이야기에 나오는 캐릭터와 장면의 설정값을 모아 봅니다. 어느 것이 원작 그대로이고 어느 것을 우리가 지어냈는지 갈라 볼 수 있습니다. 여기서는 고칠 수 없습니다 — 고치려면 「이야기 설정」 화면으로 가세요."
+        곁들이기={<곁링크 href="/seed">이야기 설정에서 고치기 →</곁링크>}
+      />
+
+      <카드 제목="값이 어디서 왔나" 설명="칸마다 출처를 표시해 두었습니다.">
+        <p className="flex flex-wrap items-center gap-3">
           {(Object.entries(본것.counts) as [Origin, number][])
             .filter(([, 몇]) => 몇 > 0)
             .map(([출처, 몇]) => (
-              <span key={출처} className="text-xs">
+              <span key={출처} className="flex items-center gap-1.5 text-[15px] text-ink">
                 <배지 출처={출처} /> {몇}칸
               </span>
             ))}
         </p>
         {본것.file_differs && (
-          <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <strong>아래 값은 시드 파일 값과 다릅니다.</strong>
-          </p>
+          <경고상자>
+            <b>아래 값은 원본 파일에 저장된 값과 다릅니다.</b> 누군가 화면에서 고쳤고 아직 파일로
+            내보내지 않았다는 뜻입니다.
+          </경고상자>
         )}
-      </section>
+      </카드>
 
-      <section className="flex flex-col gap-4">
-        <h3 className="font-semibold">캐릭터 {본것.characters.length}명</h3>
+      <카드
+        제목="캐릭터"
+        설명="아이가 이야기 속에서 만나는 인물들입니다."
+        곁들이기={
+          <span className="text-[15px] font-bold text-ink-muted">{본것.characters.length}명</span>
+        }
+      >
         {본것.characters.map((캐릭터) => (
-          <article key={캐릭터.id} className="border border-zinc-300 p-3">
-            <h4 className="mb-2 font-semibold">
+          <article key={캐릭터.id} className="rounded-2xl border border-divider p-4">
+            <h3 className="mb-3 text-[17px] font-extrabold text-ink">
               {캐릭터.name}{' '}
-              <small className="font-mono text-xs font-normal text-zinc-500">
-                {캐릭터.code} · {캐릭터.story_title}
-              </small>
-            </h4>
+              <span className="text-[14px] font-normal text-ink-faint">
+                {캐릭터.story_title}
+              </span>
+            </h3>
             <칸목록 칸들={캐릭터.fields} />
           </article>
         ))}
-      </section>
+      </카드>
 
-      <section className="flex flex-col gap-4">
-        <h3 className="font-semibold">대화 장면 {본것.scenes.length}개</h3>
+      <카드
+        제목="대화 장면"
+        설명="아이가 캐릭터와 실제로 말을 주고받는 장면들입니다."
+        곁들이기={
+          <span className="text-[15px] font-bold text-ink-muted">{본것.scenes.length}개</span>
+        }
+      >
         {본것.scenes.map((장면) => (
-          <article key={장면.id} className="border border-zinc-300 p-3">
-            <h4 className="mb-2 font-semibold">
-              장면 {장면.scene_order} · {장면.character_name}{' '}
-              <small className="font-mono text-xs font-normal text-zinc-500">
-                {장면.character_code}
-              </small>
-            </h4>
+          <article key={장면.id} className="rounded-2xl border border-divider p-4">
+            <h3 className="mb-3 text-[17px] font-extrabold text-ink">
+              {장면.scene_order}번째 장면{' '}
+              <span className="text-[14px] font-normal text-ink-faint">
+                {장면.character_name}
+              </span>
+            </h3>
             {/* ⚠️ `remaining_worries` 는 아래 표로 따로 그린다. 여기서는 뺀다. */}
             <칸목록 칸들={장면.fields.filter((칸) => 칸.column !== 'remaining_worries')} />
             <걱정표 장면={장면} 출처={본것.worry_origin} />
           </article>
         ))}
-      </section>
+      </카드>
     </main>
   )
 }
@@ -91,9 +106,9 @@ export default async function CharactersPage() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const 배지색: Record<Origin, string> = {
-  canon: 'border-emerald-600 text-emerald-700',
-  draft: 'border-amber-600 text-amber-700',
-  unmarked: 'border-zinc-500 text-zinc-500',
+  canon: 'border-ok text-ok',
+  draft: 'border-warn text-warn',
+  unmarked: 'border-divider text-ink-faint',
 }
 
 function 배지({ 출처, 도움말 }: { 출처: Origin; 도움말?: string }) {
@@ -101,37 +116,46 @@ function 배지({ 출처, 도움말 }: { 출처: Origin; 도움말?: string }) {
     <span
       data-origin={출처}
       title={도움말}
-      className={`border px-1 font-mono text-[10px] ${배지색[출처]}`}
+      className={`rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${배지색[출처]}`}
     >
       {출처_이름[출처]}
     </span>
   )
 }
 
-/** 값 하나를 화면 표기로. 배열은 목록으로, 없으면 「값 없음」. */
+/** 값 하나를 화면 표기로. 배열은 목록으로, 없으면 「비어 있음」. */
 function 값보기({ 칸 }: { 칸: FieldView }) {
   if (칸.value === null || 칸.value === undefined) {
-    return <em className="text-zinc-500">값 없음</em>
+    return <em className="text-ink-faint not-italic">비어 있음</em>
   }
   if (Array.isArray(칸.value)) {
     // 요구 사고 요소만 한국어 이름표를 붙인다 (`lib/elements.ts` — 화면에서만 쓴다).
     const 값들 =
       칸.column === 'required_elements' ? 칸.value.map((하나) => elementName(String(하나))) : 칸.value
-    return <code className="font-mono text-xs">{값들.map(String).join(', ')}</code>
+    return <span>{값들.map(String).join(', ')}</span>
   }
   return <span className="whitespace-pre-wrap">{String(칸.value)}</span>
 }
 
+/**
+ * 칸 목록.
+ *
+ * 🔴 **DB 컬럼명(`칸.column`)을 옆에 붙이던 것을 뺐다** (규칙 1-1). `칸.label` 이 이미 사람
+ *    말이라 컬럼명은 운영자에게 잡음이었다. 개발자가 필요하면 `title` 로 뜬다.
+ */
 function 칸목록({ 칸들 }: { 칸들: readonly FieldView[] }) {
   return (
-    <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-xs">
+    <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-[14px]">
       {칸들.map((칸) => (
         <div key={칸.column} className="contents">
-          <dt className="flex items-baseline gap-1 whitespace-nowrap text-zinc-500">
-            {칸.label} <code className="font-mono">{칸.column}</code>
+          <dt
+            title={칸.column}
+            className="flex items-baseline gap-1.5 whitespace-nowrap font-bold text-ink-soft"
+          >
+            {칸.label}
             <배지 출처={칸.origin} 도움말={`${칸.origin_help} (${칸.source})`} />
           </dt>
-          <dd className={칸.review_needed ? 'border-l-2 border-amber-500 pl-2' : ''}>
+          <dd className={칸.review_needed ? 'border-l-2 border-warn pl-2 text-ink' : 'text-ink'}>
             <값보기 칸={칸} />
           </dd>
         </div>
@@ -154,26 +178,26 @@ function 걱정표({
         요소별 걱정 문장 <code className="font-mono font-normal">remaining_worries</code>
         <배지 출처={출처.origin} 도움말={`${출처.origin_help} (${출처.source})`} />
       </h5>
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-muted">
         <strong>부족한 사고 요소를 캐릭터 대사로 미리 옮겨 둔 문장들입니다.</strong> 아이가 아직
         말하지 않은 요소가 있을 때 캐릭터가 이 문장을 그대로 씁니다. 문장이 어색하면 그 자리의
         대화가 통째로 어색해집니다.
       </p>
       {줄들.length === 0 ? (
         <p className="text-xs">
-          <em className="text-zinc-500">이 장면에는 걱정 문장이 없습니다.</em>
+          <em className="text-ink-muted">이 장면에는 걱정 문장이 없습니다.</em>
         </p>
       ) : (
         <table className="w-full border-collapse text-xs">
           <thead>
-            <tr className="border-b border-zinc-400 text-left">
+            <tr className="border-b border-divider text-left">
               <th className="py-1 pr-3 font-normal">사고 요소</th>
               <th className="py-1 font-normal">그 요소가 아직 없을 때 캐릭터가 하는 걱정</th>
             </tr>
           </thead>
           <tbody>
             {줄들.map(([요소, 걱정]) => (
-              <tr key={요소} className="border-b border-zinc-200">
+              <tr key={요소} className="border-b border-divider">
                 <td className="py-1 pr-3">
                   <code className="font-mono">{elementName(요소)}</code>
                 </td>

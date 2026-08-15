@@ -41,7 +41,7 @@ export default async function TurnCallsPage({
     <main className="flex flex-col gap-6">
       <section className="flex flex-wrap items-baseline gap-3">
         <h2 className="font-semibold">
-          LLM 시도 <span className="font-mono text-xs text-zinc-500">turn {message_id}</span>
+          LLM 시도 <span className="font-mono text-xs text-ink-muted">turn {message_id}</span>
         </h2>
         <Link href={`/runs/${run.id}`} className="text-xs underline">
           ← 진행 화면
@@ -68,7 +68,7 @@ export default async function TurnCallsPage({
       {/* 🔴 `scores.message_id` 는 **아이 발화 id** 라 이 쪽이 쥔 값과 그대로 맞는다. */}
       <경계채점표 채점들={시도들.auto_scores} />
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-muted">
         ⚠️ 비용은 기록이 아니라 「볼 때마다 계산한 값」이다. `llm_calls` 에는 토큰만 남고 금액
         칸이 없다 — 단가는 `web/단가표.toml` 에서 읽고, 표에 없는 모델은 0 이 아니라 「모름」이다.
       </p>

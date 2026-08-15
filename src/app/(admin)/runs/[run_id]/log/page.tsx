@@ -32,7 +32,7 @@ export default async function TurnLogPage({
       <section className="flex flex-wrap items-baseline gap-3">
         <h2 className="font-semibold">
           턴 로그 · {상세.session.story_title}{' '}
-          <span className="font-mono text-xs text-zinc-500">{상세.run.id}</span>
+          <span className="font-mono text-xs text-ink-muted">{상세.run.id}</span>
         </h2>
         <Link href={`/runs/${상세.run.id}`} className="text-xs underline">
           ← 진행 화면
@@ -53,27 +53,27 @@ export default async function TurnLogPage({
 
       <section className="flex flex-col gap-4">
         {상세.messages.length === 0 && (
-          <p className="text-xs text-zinc-500">아직 남은 메시지가 없다.</p>
+          <p className="text-xs text-ink-muted">아직 남은 메시지가 없다.</p>
         )}
         {상세.messages.map((행) => (
           <article
             key={행.id}
-            className="border border-zinc-300 p-3"
+            className="border border-divider p-3"
           >
-            <p className="font-mono text-xs text-zinc-500">
+            <p className="font-mono text-xs text-ink-muted">
               scene_order={행.scene_order} turn_order={행.turn_order} speaker_type=
               {행.speaker_type} utterance_source={표기(행.utterance_source)}
             </p>
             <p className="my-1">
               {행.speaker_type === 'character' && (
-                <span className="mr-1 text-zinc-500">{행.character_name ?? ''}:</span>
+                <span className="mr-1 text-ink-muted">{행.character_name ?? ''}:</span>
               )}
               {행.text}
             </p>
             {(상세.fallback.get(행.id) ?? []).map((시도) => (
               <p
                 key={`${시도.purpose}-${시도.attempt_no}`}
-                className="border border-amber-500 px-2 py-1 font-mono text-xs text-amber-700"
+                className="border border-warn px-2 py-1 font-mono text-xs text-warn"
               >
                 예비 공급자 · {시도.purpose} #{시도.attempt_no} · {시도.provider}/{시도.model}
                 {' ← 고르려던 것 '}
@@ -85,7 +85,7 @@ export default async function TurnLogPage({
                 <로그세줄 줄들={행.log_lines} />
                 {행.character_response === null && (
                   // 「바로 다음 한 행」이 이 장면의 캐릭터가 아니었다 — 이 턴은 대사를 못 받았다.
-                  <p className="font-mono text-xs text-amber-600">응답 없음</p>
+                  <p className="font-mono text-xs text-warn">응답 없음</p>
                 )}
                 {/* 되짚는 자리에서 「무엇을 보내고 무엇이 답했나」로 내려가는 길. */}
                 <p className="mt-1">
@@ -113,7 +113,7 @@ function 쪽목록({ 상세 }: { 상세: RunDetail }) {
       <h3 className="font-semibold">장면 쪽 {상세.scene_pages.length}개</h3>
       <ol className="flex flex-wrap gap-2 font-mono text-xs">
         {상세.scene_pages.map((쪽) => (
-          <li key={쪽.scene_order} className="border border-zinc-300 px-2 py-1">
+          <li key={쪽.scene_order} className="border border-divider px-2 py-1">
             {쪽.scene_order} · {표기(쪽.character_name)} ·{' '}
             {표기(쪽.scenes.map((장면) => 장면.scene_order))}
           </li>

@@ -28,7 +28,7 @@ function 토큰(값: number | null): string {
   return 값 === null ? '모름' : String(값)
 }
 
-const 칸 = 'border border-zinc-300 px-2 py-1 align-top'
+const 칸 = 'border border-divider px-2 py-1 align-top'
 
 /**
  * 시도 표. 열은 파이썬 `run_calls.html:5` 그대로다 —
@@ -40,7 +40,7 @@ export function 시도표({ 시도들 }: { 시도들: TurnAttemptsView }) {
     <section className="flex flex-col gap-2">
       <h3 className="font-semibold">LLM 시도 {totals.attempt_count}건</h3>
       {attempts.length === 0 && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           호출 없음 (전개 또는 고정 대사만 재생한 턴이면 정상)
         </p>
       )}
@@ -51,7 +51,7 @@ export function 시도표({ 시도들 }: { 시도들: TurnAttemptsView }) {
               <tr className="text-left">
                 {['용도/번호', '실제 공급자·모델', '강도', '결과', '토큰', '비용', '시간', '원문'].map(
                   (이름) => (
-                    <th key={이름} className={`${칸} font-mono text-zinc-500`}>
+                    <th key={이름} className={`${칸} font-mono text-ink-muted`}>
                       {이름}
                     </th>
                   ),
@@ -83,8 +83,8 @@ export function 시도표({ 시도들 }: { 시도들: TurnAttemptsView }) {
  * 깨뜨린다. 그래서 위반은 빨간 굵은 글씨, 판정 안 함은 회색 물음표, 지킴만 초록이다.
  */
 function 판정표기(값: number | null): { 글: string; 꾸밈: string } {
-  if (값 === null) return { 글: '판정 안 함', 꾸밈: 'text-zinc-500' }
-  if (값 === 0) return { 글: '위반', 꾸밈: 'font-bold text-red-600' }
+  if (값 === null) return { 글: '판정 안 함', 꾸밈: 'text-ink-muted' }
+  if (값 === 0) return { 글: '위반', 꾸밈: 'font-bold text-danger' }
   return { 글: '지킴', 꾸밈: 'text-green-700' }
 }
 
@@ -107,7 +107,7 @@ export function 경계채점표({ 채점들 }: { 채점들: readonly ScoreRow[] 
     <section className="flex flex-col gap-2">
       <h3 className="font-semibold">경계 채점 {채점들.length}건</h3>
       {채점들.length === 0 && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-muted">
           채점 행 없음 (채점기를 끄고 돌린 턴이거나, 전개만 재생한 턴이면 정상)
         </p>
       )}
@@ -117,7 +117,7 @@ export function 경계채점표({ 채점들 }: { 채점들: readonly ScoreRow[] 
             <thead>
               <tr className="text-left">
                 {['check_name', '판정', 'comment', 'target'].map((이름) => (
-                  <th key={이름} className={`${칸} font-mono text-zinc-500`}>
+                  <th key={이름} className={`${칸} font-mono text-ink-muted`}>
                     {이름}
                   </th>
                 ))}
@@ -131,7 +131,7 @@ export function 경계채점표({ 채점들 }: { 채점들: readonly ScoreRow[] 
                     <td className={`${칸} font-mono whitespace-nowrap`}>{행.check_name}</td>
                     <td className={`${칸} whitespace-nowrap`}>
                       <span className={꾸밈}>{글}</span>{' '}
-                      <span className="font-mono text-zinc-500">
+                      <span className="font-mono text-ink-muted">
                         value={행.value === null ? 'null' : 행.value.toFixed(1)}
                       </span>
                     </td>
@@ -145,7 +145,7 @@ export function 경계채점표({ 채점들 }: { 채점들: readonly ScoreRow[] 
           </table>
         </div>
       )}
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-ink-muted">
         ⚠️ <strong>「판정 안 함」은 통과가 아니다</strong> — 검사 조건이 아예 안 섰거나 심판을 믿을
         수 없었다는 뜻이고, 회차 목록의 위반율에서 <strong>분모에서 빠진다</strong> (결정 29).
       </p>
@@ -173,13 +173,13 @@ function 시도줄({ 시도, 통화 }: { 시도: AttemptView; 통화: string | n
           // 견줄 대상이 없다. 「같다」고 말하지 않는다 — 회차에 안 박혔다고 말한다.
           <>
             <br />
-            <span className="text-zinc-500">고른 모델이 회차에 안 박혀 있다 (설정 기본값)</span>
+            <span className="text-ink-muted">고른 모델이 회차에 안 박혀 있다 (설정 기본값)</span>
           </>
         )}
       </td>
       <td className={`${칸} font-mono`}>{시도.effort ?? '강도 없음'}</td>
       <td className={칸}>
-        {시도.ok ? '성공' : <span className="text-amber-700">실패 · {시도.error}</span>}
+        {시도.ok ? '성공' : <span className="text-warn">실패 · {시도.error}</span>}
       </td>
       <td className={`${칸} font-mono whitespace-nowrap`}>
         입력 {토큰(시도.input_tokens)} · 출력 {토큰(시도.output_tokens)}
@@ -213,8 +213,8 @@ function 원문({ 시도 }: { 시도: AttemptView }) {
 function 원문칸({ 이름, 글 }: { 이름: string; 글: string }) {
   return (
     <div className="mt-2 flex flex-col gap-1">
-      <h4 className="font-mono text-xs text-zinc-500">{이름}</h4>
-      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
+      <h4 className="font-mono text-xs text-ink-muted">{이름}</h4>
+      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-chip p-2 font-mono text-xs text-ink">
         {글}
       </pre>
     </div>

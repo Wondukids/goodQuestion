@@ -14,7 +14,7 @@ export { 한칸, 오류띠, 라벨 } from '../ui'
 
 export function 경고띠({ children }: { children: React.ReactNode }) {
   return (
-    <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+    <p className="border border-warn bg-warn-soft px-3 py-2 text-xs text-warn">
       {children}
     </p>
   )
@@ -33,8 +33,8 @@ export function 소수셋(값: number): string {
 
 const 칸_색 = (행: ResultView | undefined): string => {
   if (행 === undefined) return ''
-  if (행.판정불가) return 'bg-zinc-100'
-  return 행.맞음 ? 'bg-green-50' : 'bg-red-50'
+  if (행.판정불가) return 'bg-chip'
+  return 행.맞음 ? 'bg-green-50' : 'bg-danger-soft'
 }
 
 /**
@@ -57,23 +57,23 @@ export function 결과칸({
     <td className={`align-top py-1 pr-3 text-xs ${칸_색(행)}`}>
       {단추}
       {행 === undefined ? (
-        <p className="mt-1 text-zinc-500">아직 안 돌렸습니다.</p>
+        <p className="mt-1 text-ink-muted">아직 안 돌렸습니다.</p>
       ) : 행.판정불가 ? (
         <>
           <p className="mt-1 font-semibold">판정 불가</p>
-          <p className="break-all text-zinc-600">{행.판정불가_사유}</p>
+          <p className="break-all text-ink-muted">{행.판정불가_사유}</p>
         </>
       ) : 행.맞음 ? (
         <>
           <p className="mt-1 font-semibold">맞음</p>
-          <p className="text-zinc-600">의도·유효성·요소가 전부 기대와 같습니다.</p>
+          <p className="text-ink-muted">의도·유효성·요소가 전부 기대와 같습니다.</p>
         </>
       ) : (
         <>
           <p className="mt-1 font-semibold">틀림</p>
           <dl className="mt-1 flex flex-col gap-1">
             <div>
-              <dt className="font-mono text-zinc-500">child_intent</dt>
+              <dt className="font-mono text-ink-muted">child_intent</dt>
               <dd>
                 {행.채점?.child_intent_맞음 ? (
                   <>
@@ -88,7 +88,7 @@ export function 결과칸({
               </dd>
             </div>
             <div>
-              <dt className="font-mono text-zinc-500">utterance_validity</dt>
+              <dt className="font-mono text-ink-muted">utterance_validity</dt>
               <dd>
                 {행.채점?.utterance_validity_맞음 ? (
                   <>
@@ -103,7 +103,7 @@ export function 결과칸({
               </dd>
             </div>
             <div>
-              <dt className="font-mono text-zinc-500">detected_elements</dt>
+              <dt className="font-mono text-ink-muted">detected_elements</dt>
               <dd>
                 기대 <요소들 코드들={기대.detected_elements} />
                 <br />
@@ -125,11 +125,11 @@ export function 결과칸({
       )}
 
       {행?.라벨?.main_point && (
-        <p className="mt-1 text-zinc-500">
+        <p className="mt-1 text-ink-muted">
           main_point(자동 채점하지 않음): {행.라벨.main_point}
         </p>
       )}
-      {행?.got_model && <p className="mt-1 font-mono text-zinc-500">got_model={행.got_model}</p>}
+      {행?.got_model && <p className="mt-1 font-mono text-ink-muted">got_model={행.got_model}</p>}
     </td>
   )
 }

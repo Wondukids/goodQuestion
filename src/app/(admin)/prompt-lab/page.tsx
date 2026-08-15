@@ -14,6 +14,7 @@ import { connection } from 'next/server'
 import { promptLabView, type PromptItem } from '@/llm/service/prompt-lab'
 
 import { 한칸, 오류띠 } from '../runs/ui'
+import { 개발자용, 단추, 라벨, 카드, 화면머리말 } from '../ui'
 import { saveExperimentPromptAction } from './actions'
 
 export const metadata = { title: '프롬프트 작업대 — 굿퀘스천 관리자' }
@@ -34,27 +35,30 @@ export default async function PromptLabPage({
     <main className="flex flex-col gap-6">
       {오류 !== null && <오류띠 문구={오류} />}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">프롬프트 작업대</h2>
-        <p className="text-xs text-zinc-500">
-          프롬프트 파일은 이 화면에서 고치지 않습니다. 실험 내용은 고른 회차에만 저장되고, 확정
-          내용은 사람이 파일로 옮깁니다.
-        </p>
+      <화면머리말
+        제목="지시문 작업대"
+        설명="AI 에게 주는 지시문(＂너는 이런 역할이고 이렇게 답해라＂)을 회차 하나에만 바꿔 넣어 시험하는 곳입니다. 원본 파일은 여기서 바뀌지 않습니다 — 시험해 보고 좋으면 사람이 직접 파일로 옮깁니다."
+      />
+
+      <카드 제목="지금 무엇을 보고 있나">
         {본것.run === null ? (
-          <p className="text-xs">회차를 지정하지 않아 프롬프트 파일 값을 읽기 전용으로 보여 줍니다.</p>
+          <p className="text-[15px] text-ink">
+            회차를 고르지 않아 <b>원본 파일 그대로</b> 보여 주고 있습니다. 고쳐 보려면 회차
+            목록에서 회차 하나를 골라 들어오세요.
+          </p>
         ) : (
-          <p className="text-xs">
+          <p className="text-[15px] text-ink">
             회차{' '}
-            <Link href={`/runs/${본것.run.id}`} className="font-mono underline">
-              {본것.run.id}
+            <Link href={`/runs/${본것.run.id}`} className="font-bold text-primary-strong underline">
+              {본것.run.id.slice(0, 8)}
             </Link>{' '}
-            ·{' '}
+            에 쓸 지시문입니다.{' '}
             {본것.experiment_names.length === 0
-              ? '실험용 프롬프트 없음'
-              : `실험용: ${본것.experiment_names.join(', ')}`}
+              ? '아직 이 회차만의 지시문은 없습니다 — 아래에서 고쳐 저장하면 생깁니다.'
+              : `이 회차만 바꾼 것: ${본것.experiment_names.join(', ')}`}
           </p>
         )}
-      </section>
+      </카드>
 
       {본것.prompts.map((프롬프트) => (
         <프롬프트칸 key={프롬프트.name} 프롬프트={프롬프트} run_id={본것.run_id} />
@@ -70,43 +74,51 @@ export default async function PromptLabPage({
 function 프롬프트칸({ 프롬프트, run_id }: { 프롬프트: PromptItem; run_id: string | null }) {
   const 고칠_수_있나 = run_id !== null && 프롬프트.editable
   return (
-    <section className="flex flex-col gap-2 border border-zinc-300 p-3">
-      <h3 className="font-semibold">
-        {프롬프트.name}
-        {프롬프트.is_experiment && <span className="ml-2 text-xs text-amber-600">· 실험용</span>}
-      </h3>
-
+    <카드
+      제목={프롬프트.name}
+      설명={
+        고칠_수_있나
+          ? '아래를 고쳐 저장하면 이 회차에만 적용됩니다. 원본 파일은 그대로입니다.'
+          : '읽기만 할 수 있습니다.'
+      }
+      곁들이기={
+        프롬프트.is_experiment ? (
+          <span className="rounded-lg bg-warn-soft px-2.5 py-1 text-[13px] font-bold text-warn">
+            이 회차만 바꾼 것
+          </span>
+        ) : undefined
+      }
+    >
       {/* ⭐ 「정본 보기」라고 쓰지 않는다 — 파일이 정본인 것과 회차가 무엇으로 돌았는지는 다른 말이다. */}
-      <details>
-        <summary className="cursor-pointer text-xs text-zinc-500">▸ 프롬프트 파일 보기</summary>
-        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
+      <개발자용 제목="원본 파일 내용">
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all font-mono text-[12px] text-ink">
           {프롬프트.canonical_body}
         </pre>
-      </details>
+      </개발자용>
 
       {고칠_수_있나 ? (
-        <form action={saveExperimentPromptAction} className="flex flex-col gap-2">
+        <form action={saveExperimentPromptAction} className="flex flex-col gap-3">
           <input type="hidden" name="run_id" value={run_id} />
           <input type="hidden" name="name" value={프롬프트.name} />
-          <label className="flex flex-col gap-1">
-            <span className="font-mono text-xs text-zinc-500">이 회차에 쓸 내용</span>
+          <라벨 이름="이 회차에 쓸 내용">
             <textarea
               name="body"
               rows={24}
               required
               defaultValue={프롬프트.display_body}
-              className="w-full border border-zinc-400 p-2 font-mono text-xs"
+              className="w-full rounded-xl border border-divider bg-surface p-3 font-mono text-[13px] text-ink outline-none focus:border-primary"
             />
-          </label>
-          <button type="submit" className="self-start border border-zinc-700 px-3 py-1 font-semibold">
-            회차에 실험용으로 저장
+          </라벨>
+          {/* ⭐ AI 를 부르지 않고 되돌릴 수도 있는 저장이라 보통 단추다 (규칙 3-5 갈래 A). */}
+          <button type="submit" className={`self-start ${단추.보통}`}>
+            이 회차에 저장
           </button>
         </form>
       ) : (
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-chip p-3 font-mono text-[13px] text-ink">
           {프롬프트.display_body}
         </pre>
       )}
-    </section>
+    </카드>
   )
 }

@@ -14,6 +14,7 @@ import { elementName } from '@/llm/elements'
 import { seedWorkbench, 출처_이름, 칸_id, 칸_이름, 칸자리_이름 } from '@/llm/service/seed'
 
 import { 오류띠, 한칸 } from '../runs/ui'
+import { 값, 경고상자, 빈자리, 카드, 화면머리말 } from '../ui'
 import { saveSeedCellAction, undoSeedRevisionAction } from './actions'
 import { 시드파일값, 저장단추, 숨은칸들, 출처고르개, 칸머리 } from './ui'
 
@@ -41,14 +42,31 @@ export default async function SeedPage({
   const 자료 = await seedWorkbench()
 
   return (
-    <main className="flex flex-col gap-8">
+    <main className="flex flex-col gap-6">
+      {/* ⚠️ 머리말이 경고·오류보다 먼저다 — 「여기가 어디인가」를 먼저 읽어야 한다 (규칙 2-1). */}
+      <화면머리말
+        제목="이야기 설정"
+        설명="이야기에 나오는 캐릭터와 장면의 설정값을 한 칸씩 고치는 곳입니다. 고친 값은 다음 회차부터 바로 쓰입니다. 다 고쳤으면 「내보내기」로 파일을 받아 개발 담당자에게 넘기면 원본에 반영됩니다."
+        곁들이기={
+          <a
+            href="/seed/export"
+            className="text-[14px] font-bold text-primary-strong underline"
+          >
+            고친 값 내보내기
+          </a>
+        }
+      />
+
       {오류 !== null && (
         <div className="flex flex-col gap-1">
           <오류띠 문구={오류} />
           {경고_칸 !== null && 칸자리_이름(경고_칸) !== null && (
-            <p className="text-xs">
-              <a href={`#${경고_칸}`} className="underline">
-                {칸자리_이름(경고_칸)} 칸으로
+            <p>
+              <a
+                href={`#${경고_칸}`}
+                className="text-[14px] font-bold text-primary-strong underline"
+              >
+                문제가 된 「{칸자리_이름(경고_칸)}」 칸으로 가기 →
               </a>
             </p>
           )}
@@ -56,43 +74,35 @@ export default async function SeedPage({
       )}
 
       {자료.file_differs && (
-        <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <strong>화면 값과 시드 파일 값이 다릅니다.</strong>{' '}
-          <a href="/seed/export" className="underline">
-            현재 작업값 내보내기
+        <경고상자>
+          <b>화면 값이 원본 파일과 다릅니다.</b> 누군가 여기서 고쳤고 아직 내보내지 않았다는
+          뜻입니다 —{' '}
+          <a href="/seed/export" className="font-bold underline">
+            고친 값 내보내기
           </a>
-        </p>
+        </경고상자>
       )}
 
       {자료.file_read_error !== null && (
-        <p className="border border-amber-500 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <strong>시드 파일을 못 읽었습니다.</strong> 아래 「시드 파일 값 보기」가 전부 비어
-          있습니다 — {자료.file_read_error}
-        </p>
+        <경고상자>
+          <b>원본 파일을 읽지 못했습니다.</b> 그래서 아래 「원본 파일에 있는 값과 견주기」가 전부
+          비어 있습니다. 고치고 저장하는 것은 그대로 됩니다 — 견주기만 안 됩니다.
+        </경고상자>
       )}
 
-      <section>
-        <h2 className="mb-1 font-semibold">시드 작업대</h2>
-        <p className="text-xs text-zinc-500">
-          여기서 고친 값은 <strong>다음 호출부터 바로</strong> 엔진에 반영된다 (콘텐츠를 DB 에서
-          읽는다). 시드 파일 `sql/002_seed_banggui.sql` 은 이 화면이 쓰지 않는다 —{' '}
-          <a href="/seed/export" className="underline">
-            현재 작업값을 SQL 형식으로 내보내기
-          </a>{' '}
-          로 받아 사람이 옮긴다.
-        </p>
-      </section>
-
       {/* ── 캐릭터 ─────────────────────────────────────────────── */}
-      <section>
-        <h3 className="mb-2 font-semibold">캐릭터 {자료.characters.length}명</h3>
+      <카드
+        제목="캐릭터"
+        설명="캐릭터마다 성격·말투·아이를 이끄는 방식과, 하면 안 되는 말을 정합니다."
+        곁들이기={
+          <span className="text-[15px] font-bold text-ink-muted">{자료.characters.length}명</span>
+        }
+      >
         <div className="flex flex-col gap-4">
           {자료.characters.map((캐릭터) => (
-            <article key={캐릭터.id} className="border border-zinc-300 p-3">
-              <h4 className="mb-2 font-semibold">
-                {캐릭터.name} <span className="font-mono text-xs text-zinc-500">{캐릭터.code}</span>
-              </h4>
-              <div className="flex flex-col gap-3">
+            <article key={캐릭터.id} className="rounded-2xl border border-divider p-4">
+              <h3 className="mb-3 text-[17px] font-extrabold text-ink">{캐릭터.name}</h3>
+              <div className="flex flex-col gap-4">
                 {(['persona', 'speech_style', 'guidance_style'] as const).map((열) => (
                   <form
                     key={열}
@@ -106,7 +116,7 @@ export default async function SeedPage({
                       name="value"
                       rows={4}
                       defaultValue={캐릭터[열]}
-                      className="w-full border px-2 py-1 text-xs"
+                      className="w-full rounded-xl border border-divider bg-surface px-3 py-2 text-[14px] text-ink outline-none focus:border-primary"
                     />
                     <시드파일값 값={파일값_글자(캐릭터.file_values?.[열])} />
                     <div className="flex items-center gap-3">
@@ -130,7 +140,7 @@ export default async function SeedPage({
                     name="value"
                     rows={5}
                     defaultValue={캐릭터.forbidden.join('\n')}
-                    className="w-full border px-2 py-1 text-xs"
+                    className="w-full rounded-xl border border-divider bg-surface px-3 py-2 text-[14px] text-ink outline-none focus:border-primary"
                   />
                   <시드파일값 값={파일값_글자(캐릭터.file_values?.forbidden)} />
                   <div className="flex items-center gap-3">
@@ -142,23 +152,30 @@ export default async function SeedPage({
             </article>
           ))}
         </div>
-      </section>
+      </카드>
 
       {/* ── 대화 장면 ──────────────────────────────────────────── */}
-      <section>
-        <h3 className="mb-2 font-semibold">
-          대화 장면 {자료.scenes.length}개와 걱정 문장{' '}
-          {자료.scenes.reduce((합, 장면) => 합 + Object.keys(장면.remaining_worries).length, 0)}줄
-        </h3>
+      <카드
+        제목="대화 장면"
+        설명="아이가 캐릭터와 말을 주고받는 장면마다, 캐릭터의 입장과 아이에게 남길 걱정 문장을 정합니다."
+        곁들이기={
+          <span className="text-[15px] font-bold text-ink-muted">
+            {자료.scenes.length}개 · 걱정 문장{' '}
+            {자료.scenes.reduce((합, 장면) => 합 + Object.keys(장면.remaining_worries).length, 0)}줄
+          </span>
+        }
+      >
         <div className="flex flex-col gap-4">
           {자료.scenes.map((장면) => (
-            <article key={장면.id} className="border border-zinc-300 p-3">
-              <h4 className="mb-2 font-semibold">
-                장면 {장면.scene_order} · {장면.character_name}{' '}
-                <span className="font-mono text-xs text-zinc-500">{장면.code}</span>
-              </h4>
+            <article key={장면.id} className="rounded-2xl border border-divider p-4">
+              <h3 className="mb-3 text-[17px] font-extrabold text-ink">
+                {장면.scene_order}번째 장면{' '}
+                <span className="text-[14px] font-normal text-ink-faint">
+                  {장면.character_name}
+                </span>
+              </h3>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 <form
                   id={칸_id('story_scenes', 장면.id, 'scene_stance')}
                   action={saveSeedCellAction}
@@ -177,7 +194,7 @@ export default async function SeedPage({
                     name="value"
                     rows={3}
                     defaultValue={장면.scene_stance ?? ''}
-                    className="w-full border px-2 py-1 text-xs"
+                    className="w-full rounded-xl border border-divider bg-surface px-3 py-2 text-[14px] text-ink outline-none focus:border-primary"
                   />
                   <시드파일값 값={파일값_글자(장면.file_values?.scene_stance)} />
                   <div className="flex items-center gap-3">
@@ -186,7 +203,7 @@ export default async function SeedPage({
                   </div>
                 </form>
 
-                <h5 className="mt-2 text-xs font-semibold text-zinc-500">
+                <h5 className="mt-2 text-xs font-semibold text-ink-muted">
                   {칸_이름('story_scenes', 'remaining_worries')}
                 </h5>
                 {Object.entries(장면.remaining_worries).map(([요소, 걱정]) => (
@@ -210,7 +227,7 @@ export default async function SeedPage({
                       name="value"
                       rows={2}
                       defaultValue={걱정}
-                      className="w-full border px-2 py-1 text-xs"
+                      className="w-full rounded-xl border border-divider bg-surface px-3 py-2 text-[14px] text-ink outline-none focus:border-primary"
                     />
                     <시드파일값 값={파일값_글자(장면.file_values?.remaining_worries?.[요소])} />
                     <div className="flex items-center gap-3">
@@ -237,7 +254,7 @@ export default async function SeedPage({
                   <input
                     name="value"
                     defaultValue={장면.required_element_names.join(', ')}
-                    className="w-full border px-2 py-1 text-xs"
+                    className="w-full rounded-xl border border-divider bg-surface px-3 py-2 text-[14px] text-ink outline-none focus:border-primary"
                   />
                   <시드파일값
                     값={
@@ -277,42 +294,61 @@ export default async function SeedPage({
             </article>
           ))}
         </div>
-      </section>
+      </카드>
 
       {/* ── 개정 이력 ─────────────────────────────────────────── */}
-      <section>
-        <h3 className="mb-2 font-semibold">개정 이력 {자료.revisions.length}건</h3>
+      <카드
+        제목="고친 기록"
+        설명="여기서 고친 것이 모두 남습니다. 잘못 고쳤으면 「직전 값으로 되돌리기」를 누르세요."
+        곁들이기={
+          <span className="text-[15px] font-bold text-ink-muted">{자료.revisions.length}건</span>
+        }
+      >
         {자료.revisions.length === 0 ? (
-          <p className="text-xs text-zinc-500">아직 화면에서 고친 값이 없습니다.</p>
+          <빈자리
+            무엇="아직 화면에서 고친 값이 없습니다."
+            다음="위에서 값을 고쳐 저장하면 여기에 기록이 쌓입니다."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
+            <table className="w-full border-collapse text-[14px]">
               <thead>
-                <tr className="border-b border-zinc-400 text-left">
-                  {['시각', '칸', '출처', '바꾼 사람', '이전 → 새 값', ''].map((이름, 자리) => (
-                    <th key={자리} className="py-1 pr-3 font-normal">
-                      {이름}
-                    </th>
-                  ))}
+                <tr className="border-b border-divider text-left text-ink-muted">
+                  {['언제', '어느 칸', '출처', '바꾼 사람', '이전 → 새 값', ''].map(
+                    (이름, 자리) => (
+                      <th key={자리} className="py-2 pr-4 font-bold">
+                        {이름}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {자료.revisions.map((개정) => (
-                  <tr key={개정.id} className="border-b border-zinc-200">
-                    <td className="py-1 pr-3 font-mono">
-                      {개정.created_at.toISOString().slice(0, 19).replace('T', ' ')}
+                  <tr key={개정.id} className="border-b border-divider">
+                    <td className="py-2 pr-4 whitespace-nowrap">
+                      {개정.created_at.toISOString().slice(0, 16).replace('T', ' ')}
                     </td>
-                    <td className="py-1 pr-3">{개정.display_name}</td>
-                    <td className="py-1 pr-3">{출처_이름[개정.origin] ?? 개정.origin}</td>
-                    <td className="py-1 pr-3">{개정.changed_by ?? '알 수 없음'}</td>
-                    <td className="py-1 pr-3">
-                      <code className="break-all">{JSON.stringify(개정.old_value)}</code> →{' '}
-                      <code className="break-all">{JSON.stringify(개정.new_value)}</code>
+                    <td className="py-2 pr-4">{개정.display_name}</td>
+                    <td className="py-2 pr-4">{출처_이름[개정.origin] ?? 개정.origin}</td>
+                    <td className="py-2 pr-4">
+                      <값 것={개정.changed_by} 없을때="알 수 없음" />
                     </td>
-                    <td className="py-1">
+                    <td className="py-2 pr-4 text-[13px]">
+                      <span className="break-all text-ink-faint">
+                        {JSON.stringify(개정.old_value)}
+                      </span>{' '}
+                      → <span className="break-all">{JSON.stringify(개정.new_value)}</span>
+                    </td>
+                    <td className="py-2">
+                      {/* ⭐ 되돌리기가 있어서 시드 고치기가 「갈래 A」다 — 확인창을 안 다는
+                          근거의 절반이 이 단추다 (규칙 3-5). */}
                       <form action={undoSeedRevisionAction}>
                         <input type="hidden" name="revision_id" value={개정.id} />
-                        <button type="submit" className="border border-zinc-500 px-2 py-0.5">
+                        <button
+                          type="submit"
+                          className="rounded-lg border border-divider bg-surface px-3 py-1.5 text-[13px] font-bold text-ink whitespace-nowrap hover:border-primary"
+                        >
                           직전 값으로 되돌리기
                         </button>
                       </form>
@@ -323,7 +359,7 @@ export default async function SeedPage({
             </table>
           </div>
         )}
-      </section>
+      </카드>
     </main>
   )
 }

@@ -24,7 +24,7 @@ import { elementNames } from '@/llm/elements'
 import { goldensetScreen, type GoldensetScreen } from '@/llm/service/goldenset'
 import { trustworthy } from '@/llm/scoring'
 
-import { 단추, 보내기 } from '../ui'
+import { 곁링크, 단추, 보내기, 오류상자, 입력칸, 카드, 화면머리말 } from '../ui'
 import { runGoldensetAction, runGoldensetItemAction } from './actions'
 import { 결과칸, 경고띠, 라벨, 소수셋, 오류띠, 요소들, 한칸 } from './ui'
 
@@ -53,14 +53,20 @@ export default async function GoldensetPage({
     // 정답지를 골랐다. **빈 화면으로 때우지 않는다.**
     읽기_오류 = 그것 instanceof Error ? `${그것.name}: ${그것.message}` : String(그것)
     return (
-      <main className="flex flex-col gap-4">
-        <h2 className="font-semibold">골든셋 채점</h2>
-        <오류띠 문구={읽기_오류} />
+      <main className="flex flex-col gap-6">
+        <화면머리말
+          제목="정답지 채점"
+          설명="사람이 미리 정답을 적어 둔 문제 모음으로, AI 가 아이 말을 얼마나 제대로 알아듣는지 잽니다."
+        />
         {/* 고르는 칸이 이 화면에만 있어서, 링크가 없으면 못 읽는 파일을 고른 사람이 갇힌다. */}
-        <p className="text-xs">
-          <Link href="/goldenset" className="underline">
-            다른 정답지 고르기
-          </Link>
+        <오류상자
+          무엇="정답지를 읽지 못했습니다."
+          왜="정답지 폴더가 비어 있거나, 이 화면이 읽을 수 없는 형식의 정답지를 골랐을 때 이렇게 됩니다."
+          어떻게="아래에서 다른 정답지를 골라 보세요. 계속 안 되면 개발 담당자에게 알려 주세요."
+          원문={읽기_오류}
+        />
+        <p>
+          <곁링크 href="/goldenset">다른 정답지 고르기 →</곁링크>
         </p>
       </main>
     )
@@ -70,95 +76,96 @@ export default async function GoldensetPage({
 
   return (
     <main className="flex flex-col gap-6">
-      <h2 className="font-semibold">골든셋 채점</h2>
+      <화면머리말
+        제목="정답지 채점"
+        설명="사람이 미리 정답을 적어 둔 문제 모음(정답지)으로, AI 가 아이 말을 얼마나 제대로 알아듣는지 잽니다. 여기 점수는 「분석 정확도」이고, 회차 목록의 「대사 규칙 위반」과는 다른 것입니다 — 저쪽은 캐릭터가 한 말을 재고, 여기는 아이 말을 알아들었는지를 잽니다."
+      />
 
       {오류 !== null && <오류띠 문구={오류} />}
 
       {바탕.draft_count > 0 && (
         <경고띠>
-          <strong>⚠️ 이것은 아직 정답지가 아닙니다.</strong> {바탕.total_count}건 중{' '}
-          <strong>{바탕.draft_count}건이 검수 전 「초안」</strong>입니다. 이 점수를 품질 판단·보고에
-          쓰지 마세요. 검수 끝난 것만 돌리려면 아래 <code>검수완료만</code> 을 켜세요 (검수완료{' '}
-          {바탕.reviewed_count}건).
+          <strong>이것은 아직 완성된 정답지가 아닙니다.</strong> {바탕.total_count}건 가운데{' '}
+          <strong>{바탕.draft_count}건이 사람 검수를 아직 안 거친 초안</strong>입니다. 이 점수를
+          품질 판단이나 보고에 쓰지 마세요. 검수를 마친 것만 재려면 아래에서 「검수를 마친 것만」을
+          켜세요 (검수 마친 것 {바탕.reviewed_count}건).
         </경고띠>
       )}
 
       {/* 정답지 고르기. 파일이 하나뿐이면 고르는 칸을 안 띄우되 **무엇을 채점 중인가**는 보인다. */}
-      {바탕.files.length > 1 ? (
-        <form method="get" action="/goldenset" className="flex flex-wrap items-end gap-3">
-          <라벨 이름="정답지 파일">
-            <select name="file" className="border px-2 py-1" defaultValue={바탕.file}>
-              {바탕.files.map((이름) => (
-                <option key={이름} value={이름}>
-                  {이름}
-                </option>
-              ))}
-            </select>
-          </라벨>
-          <button type="submit" className="border border-zinc-700 px-3 py-1">
-            이 파일 보기
-          </button>
-        </form>
-      ) : (
-        <p className="text-xs text-zinc-500">
-          정답지 <strong>{바탕.file_path}</strong> · {바탕.total_count}건
-        </p>
-      )}
+      <카드 제목="어느 정답지를 볼까" 설명={`${바탕.file_path} · 모두 ${바탕.total_count}건`}>
+        {바탕.files.length > 1 && (
+          <form method="get" action="/goldenset" className="flex flex-wrap items-end gap-3">
+            <라벨 이름="정답지 고르기">
+              <select name="file" className={입력칸} defaultValue={바탕.file}>
+                {바탕.files.map((이름) => (
+                  <option key={이름} value={이름}>
+                    {이름}
+                  </option>
+                ))}
+              </select>
+            </라벨>
+            <button type="submit" className={단추.보통}>
+              이 정답지 보기
+            </button>
+          </form>
+        )}
+      </카드>
 
-      <section>
-        <h3 className="mb-2 font-semibold">돌리기</h3>
-        <p className="mb-3 text-xs text-zinc-500">
-          누르면 <strong>실제 분석 LLM 이 호출됩니다</strong>(돈이 들고 느립니다). 한 줄씩 돌리는
-          단추가 표 오른쪽에 따로 있습니다 —{' '}
-          <strong>{바탕.total_count}건을 한 번에 돌리면 레이트 리밋에 걸립니다.</strong> 걸린 건은
-          「판정 불가」가 되어 그날 측정이 통째로 날아갑니다. 나눠 돌릴 때는{' '}
-          <strong>「몇 번째부터」를 함께 옮기세요</strong> — 안 옮기면 늘 1번째부터 다시 돌아 같은
-          건에 돈이 두 번 나갑니다.
-        </p>
-        <form action={runGoldensetAction} className="flex flex-wrap items-end gap-3">
+      <카드
+        제목="채점 돌리기"
+        설명="누르면 실제로 AI 를 부릅니다 — 사용료가 나가고 시간이 걸립니다."
+      >
+        <경고띠>
+          <strong>{바탕.total_count}건을 한 번에 돌리지 마세요.</strong> AI 가 짧은 시간에 너무 많이
+          불리면 나머지가 전부 「판정 못 함」으로 떨어져 그날 잰 것이 통째로 날아갑니다. 나눠 돌릴
+          때는 <strong>「몇 번째부터」를 함께 옮기세요</strong> — 안 옮기면 늘 1번째부터 다시 돌아
+          같은 건에 사용료가 두 번 나갑니다. 한 건씩 돌리는 단추는 아래 표 오른쪽에 따로 있습니다.
+        </경고띠>
+        <form action={runGoldensetAction} className="flex flex-wrap items-end gap-4">
           <input type="hidden" name="file" value={바탕.file} />
-          <라벨 이름="몇 번째부터 (비우면 1번째)">
+          <라벨 이름="몇 번째부터" 도움말="비우면 1번째부터">
             <input
               name="offset"
               type="number"
               min={1}
               max={바탕.total_count}
               placeholder="1"
-              className="w-36 border px-2 py-1"
+              className={`w-36 ${입력칸}`}
             />
           </라벨>
-          <라벨 이름="몇 건을 (비우면 끝까지)">
+          <라벨 이름="몇 건을" 도움말="비우면 끝까지">
             <input
               name="limit"
               type="number"
               min={1}
               max={바탕.total_count}
               placeholder={String(바탕.total_count)}
-              className="w-36 border px-2 py-1"
+              className={`w-36 ${입력칸}`}
             />
           </라벨>
-          <라벨 이름="먼저 쓸 Gemini 키">
-            <select name="key" className="border px-2 py-1" defaultValue={1}>
+          <라벨 이름="먼저 쓸 열쇠" 도움말="AI 를 부를 때 쓰는 열쇠가 여러 개입니다">
+            <select name="key" className={입력칸} defaultValue={1}>
               {제미나이_키_번호들.map((번호) => (
                 <option key={번호} value={번호}>
-                  키{번호}
+                  {번호}번 열쇠
                 </option>
               ))}
             </select>
           </라벨>
-          <라벨 이름="분당 호출 수 (비우면 쉬지 않음)">
+          <라벨 이름="1분에 몇 번까지" 도움말="비우면 쉬지 않고 부릅니다">
             <input
               name="per_minute"
               type="number"
               min={1}
               placeholder="제한 없음"
-              className="w-40 border px-2 py-1"
+              className={`w-40 ${입력칸}`}
             />
           </라벨>
-          <label className="flex items-center gap-2 pb-1 text-xs">
-            <input type="checkbox" name="reviewed_only" value="1" />
-            <span className="font-mono">검수완료만</span>
-            <span className="text-zinc-500">({바탕.reviewed_count}건)</span>
+          <label className="flex items-center gap-2 pb-2 text-[15px] text-ink">
+            <input type="checkbox" name="reviewed_only" value="1" className="accent-primary" />
+            검수를 마친 것만
+            <span className="text-ink-faint">({바탕.reviewed_count}건)</span>
           </label>
           {/* ⭐ AI 를 부르는 단추다 — 색과 **글자 둘 다**로 알린다 (규칙 3-6). 확인창은 쓰지
               않기로 했으므로(규칙 3-5) 단추 글자가 유일한 예고고, 중복 클릭은 `보내기` 가 막는다. */}
@@ -166,7 +173,7 @@ export default async function GoldensetPage({
             정답지 전체 채점 (AI 호출)
           </보내기>
         </form>
-      </section>
+      </카드>
 
       {결과 !== null && (
         <section className="flex flex-col gap-3">
@@ -185,7 +192,7 @@ export default async function GoldensetPage({
               ] as const
             ).map(([이름, 값]) => (
               <div key={이름} className="contents">
-                <dt className="text-zinc-500">{이름}</dt>
+                <dt className="text-ink-muted">{이름}</dt>
                 <dd className="break-all">{값}</dd>
               </div>
             ))}
@@ -193,29 +200,29 @@ export default async function GoldensetPage({
 
           <table className="w-full max-w-2xl border-collapse text-xs">
             <thead>
-              <tr className="border-b border-zinc-400 text-left">
+              <tr className="border-b border-divider text-left">
                 <th className="py-1 pr-3 font-normal">가른 것</th>
                 <th className="py-1 pr-3 font-normal">건수</th>
                 <th className="py-1 pr-3 font-normal">무슨 뜻인가</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-zinc-200">
+              <tr className="border-b border-divider">
                 <td className="py-1 pr-3">맞음</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.맞은_수}</td>
                 <td className="py-1 pr-3">의도·유효성·요소가 전부 기대와 같다</td>
               </tr>
-              <tr className="border-b border-zinc-200">
+              <tr className="border-b border-divider">
                 <td className="py-1 pr-3">틀림</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.틀린_수}</td>
                 <td className="py-1 pr-3">답은 왔는데 기대와 다르다</td>
               </tr>
-              <tr className="border-b border-zinc-200">
+              <tr className="border-b border-divider">
                 <td className="py-1 pr-3">판정 불가</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.판정불가_수}</td>
                 <td className="py-1 pr-3">대조하지 못함</td>
               </tr>
-              <tr className="border-b border-zinc-400 font-semibold">
+              <tr className="border-b border-divider font-semibold">
                 <td className="py-1 pr-3">점수를 낸 항목</td>
                 <td className="py-1 pr-3 font-mono">{결과.요약.판정한_수}</td>
                 <td className="py-1 pr-3">판정 불가 건은 제외</td>
@@ -227,7 +234,7 @@ export default async function GoldensetPage({
             <>
               <table className="w-full max-w-md border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-zinc-400 text-left">
+                  <tr className="border-b border-divider text-left">
                     <th className="py-1 pr-3 font-normal">점수</th>
                     <th className="py-1 pr-3 font-normal">값</th>
                   </tr>
@@ -242,7 +249,7 @@ export default async function GoldensetPage({
                       ['detected_elements F1', 결과.표.요소_F1],
                     ] as const
                   ).map(([이름, 값]) => (
-                    <tr key={이름} className="border-b border-zinc-200">
+                    <tr key={이름} className="border-b border-divider">
                       <td className="py-1 pr-3 font-mono">{이름}</td>
                       <td className="py-1 pr-3 font-mono">{소수셋(값)}</td>
                     </tr>
@@ -270,7 +277,7 @@ export default async function GoldensetPage({
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="border-b border-zinc-400 text-left">
+              <tr className="border-b border-divider text-left">
                 <th className="py-1 pr-3 font-normal">항목</th>
                 <th className="py-1 pr-3 font-normal">아이 발화</th>
                 <th className="py-1 pr-3 font-normal">기대 정답</th>
@@ -279,7 +286,7 @@ export default async function GoldensetPage({
             </thead>
             <tbody>
               {바탕.items.map((항목) => (
-                <tr key={항목.id} className="border-b border-zinc-200 align-top">
+                <tr key={항목.id} className="border-b border-divider align-top">
                   <td className="py-1 pr-3">
                     <code>{항목.id}</code>
                     <br />
@@ -289,7 +296,7 @@ export default async function GoldensetPage({
                       className={
                         항목.검수 === '검수완료'
                           ? 'text-green-700'
-                          : 'text-amber-700'
+                          : 'text-warn'
                       }
                     >
                       {항목.검수}
@@ -297,7 +304,7 @@ export default async function GoldensetPage({
                   </td>
                   <td className="py-1 pr-3">
                     <p>{항목.child_utterance}</p>
-                    <details className="mt-1 text-zinc-500">
+                    <details className="mt-1 text-ink-muted">
                       <summary className="cursor-pointer">맥락과 메모</summary>
                       <p>직전 캐릭터 말: {항목.previous_character_message}</p>
                       <p>
@@ -324,7 +331,7 @@ export default async function GoldensetPage({
                       <form action={runGoldensetItemAction}>
                         <input type="hidden" name="file" value={바탕.file} />
                         <input type="hidden" name="item_id" value={항목.id} />
-                        <button type="submit" className="border border-zinc-500 px-2 py-0.5">
+                        <button type="submit" className="border border-divider px-2 py-0.5">
                           {결과?.줄들.has(항목.id) ? '다시 돌리기' : '이 건만 돌리기'}
                         </button>
                       </form>
@@ -339,14 +346,14 @@ export default async function GoldensetPage({
 
       <section>
         <h3 className="mb-2 font-semibold">최근 판 {바탕.recent_runs.length}건</h3>
-        <p className="mb-2 text-xs text-zinc-500">
+        <p className="mb-2 text-xs text-ink-muted">
           한 판은 정답지 파일과 분석 프롬프트의 <strong>원문 지문</strong>을 함께 박제한다. 이름표는
           사람이 잊을 수 있어도 지문은 안 흔들린다.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="border-b border-zinc-400 text-left">
+              <tr className="border-b border-divider text-left">
                 {['started_at', 'file_name', 'file_digest', 'prompt_digest', 'requested_model', 'note'].map(
                   (이름) => (
                     <th key={이름} className="py-1 pr-3 font-mono font-normal">
@@ -358,7 +365,7 @@ export default async function GoldensetPage({
             </thead>
             <tbody>
               {바탕.recent_runs.map((판) => (
-                <tr key={판.id} className="border-b border-zinc-200">
+                <tr key={판.id} className="border-b border-divider">
                   <td className="py-1 pr-3">
                     <Link
                       href={`/goldenset?file=${encodeURIComponent(판.file_name)}&run=${판.id}`}
@@ -378,7 +385,7 @@ export default async function GoldensetPage({
           </table>
         </div>
         {바탕.recent_runs.length === 0 && (
-          <p className="mt-2 text-xs text-zinc-500">아직 돌린 판이 없다.</p>
+          <p className="mt-2 text-xs text-ink-muted">아직 돌린 판이 없다.</p>
         )}
       </section>
     </main>

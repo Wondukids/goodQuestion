@@ -12,7 +12,7 @@ import Link from 'next/link'
 
 import type { AutoScoreSummary, TurnRow } from '@/llm/service/view'
 
-import { 라벨 } from '../ui'
+import { 라벨, 입력칸 } from '../ui'
 
 export { 한칸, 오류띠, 라벨 } from '../ui'
 
@@ -56,10 +56,12 @@ export function LLM칸({
   기본_강도: string
 }) {
   return (
-    <fieldset className="flex flex-col gap-2 border border-zinc-300 px-3 py-2">
-      <legend className="px-1 text-xs font-semibold">{제목}</legend>
-      <라벨 이름={`${이름}_model`}>
-        <select name={`${이름}_model`} className="border px-2 py-1" defaultValue={기본_모델}>
+    <fieldset className="flex flex-col gap-3 rounded-2xl border border-divider px-4 py-3">
+      <legend className="px-1 text-[15px] font-extrabold text-ink">{제목}</legend>
+      {/* ⭐ 보이는 글자는 사람 말이고, `name` 은 그대로다 (규칙 1-1). 폼 칸 이름을 바꾸면
+          서버 액션이 값을 못 찾는다 — 바꾸는 것은 **라벨뿐**이다. */}
+      <라벨 이름="어떤 모델로">
+        <select name={`${이름}_model`} className={입력칸} defaultValue={기본_모델}>
           {모델들.map((모델) => (
             <option key={모델} value={모델}>
               {모델}
@@ -68,16 +70,20 @@ export function LLM칸({
           ))}
         </select>
       </라벨>
-      <div className="flex flex-col gap-1">
-        <span className="font-mono text-xs text-zinc-500">{이름}_effort</span>
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[14px] font-bold text-ink-soft">생각 깊이</span>
+        <span className="text-[13px] text-ink-faint">
+          올릴수록 느려지고 AI 사용량이 늘어납니다.
+        </span>
+        <div className="flex flex-wrap items-center gap-4">
           {강도들.map((강도) => (
-            <label key={강도} className="flex items-center gap-1 font-mono text-xs">
+            <label key={강도} className="flex items-center gap-1.5 text-[15px] text-ink">
               <input
                 type="radio"
                 name={`${이름}_effort`}
                 value={강도}
                 defaultChecked={강도 === 기본_강도}
+                className="accent-primary"
               />
               {강도}
             </label>
@@ -106,22 +112,22 @@ export function LLM칸({
  *    잣대로 이미 끝냈다.
  */
 export function 자동채점칸({ 요약 }: { 요약: AutoScoreSummary | null }) {
-  if (요약 === null) return <span className="text-zinc-500">채점 안 함</span>
+  if (요약 === null) return <span className="text-ink-faint">아직 안 쟀습니다</span>
   if (요약.graded_count === 0) {
     return (
-      <span className="text-zinc-500">
-        판정 가능한 검사 없음 · 판정 불가 {요약.unscored_count}건
+      <span className="text-ink-faint">
+        잴 수 있는 것이 없었습니다 · 판정 못 한 것 {요약.unscored_count}건
       </span>
     )
   }
   const 위반 = 요약.violation_rate ?? 0
   return (
-    <span>
-      <span className={위반 > 0 ? 'font-bold text-red-600' : ''}>
-        위반 {(위반 * 100).toFixed(1)}%
+    <span className="whitespace-nowrap">
+      <span className={위반 > 0 ? 'font-bold text-danger' : 'font-bold text-ok'}>
+        {(위반 * 100).toFixed(1)}%
       </span>{' '}
-      <span className="text-zinc-500">
-        ({요약.violation_count}/{요약.graded_count}) · 판정 불가 {요약.unscored_count}건
+      <span className="text-ink-muted">
+        ({요약.violation_count}/{요약.graded_count}건) · 판정 못 한 것 {요약.unscored_count}건
       </span>
     </span>
   )
@@ -198,7 +204,7 @@ export function 칸들({ 값들 }: { 값들: readonly [string, unknown][] }) {
     <dl className="grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs">
       {값들.map(([이름, 것]) => (
         <div key={이름} className="contents">
-          <dt className="text-zinc-500">{이름}</dt>
+          <dt className="text-ink-muted">{이름}</dt>
           <dd className="break-all">{표기(것)}</dd>
         </div>
       ))}
@@ -219,10 +225,10 @@ export function 로그세줄({
 }) {
   if (줄들 === null) {
     // 스냅샷이 없는 턴이다. **꾸며 내지 않는다.**
-    return <p className="font-mono text-xs text-zinc-500">turn_conditions 스냅샷이 없다</p>
+    return <p className="font-mono text-xs text-ink-muted">turn_conditions 스냅샷이 없다</p>
   }
   return (
-    <pre className="overflow-x-auto whitespace-pre-wrap break-all bg-zinc-100 p-2 font-mono text-xs text-zinc-900">
+    <pre className="overflow-x-auto whitespace-pre-wrap break-all bg-chip p-2 font-mono text-xs text-ink">
       {[줄들.분석 ?? '[분석] (분석 행이 없다)', 줄들.상태, 줄들.판정].join('\n')}
     </pre>
   )
@@ -258,11 +264,11 @@ export function 시도링크({ run_id, message_id }: { run_id: string; message_i
 export function 대화줄({ run_id, 행 }: { run_id: string; 행: TurnRow }) {
   const 아이 = 행.speaker_type === 'child'
   return (
-    <li className="border-l-2 border-zinc-300 pl-2">
-      <p className="font-mono text-xs text-zinc-500">
+    <li className="border-l-2 border-divider pl-2">
+      <p className="font-mono text-xs text-ink-muted">
         turn_order={행.turn_order} speaker_type={행.speaker_type}
         {아이 && 행.character_response === null && (
-          <span className="ml-2 text-amber-600">응답 없음</span>
+          <span className="ml-2 text-warn">응답 없음</span>
         )}
         {아이 && (
           <span className="ml-2">

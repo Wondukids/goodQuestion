@@ -69,7 +69,7 @@ export function 도는_단추인가(
  */
 function SubmitButton({
   children,
-  className = 'border border-zinc-700 px-3 py-1 font-semibold',
+  className = 'border border-divider px-3 py-1 font-semibold',
   도는중 = '보내는 중…',
   formAction,
   표식,
