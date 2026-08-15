@@ -11,6 +11,7 @@ import { connection } from 'next/server'
 import { 고를_수_있는_강도, loadSettings, 모델_목록 } from '@/llm/config'
 import { listRunsView, listStoriesView } from '@/llm/service/view'
 
+import { 단추 } from '../ui'
 import { startRunAction } from './actions'
 import { 보내기 } from './submit'
 import { LLM칸, 라벨, 오류띠, 자동채점칸, 한칸 } from './ui'
@@ -109,8 +110,12 @@ export default async function RunsPage({
           </p>
 
           <div>
-            {/* ⭐ 눌린 뒤 스스로 잠긴다. 2026-08-13 에 두 번 눌려 회차가 둘 생겼다. */}
-            <보내기 도는중="시작하는 중…">시작</보내기>
+            {/* ⭐ 눌린 뒤 스스로 잠긴다. 2026-08-13 에 두 번 눌려 회차가 둘 생겼다.
+                ⭐ AI 를 부르는 단추라 색과 **글자 둘 다**로 알린다 (규칙 3-6). 확인창은
+                   쓰지 않기로 했으므로(규칙 3-5) 이 글자가 유일한 예고다. */}
+            <보내기 className={단추.AI} 도는중="시작하는 중…">
+              회차 시작 (AI 호출)
+            </보내기>
           </div>
         </form>
         {이야기들.length === 0 && (

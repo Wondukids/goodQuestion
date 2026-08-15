@@ -24,6 +24,7 @@ import { elementNames } from '@/llm/elements'
 import { goldensetScreen, type GoldensetScreen } from '@/llm/service/goldenset'
 import { trustworthy } from '@/llm/scoring'
 
+import { 단추, 보내기 } from '../ui'
 import { runGoldensetAction, runGoldensetItemAction } from './actions'
 import { 결과칸, 경고띠, 라벨, 소수셋, 오류띠, 요소들, 한칸 } from './ui'
 
@@ -159,9 +160,11 @@ export default async function GoldensetPage({
             <span className="font-mono">검수완료만</span>
             <span className="text-zinc-500">({바탕.reviewed_count}건)</span>
           </label>
-          <button type="submit" className="border border-zinc-700 px-3 py-1 font-semibold">
-            골든셋 돌리기
-          </button>
+          {/* ⭐ AI 를 부르는 단추다 — 색과 **글자 둘 다**로 알린다 (규칙 3-6). 확인창은 쓰지
+              않기로 했으므로(규칙 3-5) 단추 글자가 유일한 예고고, 중복 클릭은 `보내기` 가 막는다. */}
+          <보내기 className={단추.AI} 도는중="채점하는 중…">
+            정답지 전체 채점 (AI 호출)
+          </보내기>
         </form>
       </section>
 

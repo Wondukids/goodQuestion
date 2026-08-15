@@ -71,6 +71,17 @@
   --color-primary-pale: #daedf6; /* 역할 카드 바탕 */
   --color-point-strong: #fd6735; /* "지금 며느리는…" */
 
+  /* 상태 — 되고/안 되고/조심 (관리자 규칙 3-2·3-4·3-6에서 쓴다).
+     ⚠️ 아이가 쓰는 화면에는 안 쓴다. 관리자 화면이 Tailwind 기본 red-600·amber-500 을
+     직접 쓰던 것을 걷어내려고 세운다 (`docs/관리자_디자인_규칙.md` 규칙 1-7).
+     먹색(#3b2f24)이 따뜻해서 순수 빨강·초록을 쓰면 화면에서 튄다 — 채도를 낮춰 맞췄다. */
+  --color-danger: #c0392b; /* 오류 · 위반 · AI 호출 단추 */
+  --color-danger-soft: #fdecea; /* 오류 상자 바탕 */
+  --color-warn: #9a6a10; /* 경고 — 값이 어긋났다 */
+  --color-warn-soft: #fdf5e4;
+  --color-ok: #2f7a58; /* 끝났다 · 지켰다 */
+  --color-ok-soft: #e8f4ee;
+
   /* 그림자 */
   --shadow-card: 0 8px 16px 0 rgb(74 62 49 / 0.1);
   --shadow-role: 0 5px 12px 0 rgb(45 74 80 / 0.07);
