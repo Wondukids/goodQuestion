@@ -207,7 +207,7 @@ export function MyPageView({
           </p>
         </div>
         <div className="flex items-stretch gap-6">
-          <ParentReportCard childName={child.name} />
+          <ParentReportCard childName={child.name} childId={child.id} />
           <SettingsEntryCard />
         </div>
       </div>
