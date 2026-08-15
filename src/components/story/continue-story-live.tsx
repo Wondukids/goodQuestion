@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ContinueStoryCard } from "@/components/story/story-card";
+import { ContinueStoryBanner } from "@/components/story/story-card";
 import type { Story } from "@/lib/story-types";
 
 /**
@@ -21,7 +21,11 @@ export function ContinueStoryLive({
   story: Story;
   sessionId: string;
 }) {
-  const [progress, setProgress] = useState<number | null>(null);
+  /* 배너가 「2/4장면」을 그리므로 비율이 아니라 두 숫자를 그대로 들고 있는다 */
+  const [progress, setProgress] = useState<{
+    order: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,10 +38,10 @@ export function ContinueStoryLive({
         };
         const p = body.ok ? body.data?.progress : undefined;
         if (!cancelled && p && p.total > 0) {
-          setProgress(Math.min(p.scene_order / p.total, 1));
+          setProgress({ order: p.scene_order, total: p.total });
         }
       } catch {
-        /* 조회 실패 — 진행바 없이 그대로 (카드가 막히면 안 된다) */
+        /* 조회 실패 — 진행 줄 없이 그대로 (배너가 막히면 안 된다) */
       }
     })();
     return () => {
@@ -46,7 +50,7 @@ export function ContinueStoryLive({
   }, [sessionId]);
 
   return (
-    <ContinueStoryCard
+    <ContinueStoryBanner
       story={{ ...story, progress }}
       href={`/stories/${story.id}/play`}
     />

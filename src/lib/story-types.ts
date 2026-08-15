@@ -34,8 +34,11 @@ export type Story = {
 };
 
 export type ContinueStory = Story & {
-  /** 진행바 채움 비율 (0–1). 장면 데이터가 없어 못 구하면 null — 배지만 보여 준다. */
-  progress: number | null;
+  /**
+   * 어디까지 봤나 — 배너가 진행바와 「2/4장면」을 같이 그린다.
+   * 장면 데이터가 없어 못 구하면 null 이고, 그러면 진행 줄이 통째로 빠진다.
+   */
+  progress: { order: number; total: number } | null;
 };
 
 /* 이야기 목록(6) — 상단 필터 칩. "전체" 는 필터를 걸지 않는다.

@@ -7,6 +7,7 @@ import { ParentReportCard } from "@/components/mypage/parent-report-card";
 import { SettingsEntryCard } from "@/components/mypage/settings-entry-card";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
 import { togetherDays, type WeekAttendance } from "@/lib/attendance";
+import type { ChildStats } from "@/lib/child-stats";
 import type { SelectedChild } from "@/lib/selected-child";
 import type { ChildStorySession } from "@/lib/story-sessions";
 import type { Story } from "@/lib/story-types";
@@ -33,11 +34,13 @@ export function MyPageView({
   stories,
   sessions,
   week,
+  stats,
 }: {
   child: SelectedChild;
   stories: Story[];
   sessions: ChildStorySession[];
   week: WeekAttendance;
+  stats: ChildStats;
 }) {
   const recent = sessions
     .flatMap((session) => {
@@ -89,7 +92,7 @@ export function MyPageView({
 
         {/* ── 오른쪽: 통계 · 스티커 · 최근 이야기 */}
         <div className="flex h-full min-w-0 flex-1 flex-col items-center justify-between rounded-[20px] border border-[#d6d6d6] bg-story-bg py-[30px]">
-          {/* 통계 — 읽은 이야기만 실데이터, 문장·낱말 수는 집계가 아직 없어 목업 */}
+          {/* 통계 셋 다 실데이터 — 문장은 본 대화 + 미션이다 (결정 R23 · child-stats.ts) */}
           <div className="flex w-full items-center">
             <StatCell
               icon="menu_book"
@@ -101,14 +104,14 @@ export function MyPageView({
             <StatCell
               icon="chat_bubble"
               color="#fd7c51"
-              value="86개"
+              value={`${stats.utterances}개`}
               label="내가 말한 문장"
             />
             <span className="h-[70px] w-px shrink-0 bg-[#d6d6d6]" />
             <StatCell
               icon="auto_awesome"
               color="#7bc47f"
-              value="34개"
+              value={`${stats.words}개`}
               label="새로 배운 낱말"
             />
           </div>

@@ -115,52 +115,67 @@ export function RecommendedStoryCard({
   );
 }
 
-/** 홈 이어하기 카드(시안 21-480) — 300×297, 썸네일 밑에 제목·정보와 이어서 보기 버튼.
-    href 를 주면 그리로 간다 — 세션이 있으면 재생 화면 직접 진입 (이슈 #8). */
-export function ContinueStoryCard({
+/**
+ * 홈 이어하기 배너(시안 「이어보기 배너」 49:976) — 1270×116 가로 한 줄.
+ *
+ * 세로 카드(300×297)에서 배너로 바뀌었다. 썸네일 134×76 이 왼쪽, 가운데가 제목과
+ * 진행 줄(진행바 + 「2/4장면」), 오른쪽 끝이 「이어서 볼래!」다. 빈 상태 배너와 높이가
+ * 같아 둘 중 무엇이 뜨든 그 자리의 크기가 흔들리지 않는다.
+ *
+ * href 를 주면 그리로 간다 — 세션이 있으면 재생 화면 직접 진입 (이슈 #8).
+ */
+export function ContinueStoryBanner({
   story,
   href,
 }: {
   story: ContinueStory;
   href?: string;
 }) {
+  const progress = story.progress;
+
   return (
-    <div className="flex h-[297px] w-[300px] shrink-0 flex-col items-center gap-6 rounded-[20px] border-[3px] border-primary-line bg-white px-4 pt-5 pb-4 drop-shadow-[0_0_15px_rgb(0_0_0_/_0.1)]">
-      <div className="relative h-[105px] w-full shrink-0 overflow-hidden rounded-xl">
+    <div className="flex h-[116px] w-full items-center gap-[18px] rounded-[20px] border-2 border-primary-strong bg-story-bg px-6 drop-shadow-[0_6px_8px_rgb(69_169_211_/_0.15)]">
+      <div className="relative h-[76px] w-[134px] shrink-0 overflow-hidden rounded-xl">
         <Image
           src={story.thumbnail}
           alt=""
           fill
-          sizes="268px"
+          sizes="134px"
           className="object-cover"
           priority
         />
-        {/* 장면 데이터(story_scenes)가 아직 없어 진행률을 못 구하면 바를 생략한다. */}
-        {typeof story.progress === "number" && (
-          <div className="absolute bottom-0 left-0 h-2 w-full overflow-hidden bg-[#515151]">
-            <div
-              className="h-2 rounded-r-md bg-[#fa4f52]"
-              style={{ width: `${story.progress * 100}%` }}
-            />
+      </div>
+
+      <div className="flex h-[78px] min-w-0 flex-1 flex-col justify-between py-2">
+        <h3 className="truncate font-gothic text-[20px] leading-[1.35] font-extrabold text-ink-strong">
+          {story.title}
+        </h3>
+        {/* 장면 데이터(story_scenes)가 아직 없어 진행을 못 구하면 이 줄이 통째로 빠진다. */}
+        {progress && (
+          <div className="flex items-center gap-2.5">
+            <div className="h-2.5 w-[200px] overflow-hidden rounded-full bg-[#e2eef4]">
+              <div
+                className="h-full rounded-full bg-[#fa4f52]"
+                style={{
+                  width: `${Math.min(progress.order / progress.total, 1) * 100}%`,
+                }}
+              />
+            </div>
+            <p className="text-[16px] leading-[1.6] font-bold text-ink-strong">
+              <span className="font-extrabold text-[#226f90]">
+                {progress.order}
+              </span>
+              /{progress.total}장면
+            </p>
           </div>
         )}
       </div>
 
-      <div className="flex w-full flex-1 flex-col gap-2.5 font-gothic">
-        <h3 className="text-[17px] font-extrabold text-[#2d2620]">
-          {story.title}
-        </h3>
-        <p className="text-[13px] font-bold text-[#2d2620]/72">
-          {storyMeta(story)}
-        </p>
-      </div>
-
       <Link
         href={href ?? `/stories/${story.id}`}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-[11px] font-gothic text-[15px] font-extrabold text-white"
+        className="flex h-[54px] shrink-0 items-center justify-center rounded-lg bg-primary-strong px-6 text-[18px] leading-[1.5] font-extrabold text-white"
       >
-        <MaterialSymbol name="play_arrow" size={15} />
-        이어서 보기
+        이어서 볼래!
       </Link>
     </div>
   );

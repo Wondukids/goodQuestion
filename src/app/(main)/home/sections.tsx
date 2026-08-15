@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RecommendedStoryCard } from "@/components/story/story-card";
+import { TOPIC_TILES } from "@/components/story/topic-tiles";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
 import { getRecommendations } from "@/lib/recommendations";
 import type { SelectedChild } from "@/lib/selected-child";
@@ -87,7 +88,13 @@ export async function PersonalizedSections({
           </Link>
         </div>
 
-        <TopicBrowse stories={stories} hasContinue={hasContinue} />
+        {/* 첫 주제(다름)를 펼쳐 둔다 — 타일만 보이면 아래가 비어 「아무것도 없는 화면」으로
+            읽힌다. 다시 누르면 접히고, 다른 타일을 누르면 그쪽으로 바뀐다. */}
+        <TopicBrowse
+          stories={stories}
+          hasContinue={hasContinue}
+          initialTopic={TOPIC_TILES[0].topic}
+        />
       </section>
     </>
   );
