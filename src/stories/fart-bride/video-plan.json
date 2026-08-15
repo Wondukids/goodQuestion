@@ -987,6 +987,49 @@
       "durationSec": 0
     },
     {
+      "id": "n31",
+      "scene": 34,
+      "chapter": "",
+      "title": "솔직하게",
+      "kind": "linear",
+      "image": "19_엔딩_특별한힘의좋은사용.png",
+      "needsNewImage": false,
+      "screenTransition": false,
+      "after": null,
+      "effect": {
+        "camera": "orbit",
+        "enter": "blur",
+        "overlay": "letterbox"
+      },
+      "lines": [
+        {
+          "speaker": "내레이션",
+          "text": "그 뒤로 며느리는 더 이상 방귀를 무조건 참지 않았습니다.",
+          "audio": "17_대화4_Take3.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "물론 아무 때나 함부로 뀌지는 않았습니다.",
+          "audio": "17_대화4_Take4.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "대신 몸이 힘들 때는 솔직하게 말하고",
+          "audio": "17_대화4_Take5.wav",
+          "durationSec": null
+        },
+        {
+          "speaker": "내레이션",
+          "text": "사람들이 놀라지 않도록 미리 알려 주었어요",
+          "audio": "17_대화4_Take6.wav",
+          "durationSec": null
+        }
+      ],
+      "durationSec": 0
+    },
+    {
       "id": "n30",
       "scene": 33,
       "chapter": "",
@@ -1024,49 +1067,6 @@
           "speaker": "내레이션",
           "text": "잘 쓰면 모두에게 도움이 되는 특별한 힘으로 여기게 되었습니다.",
           "audio": "18_대화4_Take4.wav",
-          "durationSec": null
-        }
-      ],
-      "durationSec": 0
-    },
-    {
-      "id": "n31",
-      "scene": 34,
-      "chapter": "",
-      "title": "솔직하게",
-      "kind": "linear",
-      "image": "19_엔딩_특별한힘의좋은사용.png",
-      "needsNewImage": false,
-      "screenTransition": false,
-      "after": null,
-      "effect": {
-        "camera": "orbit",
-        "enter": "blur",
-        "overlay": "letterbox"
-      },
-      "lines": [
-        {
-          "speaker": "내레이션",
-          "text": "그 뒤로 며느리는 더 이상 방귀를 무조건 참지 않았습니다.",
-          "audio": "17_대화4_Take3.wav",
-          "durationSec": null
-        },
-        {
-          "speaker": "내레이션",
-          "text": "물론 아무 때나 함부로 뀌지는 않았습니다.",
-          "audio": "17_대화4_Take4.wav",
-          "durationSec": null
-        },
-        {
-          "speaker": "내레이션",
-          "text": "대신 몸이 힘들 때는 솔직하게 말하고",
-          "audio": "17_대화4_Take5.wav",
-          "durationSec": null
-        },
-        {
-          "speaker": "내레이션",
-          "text": "사람들이 놀라지 않도록 미리 알려 주었습니다.",
-          "audio": "17_대화4_Take6.wav",
           "durationSec": null
         }
       ],
