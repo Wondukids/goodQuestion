@@ -311,6 +311,15 @@ export function toReportView(
   const empty = narrative ? NOTICE.fewWords : NOTICE.noNarrative;
   const emptyBig = narrative ? NOTICE.fewWords : NOTICE.noNarrativeAction;
 
+  /* 🔴 빈 글자도 「없음」으로 친다. `??` 로는 못 잡는다.
+     문장을 만드는 LLM 호출이 **두 편**(말하기 분석 · 가정 연계)인데, 한 편만 실패하면
+     `narrative` 가 `null` 이 되는 게 아니라 **실패한 편의 칸만 빈 글자로 채워져** 온다
+     (`src/report/engine/narrative.ts` 의 실패 처리 — 검사도 그 값이 `''` 임을 단언한다).
+     `??` 는 `null`·`undefined` 만 걸러 빈 글자를 그대로 통과시키므로, 안내 문구가 아니라
+     **빈 줄**이 그려진다. 배열 칸들은 `length === 0` 을 따로 봐서 안 걸리고, 여기 걸리는
+     것은 글자 칸 셋(`overall` · `word_tip` · `reason`)뿐이다. */
+  const textOr = (text: string | null | undefined) => (text?.trim() ? text : empty);
+
   /* 인용은 글자가 아니라 id 로 온다. 서버가 목록 밖 id 를 이미 버렸으므로 찾으면 반드시
      있지만, `null` 이거나 못 찾으면 인용 없이 그린다 (계약 1절). */
   const quoteOf = (id: string | null) =>
@@ -394,7 +403,7 @@ export function toReportView(
         label: style.label,
       })),
       notice: maxScore === 0 ? NOTICE.noAxes : null,
-      comment: narrative?.overall ?? empty,
+      comment: textOr(narrative?.overall),
     },
 
     skills,
@@ -426,11 +435,11 @@ export function toReportView(
           NOTICE.fewWords,
         ),
       ],
-      feedback: splitAccent(narrative?.word_tip ?? empty),
+      feedback: splitAccent(textOr(narrative?.word_tip)),
     },
 
     guide: {
-      reason: narrative?.reason ?? empty,
+      reason: textOr(narrative?.reason),
       story: { caption: `${story} 속으로`, questions: storyQuestions },
       daily: { caption: "오늘 저녁 식탁에서", questions: dailyQuestions },
       steps: FOLLOW_UP_STEPS,

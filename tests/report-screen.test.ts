@@ -284,3 +284,49 @@ describe('상단 활동 드롭다운', () => {
     ])
   })
 })
+
+describe('🔴 한 편만 실패한 리포트 — 빈 글자가 빈 줄로 그려지면 안 된다', () => {
+  // 문장을 만드는 LLM 호출이 **두 편**이다 (말하기 분석 · 가정 연계). 한 편만 실패하면
+  // `narrative` 가 `null` 이 되는 게 아니라 **실패한 편의 글자 칸만 빈 글자로 채워져** 온다
+  // (`src/report/engine/narrative.ts` 의 실패 처리 · 명세 8절 표).
+  //
+  // `??` 로 받으면 빈 글자가 그대로 지나가 **안내 문구 대신 빈 줄**이 그려진다.
+  // `status` 는 `complete` 라 화면이 「문장이 없다」고 알아챌 길도 없다.
+
+  it('가정 연계가 실패한 판 — `reason` 이 빈 글자여도 안내 문구가 나온다', () => {
+    const 가이드_실패 = 사본(잘한_아이)
+    가이드_실패.narrative!.reason = ''
+    가이드_실패.narrative!.story_questions = []
+    가이드_실패.narrative!.daily_questions = []
+
+    const view = 지우(가이드_실패)
+
+    expect(view.guide.reason).not.toBe('')
+    expect(view.guide.reason.length).toBeGreaterThan(0)
+    // 말하기 분석 쪽은 살아 있으므로 「문장이 통째로 없다」가 아니라 「말이 적다」 쪽이다
+    expect(view.radar.comment).toBe(잘한_아이.narrative!.overall)
+  })
+
+  it('말하기 분석이 실패한 판 — `overall` · `word_tip` 이 빈 글자여도 안내 문구가 나온다', () => {
+    const 분석_실패 = 사본(잘한_아이)
+    분석_실패.narrative!.overall = ''
+    분석_실패.narrative!.word_tip = ''
+    분석_실패.narrative!.cards = []
+
+    const view = 지우(분석_실패)
+
+    expect(view.radar.comment).not.toBe('')
+    expect(view.radar.comment.length).toBeGreaterThan(0)
+    expect(view.words.feedback.before).not.toBe('')
+    // 가정 연계 쪽은 살아 있다
+    expect(view.guide.reason).toBe(잘한_아이.narrative!.reason)
+  })
+
+  it('공백뿐인 글자도 빈 것으로 친다', () => {
+    const 공백 = 사본(잘한_아이)
+    공백.narrative!.overall = '   '
+
+    expect(지우(공백).radar.comment.trim().length).toBeGreaterThan(0)
+    expect(지우(공백).radar.comment).not.toBe('   ')
+  })
+})
