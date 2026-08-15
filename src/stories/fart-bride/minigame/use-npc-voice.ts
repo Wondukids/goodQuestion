@@ -22,6 +22,9 @@ export function useNpcVoice(
   const { voice, stylePrompt } = speaker;
 
   useEffect(() => {
+    /* 빈 문장 = 이번 대사는 합성이 필요 없다(사전 녹음이 맡는다) — 호출을 건너뛴다.
+       아래 current 가 문장 불일치로 걸러 주므로 지난 결과를 지울 필요도 없다 */
+    if (!text) return;
     let cancelled = false;
     let objectUrl: string | null = null;
 

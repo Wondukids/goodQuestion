@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 import { SlideTransition } from "@/components/ui/slide-transition";
 import { transcribeAudio } from "@/stt/client";
 import { startRecording, type Recording } from "@/stt/record";
@@ -15,6 +22,8 @@ import {
   SessionApiError,
   skipSessionSceneWithResume,
   submitSessionTurn,
+  type MissionCompleteResult,
+  type MissionStart,
   type TurnNext,
   type TurnResult,
 } from "./session-api";
@@ -22,7 +31,13 @@ import {
 /**
  * 인터랙티브 씬 하나 (이슈 #8 — `docs/이야기_세션_명세.md` 5절):
  * 질문(녹음 음성) → 아이 답변 녹음 → 턴 API(서버가 STT→분석→판단→대사) →
- * 캐릭터 대사 TTS 재생 → next.kind 분기(발화받기 → 다시 마이크 · 장면끝/회차끝 → 다음 스텝).
+ * 캐릭터 대사 TTS 재생 → next.kind 분기(발화받기 → 다시 마이크 · 장면끝/회차끝 → 다음 스텝
+ * · 미션시작 → 팝업 열기).
+ *
+ * 미션(이슈 #20 · `docs/미션_명세.md`): 트리거 턴의 dialogue 는 다리 대사다 — 패널
+ * 재생이 끝난 뒤에야 onMissionStart 로 팝업을 연다 (M8). 팝업이 닫히면 재생 화면이
+ * complete 결과를 missionResult 로 내려 주고, 여기서 종료 요약·닫는 말을 패널에서
+ * 재생한 뒤 next 로 분기한다 — 장면끝이면 답변 컷을 건너뛴다 (M6).
  *
  * 세션이 없거나(401·열기 실패) 이 씬에 서버 장면이 없으면(sceneCode 없음), 그리고
  * 턴 API 가 죽으면(502) **기존 고정 문구 흐름**으로 떨어진다 — 진행은 멈추지 않는다.
@@ -34,6 +49,7 @@ type Phase =
   | "listening" // 마이크 녹음 중
   | "transcribing" // 턴 처리 중 (서버 STT→분석→판단→대사, 폴백이면 STT 만)
   | "responding" // TTS 반응 재생 중
+  | "mission" // 미션 팝업이 열려 있는 동안 — 결과(missionResult)를 기다린다
   | "choice" // 다시 말하기 / 계속하기 — 폴백·비서버 흐름에서만
   | "silent" // 무음 한도 초과 — 다시 말하기 / 넘어가기 선택 대기 (서버·비서버 공통)
   | "answer" // 정해진 답변 재생 중 — 폴백·비서버 흐름에서만
@@ -76,6 +92,13 @@ async function requestSpeechWithRetry(request: Parameters<typeof requestSpeech>[
   }
 }
 
+/** 재생 화면(play.tsx)이 미션 팝업이 닫힐 때 부르는 핸들 (cuts-player 와 같은 결) */
+export type InteractiveSceneHandle = {
+  /** complete 결과로 종료 요약·닫는 말을 패널에서 재생하고 next 로 분기한다 (M8 꼬리).
+      result 가 null 이면 이탈(abandoned)·complete 실패 — 대화로 복귀한다 */
+  missionClosed: (result: MissionCompleteResult | null) => void;
+};
+
 export function InteractiveScene({
   step,
   childName,
@@ -83,7 +106,9 @@ export function InteractiveScene({
   serverScene,
   onServerScene,
   resumeLine,
+  onMissionStart,
   onComplete,
+  ref,
 }: {
   step: InteractiveStep;
   /** 선택된 아이 이름 — 있으면 질문할 때 이름을 부른다 */
@@ -96,7 +121,11 @@ export function InteractiveScene({
   onServerScene: (code: string | null) => void;
   /** 복귀 진입이면 서버의 마지막 캐릭터 대사 — 여는 말 연출 대신 이 한 줄을 튼다 */
   resumeLine: string | null;
+  /** 턴 응답 `미션시작` — 다리 대사 재생이 **끝난 뒤** 부른다(M8). 재생 화면이 팝업을 연다 */
+  onMissionStart: (mission: MissionStart) => void;
   onComplete: () => void;
+  /** 미션 팝업이 닫힐 때 재생 화면이 결과를 넣어 주는 핸들 */
+  ref?: Ref<InteractiveSceneHandle>;
 }) {
   /* 고정 문구로 떨어지는 사유 — **셋뿐이다.** 서버 대화가 도는 조건은 이 셋이 다 아닌
      것이고, 그래서 `serverMode` 도 여기서 나온다 (조건을 두 번 적으면 갈라진다).
@@ -334,6 +363,89 @@ export function InteractiveScene({
     [step.speaker.voice, step.speaker.stylePrompt],
   );
 
+  /* ── 미션 (이슈 #20) ─────────────────────────────────────────── */
+
+  /* 다리 대사가 끝나 팝업을 연다 (M8) — 씬은 mission 단계로 결과를 기다린다 */
+  const startMission = useCallback(
+    (mission: MissionStart) => {
+      setPhase("mission");
+      onMissionStart(mission);
+    },
+    [onMissionStart],
+  );
+
+  /* complete 응답의 summary·closing_line 재생 대기열 — responding onEnded 가
+     이 ref 를 먼저 본다. 비면 next 로 분기한다 (명세 8절 · M6). */
+  const missionPlaybackRef = useRef<{
+    lines: string[];
+    next: MissionCompleteResult["next"];
+  } | null>(null);
+
+  const runMissionNext = useCallback(
+    (next: MissionCompleteResult["next"]) => {
+      missionPlaybackRef.current = null;
+      if (next.kind === "발화받기") {
+        /* 요소가 남았다 — 요약 대사가 유도 질문으로 끝났으니 바로 아이 차례다 */
+        setPhase("listening");
+        return;
+      }
+      /* 장면끝·회차끝 — 닫는 말은 방금 재생했다. **답변 컷은 건너뛴다** (M6):
+         answer 단계로 가지 않고 다음 스텝으로. 대화 턴 경유 닫힘(위 onEnded 의
+         onComplete 직행)과 같은 결이다 — 닫는 말이 두 번 들리지 않는다. */
+      onServerScene(next.kind === "장면끝" ? (next.next_scene?.code ?? null) : null);
+      onComplete();
+    },
+    [onServerScene, onComplete],
+  );
+
+  const playNextMissionLine = useCallback(() => {
+    const playback = missionPlaybackRef.current;
+    if (!playback) return;
+    const text = playback.lines.shift();
+    if (text === undefined) {
+      runMissionNext(playback.next);
+      return;
+    }
+    setHistory((h) => [...h, { from: "character", text }]);
+    speakReaction(text).catch(() => {
+      /* TTS 실패 — 대사는 말풍선에 있다. 남은 줄도 글로만 쌓고 분기한다
+         (턴 TTS 실패와 같은 결 — 미션 요약이 음성 때문에 멈추지 않는다) */
+      const rest = missionPlaybackRef.current;
+      if (!rest) return;
+      if (rest.lines.length > 0) {
+        const texts = rest.lines.splice(0);
+        setHistory((h) => [
+          ...h,
+          ...texts.map((t) => ({ from: "character" as const, text: t })),
+        ]);
+      }
+      runMissionNext(rest.next);
+    });
+  }, [speakReaction, runMissionNext]);
+
+  /* 팝업이 닫혔다 — 재생 화면이 이벤트로 넣어 주는 complete 결과.
+     여기서 종료 요약·닫는 말을 패널에서 재생하고 next 로 분기한다 (M8 꼬리). */
+  useImperativeHandle(
+    ref,
+    () => ({
+      missionClosed: (result) => {
+        if (result === null) {
+          /* 이탈(abandoned)·complete 실패 — 대화로 복귀. 트리거 조건이 남아 있으면
+             다음 턴에 다시 발동될 수 있다 (명세 8절). */
+          setPhase("listening");
+          return;
+        }
+        const { summary, closing_line, next } = result;
+        missionPlaybackRef.current = {
+          lines: [summary.text, ...(closing_line ? [closing_line.text] : [])],
+          next,
+        };
+        playNextMissionLine();
+      },
+    }),
+    [playNextMissionLine],
+  );
+
   const handleUtterance = useCallback(
     async (blob: Blob, channelCount: number) => {
       setPhase("transcribing");
@@ -412,7 +524,9 @@ export function InteractiveScene({
              고정 문구를 틀면 아이에게는 「내 말이 씹혔다」로 보인다(2026-08-14 실사용).
              음성 없이 responding 종료와 같은 갈림길로 바로 간다. */
           if (result.next.kind === "발화받기") setPhase("listening");
-          else onComplete();
+          else if (result.next.kind === "미션시작" && result.next.mission) {
+            startMission(result.next.mission);
+          } else onComplete();
         }
       } catch (error) {
         /* 턴 자체가 죽었다(STT 502·서버 오류) — 저장된 것이 없어 같은 녹음을 다시 보내면
@@ -420,7 +534,16 @@ export function InteractiveScene({
         fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
       }
     },
-    [serverMode, sessionId, onServerScene, handleSilence, speakReaction, fail, onComplete],
+    [
+      serverMode,
+      sessionId,
+      onServerScene,
+      handleSilence,
+      speakReaction,
+      startMission,
+      fail,
+      onComplete,
+    ],
   );
 
   const stopRecording = useCallback(() => {
@@ -555,6 +678,11 @@ export function InteractiveScene({
           src={responseUrl}
           autoPlay
           onEnded={() => {
+            /* 미션 종료 요약 재생 중 — 대기열이 다음 줄·분기를 안다 (이슈 #20) */
+            if (missionPlaybackRef.current) {
+              playNextMissionLine();
+              return;
+            }
             /* 폴백·비서버 흐름은 기존 선택 버튼으로, 서버 턴은 next.kind 가 정한다 (명세 5절).
                ⚠️ 여기서 serverMode 를 다시 보면 안 된다 — 장면끝이면 추적(onServerScene)이
                이미 다음 장면을 가리켜 false 가 된 뒤다. 이 턴이 서버 턴이었다는 사실은
@@ -565,6 +693,12 @@ export function InteractiveScene({
             }
             if (nextRef.current?.kind === "발화받기") {
               setPhase("listening");
+              return;
+            }
+            if (nextRef.current?.kind === "미션시작") {
+              /* 다리 대사 재생이 끝났다 — 이제야 팝업을 연다 (M8) */
+              if (nextRef.current.mission) startMission(nextRef.current.mission);
+              else setPhase("listening"); // mission 페이로드 누락 — 계약 위반, 대화로 계속
               return;
             }
             /* 장면끝·회차끝 — 닫는 말은 방금 재생했다. 다음 스텝(영상·엔딩)으로 */
@@ -687,6 +821,12 @@ export function InteractiveScene({
           {phase === "responding" && (
             <p className="text-[14px] font-bold text-ink-muted">
               이야기 친구가 대답하고 있어요…
+            </p>
+          )}
+
+          {phase === "mission" && (
+            <p className="text-[14px] font-bold text-ink-muted">
+              미션을 하고 있어요…
             </p>
           )}
 

@@ -11,7 +11,7 @@ export type SessionSceneRef = { scene_id: string; code: string };
 
 export type PendingTurn = { message_id: string; stage: string };
 
-/** `POST /api/sessions` 의 data (명세 4.1절). */
+/** `POST /api/sessions` 의 data (명세 4.1절 + 미션 명세 7절 E). */
 export type OpenedSession = {
   session_id: string;
   resumed: boolean;
@@ -19,13 +19,18 @@ export type OpenedSession = {
   last_character_line: { message_id: string; text: string } | null;
   pending_turn: PendingTurn | null;
   status: string;
+  /** 미션 명세 7절 E — 현재 씬에 진행 중이던 미션이 있었으면 새 시도(M4 처음부터).
+      아직 앱은 안 쓴다 — 열기 직후 팝업 복원은 서버(#19) 착지와 함께 잇는다 */
+  mission?: MissionStart | null;
 };
 
 export type TurnNext = {
-  kind: "발화받기" | "장면끝" | "회차끝";
+  kind: "발화받기" | "장면끝" | "회차끝" | "미션시작";
   scene_id: string;
   /** `장면끝` 에만 실린다 — 여는 말까지 저장된 다음 대화 장면 (명세 4.3절). */
   next_scene?: SessionSceneRef;
+  /** `미션시작` 에만 실린다 — 트리거 턴에서 서버가 만든 미션 세션 (미션 명세 7절 A). */
+  mission?: MissionStart;
 };
 
 export type TurnDialogue = {
@@ -44,12 +49,13 @@ export type TurnResult =
       next: TurnNext;
     };
 
-/** `POST /api/sessions/{id}/turns/resume` 의 data (대화턴 명세 4.2절). */
+/** `POST /api/sessions/{id}/turns/resume` 의 data (대화턴 명세 4.2절).
+    다리 대사가 끊겼던 턴이면 `미션시작` 이 실린다 (미션 명세 7절 A). */
 export type ResumeResult = {
   resumed_from: string;
   child: { message_id: string; text: string };
   dialogue: TurnDialogue;
-  next: { kind: "발화받기" | "장면끝"; scene_id: string };
+  next: { kind: "발화받기" | "장면끝" | "미션시작"; scene_id: string; mission?: MissionStart };
 };
 
 /** `GET /api/sessions/{id}` 의 data (명세 4.2절) — 홈 이어보기 카드가 쓴다. */
@@ -230,3 +236,145 @@ export async function skipSessionSceneWithResume(
     }
   }
 }
+
+/* ── 미션 API (이슈 #20 · `docs/미션_명세.md` 7절) ──────────────────────────
+   봉투·오디오 방식은 위 세션 계약 그대로다. 실패는 똑같이 SessionApiError 로
+   던진다 — 미션 전용 코드는 409 MISSION_IN_PROGRESS(미션 중 일반 턴 거절) ·
+   409 MISSION_NOT_ACTIVE(그 시도가 in_progress 가 아님)다 (명세 7절 E). */
+
+/**
+ * 미션 정의 config — **명세 6절 jsonc 가 정본**이라 칸을 임의로 바꾸지 않는다.
+ * 미션1(prop_choice)은 items·steps·reask, 미션2(card_help)는 intro·cards·ask·
+ * more·more_pick 을 쓴다. closing 은 미션 자체의 짧은 닫는 말이고, 씬 닫는 말
+ * (배 잔치 문장)은 여기 없다 — complete 응답의 closing_line 으로 온다.
+ */
+export type MissionConfig = {
+  trigger: { any_elements: string[]; min_turns: number };
+  items?: { id: string; name: string; desc: string }[];
+  steps?: { key: string; expect: string; ask: string }[];
+  /** M9 — 미션1 되묻기 공통 문구 (미션2 는 카드별 reask) */
+  reask?: string;
+  intro?: string;
+  cards?: { id: string; name: string; trouble: string; reask: string }[];
+  ask?: string;
+  more?: string;
+  more_pick?: string;
+  closing: string;
+};
+
+/** 턴 응답 `next.kind === "미션시작"` 에 실리는 미션 세션 참조 (명세 7절 A). */
+export type MissionStart = {
+  mission_session_id: string;
+  code: string;
+  mission_type: "prop_choice" | "card_help";
+  config: MissionConfig;
+};
+
+/** 말이 아닌 입력 — 소품·친구 카드 탭, 계속/그만, 무음 건너뜀 (명세 2절). */
+export type MissionEventType = "prop_select" | "friend_select" | "more" | "skip";
+
+/** `POST …/missions/{msid}/events` 의 data (명세 7절 B). */
+export type MissionEventResult = {
+  /** 그 스텝의 고정 대사 — done 이면 null 이고 앱은 complete 를 부른다 */
+  line: { text: string; source: "fixed" } | null;
+  step: string | null;
+  mic: boolean;
+  done: boolean;
+};
+
+/** `POST …/missions/{msid}/turns` 의 data — 무음이면 `{ empty: true }` 뿐 (명세 7절 C). */
+export type MissionTurnResult =
+  | { empty: true }
+  | {
+      empty?: undefined;
+      child: { text: string };
+      /** 아이대답요약 — 되묻기(M9)면 null 이고 fixed_line 이 되묻기 문구다 */
+      dialogue: { text: string; source: "generated" } | null;
+      elements: { gained: string[]; missing: string[] };
+      next: {
+        kind: "미션계속" | "미션끝";
+        /** 미션계속의 다음(되묻기면 같은) 스텝 */
+        step?: string | null;
+        fixed_line?: { text: string } | null;
+      };
+    };
+
+/** `POST …/missions/{msid}/complete` 의 data (명세 7절 D). */
+export type MissionCompleteResult = {
+  summary: { message_id: string; text: string };
+  /** 씬이 닫혔을 때만 — 닫는 말. 앱이 재생하고 답변 컷을 건너뛴다 (M6) */
+  closing_line: { text: string } | null;
+  elements: { accumulated: string[]; missing: string[] };
+  next: { kind: "발화받기" | "장면끝" | "회차끝"; next_scene?: SessionSceneRef };
+};
+
+/** 선택·건너뜀을 기록하고 그 스텝의 고정 대사를 받는다 (명세 7절 B). TTS 는 앱 몫. */
+export async function submitMissionEvent(
+  sessionId: string,
+  missionSessionId: string,
+  event: { type: MissionEventType; value?: string },
+): Promise<MissionEventResult> {
+  const res = await fetch(
+    `/api/sessions/${sessionId}/missions/${missionSessionId}/events`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    },
+  );
+  return unwrap<MissionEventResult>(res);
+}
+
+/**
+ * 미션 턴 — 녹음 하나로 STT→분석→판정→아이대답요약 (명세 4절 파이프라인).
+ * 요청 모양은 submitSessionTurn 과 같다 (octet-stream + 채널 수 헤더).
+ * 502 면 미션 상태가 안 변한다 — 부르는 쪽이 재녹음을 유도한다 (이어 돌리기 없음, M4).
+ */
+export async function submitMissionTurn(
+  sessionId: string,
+  missionSessionId: string,
+  audio: Blob,
+  channelCount: number,
+): Promise<MissionTurnResult> {
+  const res = await fetch(
+    `/api/sessions/${sessionId}/missions/${missionSessionId}/turns`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Audio-Channels": String(channelCount),
+      },
+      body: audio,
+    },
+  );
+  return unwrap<MissionTurnResult>(res);
+}
+
+/** 종료 요약 — body 없음, 반복 안전(이미 완료면 저장된 요약 재반환 · 명세 7절 D). */
+export async function completeMission(
+  sessionId: string,
+  missionSessionId: string,
+): Promise<MissionCompleteResult> {
+  const res = await fetch(
+    `/api/sessions/${sessionId}/missions/${missionSessionId}/complete`,
+    { method: "POST" },
+  );
+  return unwrap<MissionCompleteResult>(res);
+}
+
+/**
+ * 미션 컴포넌트가 주입받는 호출 3벌 (이슈 #20). 아이 앱(play.tsx)은 아래 실구현을,
+ * /dev/minigame 은 목 어댑터를 주입한다 — 서버(#19)가 없어도 개발 화면에서
+ * 전 흐름이 돈다. 서버가 오면 목만 걷어내면 된다.
+ */
+export type MissionApi = {
+  submitMissionEvent: typeof submitMissionEvent;
+  submitMissionTurn: typeof submitMissionTurn;
+  completeMission: typeof completeMission;
+};
+
+export const REAL_MISSION_API: MissionApi = {
+  submitMissionEvent,
+  submitMissionTurn,
+  completeMission,
+};
