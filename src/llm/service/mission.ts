@@ -196,15 +196,39 @@ function 미션시작(시도: MissionSessionRow, mission: MissionRow): MissionSt
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * 이 세션에서 지금 도는 중인 미션 시도. 없으면 `null`.
+ * **지금 씬의** 미션이 도는 중인 시도. 없으면 `null`.
  *
  * 세션 도메인이 일반 턴 앞에서 부르는 문이다 — 있으면 409 `MISSION_IN_PROGRESS` 다.
+ *
+ * 🔴 **씬으로 좁힌 이유** — 예전에는 세션에 남은 `in_progress` 행이면 무엇이든 막았다.
+ *    그런데 푸는 쪽(`missionForOpen()`)은 **지금 기다리는 씬의 미션**만 본다. 막는 범위가
+ *    푸는 범위보다 넓어서 구멍이 났다:
+ *
+ *      미션 도중 이탈 → 409 → 「건너뛰고 계속」으로 그 씬을 건너뜀 (`skip.ts` 에는 미션
+ *      가드가 없다) → 다음 씬 도착 → `missionForOpen` 이 옛 미션의 행을 못 찾아 그냥 둔다
+ *      → 그런데 가드는 세션 전체를 보므로 그 행이 남은 대화를 **영영** 막는다.
+ *        세션을 다시 열어도 안 풀린다.
+ *
+ *    가드의 목적은 「팝업과 본 대화가 같은 씬 상태를 두고 다투지 않게」다 (아래 turn.ts).
+ *    이미 지나온 씬의 시도는 다툴 것이 없다 — 막을 이유도 없다.
+ *
+ * ⚠️ 지나온 씬의 행을 여기서 접지는 않는다. 읽기 문에서 쓰기를 하지 않기 위해서고,
+ *    치우는 일은 세션 열기(`missionForOpen()`)가 맡는다.
  */
 export async function activeMission(args: {
   session_id: string
   conn?: Conn
 }): Promise<MissionSessionRow | null> {
-  return activeMissionOfSession(args.conn ?? getDb(), args.session_id)
+  const conn = args.conn ?? getDb()
+
+  const 도는것 = await activeMissionOfSession(conn, args.session_id)
+  if (도는것 === null) return null
+
+  const { current_scene_id } = await readSession(conn, args.session_id)
+  if (current_scene_id === null) return null
+
+  const 이_씬의_미션 = await missionOfScene(conn, current_scene_id)
+  return 이_씬의_미션?.id === 도는것.mission_id ? 도는것 : null
 }
 
 /**
@@ -412,6 +436,12 @@ async function 다리_대사(args: MissionStageArgs, mission: MissionRow): Promi
  *
  * 마지막 칸이 이 함수가 상태를 바꾸는 유일한 자리다. 「재개는 처음부터」라 이어 붙일 것이
  * 없고, 합산된 요소는 `story_sessions` 에 남아 있어 손해가 없다.
+ *
+ * ⚠️ **지나온 씬의 시도도 여기서 치운다.** 앱이 미션을 연 채 그 씬을 건너뛰면
+ *    (`skip.ts` 에는 미션 가드가 없다) 그 행은 임자 없는 `in_progress` 로 남는다.
+ *    가드가 씬으로 좁혀져(위 `activeMission()`) 대화를 막지는 않지만, 그대로 두면
+ *    영영 진행 중인 시도가 되어 지표·리포트에 남고 그 미션을 다시 열 수도 없다
+ *    (`ux_mission_sessions_active` 가 「진행 중은 하나」를 지킨다).
  */
 export async function missionForOpen(args: {
   session_id: string
@@ -421,6 +451,14 @@ export async function missionForOpen(args: {
   const conn = args.conn ?? getDb()
 
   const mission = await missionOfScene(conn, args.scene_id)
+
+  /* 지금 씬의 것이 아닌 채 남은 시도를 먼저 접는다 — 앱이 이미 그 씬을 지나쳤다는 뜻이다.
+     지금 씬의 시도라면 손대지 않는다 (아래에서 접고 새로 여는 길이 따로 있다). */
+  const 임자없는것 = await activeMissionOfSession(conn, args.session_id)
+  if (임자없는것 !== null && 임자없는것.mission_id !== mission?.id) {
+    await abandonMissionSession(conn, 임자없는것.id)
+  }
+
   if (mission === null) return null
   const session_id = args.session_id
   if ((await completedMissionSession(conn, { session_id, mission_id: mission.id })) !== null) {

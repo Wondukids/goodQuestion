@@ -106,6 +106,7 @@ export function InteractiveScene({
   serverScene,
   onServerScene,
   resumeLine,
+  resumeMission,
   onMissionStart,
   onComplete,
   ref,
@@ -121,6 +122,12 @@ export function InteractiveScene({
   onServerScene: (code: string | null) => void;
   /** 복귀 진입이면 서버의 마지막 캐릭터 대사 — 여는 말 연출 대신 이 한 줄을 튼다 */
   resumeLine: string | null;
+  /**
+   * 세션 열기가 실어 준 미션 (명세 7절 E · M4) — 이 씬에 진행 중이던 시도가 남아 있어
+   * 서버가 접고 새로 열어 준 것이다. 있으면 **여는 말도 복귀 한 줄도 건너뛰고** 팝업부터
+   * 연다: 서버는 이 씬을 「미션 도는 중」으로 보고 있어 대화 턴을 받지 않는다.
+   */
+  resumeMission: MissionStart | null;
   /** 턴 응답 `미션시작` — 다리 대사 재생이 **끝난 뒤** 부른다(M8). 재생 화면이 팝업을 연다 */
   onMissionStart: (mission: MissionStart) => void;
   onComplete: () => void;
@@ -145,7 +152,9 @@ export function InteractiveScene({
      (명세 3절 매핑 + 어긋남 가드). 다르면 잘못된 캐릭터가 대답하게 되므로 고정 문구로
      돌리고, 서버 기록은 그대로 둔다 — 건너뛰기는 스킵 API 가 서버도 같이 넘긴다. */
   const serverMode = fallbackReason === null;
-  const resumeMode = serverMode && resumeLine !== null;
+  /* 이어하기 미션이 있으면 복귀 한 줄은 틀지 않는다 — 서버가 이 씬을 「미션 도는 중」으로
+     보고 있어 대화가 이어질 수 없다. 팝업이 먼저고, 대화는 그 뒤 종료 요약부터다. */
+  const resumeMode = serverMode && resumeLine !== null && resumeMission === null;
   /* 진입 시점의 모드 — TTS 준비량을 정하는 데만 쓴다. 장면 도중 추적 갱신(장면끝)으로
      serverMode 가 변해도 준비를 다시 돌리지 않기 위해 처음 값을 붙잡아 둔다.
      진단 로그도 이 값을 쓴다 — 알고 싶은 것은 **진입 시점**의 모드다. */
@@ -165,7 +174,20 @@ export function InteractiveScene({
     );
   }, [entryMode, step.id, step.sceneCode]);
 
-  const [phase, setPhase] = useState<Phase>(resumeMode ? "resume" : "question");
+  /* 이어하기 미션이면 mission 단계로 시작한다 — 팝업 아래에서 여는 말이 흐르지 않게.
+     팝업을 여는 것은 아래 effect 가 재생 화면에 알려서 한다 (팝업은 그쪽이 그린다). */
+  const [phase, setPhase] = useState<Phase>(
+    resumeMission !== null ? "mission" : resumeMode ? "resume" : "question",
+  );
+
+  /* 마운트할 때 한 번만 — 부모가 소진해 prop 이 null 이 되어도 다시 열지 않는다 */
+  const 이어하기_미션 = useRef(resumeMission);
+  useEffect(() => {
+    const 미션 = 이어하기_미션.current;
+    if (미션 === null) return;
+    이어하기_미션.current = null;
+    onMissionStart(미션);
+  }, [onMissionStart]);
   const [lineIndex, setLineIndex] = useState(0);
   /* 채팅 패널 말풍선 이력 — 턴마다 아이 발화·캐릭터 대사가 쌓인다 (멀티턴) */
   const [history, setHistory] = useState<{ from: "character" | "child"; text: string }[]>([]);

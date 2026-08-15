@@ -64,6 +64,20 @@ export default function FartBridePlay({
      고정 문구로 돌고, 서버 기록은 그대로라 다음 진입 때 건너뛴 대화로 복귀한다). */
   const [serverScene, setServerScene] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  /**
+   * 이어하기: 세션 열기가 실어 준 미션 (명세 7절 E · M4).
+   *
+   * 그 씬에 진행 중인 시도가 남아 있으면 — 미션 도중 앱을 껐거나 팝업만 닫고 나갔거나 —
+   * 서버가 그것을 접고 **새 시도**를 만들어 준다. 앱이 할 일은 그 씬에 닿았을 때 팝업을
+   * 처음부터 여는 것이다. 이 칸을 버리면 아무도 마치지 않을 시도가 서버에 남아 남은 대화가
+   * 전부 409 `MISSION_IN_PROGRESS` 로 막힌다 (2026-08-15 실사용 신고).
+   *
+   * 씬 code 를 함께 들고 있는 것은 `resumeLine` 과 같은 이유다 — 그 씬에 닿았을 때만 연다.
+   */
+  const [resumeMission, setResumeMission] = useState<{
+    sceneCode: string;
+    mission: MissionStart;
+  } | null>(null);
 
   /**
    * 이야기 시작 = 세션 열기 (명세 5절). 반복 안전이라 몇 번 눌러도 같은 세션이다.
@@ -87,6 +101,10 @@ export default function FartBridePlay({
       }
       setSession(opened);
       setServerScene(opened.status === "in_progress" ? (opened.scene?.code ?? null) : null);
+      /* 서버가 새로 열어 준 미션 — 그 씬에 닿으면 팝업을 처음부터 연다 (M4) */
+      if (opened.mission && opened.scene) {
+        setResumeMission({ sceneCode: opened.scene.code, mission: opened.mission });
+      }
       if (opened.resumed && opened.status === "in_progress" && opened.scene) {
         const scene = opened.scene;
         const target = steps.findIndex(
@@ -261,7 +279,15 @@ export default function FartBridePlay({
                 serverScene={serverScene}
                 onServerScene={setServerScene}
                 resumeLine={resumeLine?.stepId === step.id ? resumeLine.text : null}
-                onMissionStart={setMission}
+                resumeMission={
+                  resumeMission?.sceneCode === step.sceneCode ? resumeMission.mission : null
+                }
+                onMissionStart={(m) => {
+                  /* 이어하기로 열렸으면 여기서 소진한다 — 닫고 대화로 돌아온 뒤
+                     이 씬이 다시 마운트돼도 팝업이 또 뜨면 안 된다 */
+                  setResumeMission(null);
+                  setMission(m);
+                }}
                 ref={sceneRef}
                 onComplete={() => {
                   setResumeLine(null); // 복귀 한 줄은 한 번만 — 다음 진입은 정상 흐름
