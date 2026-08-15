@@ -51,6 +51,10 @@ import {
 } from '@/llm/repo/sessions'
 import { latestSeedRevision } from '@/llm/repo/seed'
 import { readTurnCondition, type TurnConditionRow } from '@/llm/repo/turn-conditions'
+// 활동이 끝나면 보호자 리포트를 뒤에서 만든다 (이슈 #38). 이 방향(엔진 → 리포트)만 있고
+// 반대는 없다 — 리포트 쪽은 자기 repo 로 읽는다 (`src/report/README.md` 층 표).
+import { queueReport } from '@/report/service/generate'
+
 import { experimentPrompts } from './prompt-lab'
 import { advanceScenes, narrationsBefore, type Scope } from './story'
 import {
@@ -292,6 +296,11 @@ export async function runOfSession(conn: Conn, session_id: string): Promise<RunR
  * ✅ `runs.scored_at` 을 여기서 찍는다. 그전에는 「채점기가 이식 범위 밖」이라 비워 뒀는데,
  *    경계 채점기(`lib/judge.ts`)가 들어오고 턴마다 실제로 돌게 되면서 찍을 것이 생겼다
  *    (이슈 #26 일감 10). 파이썬 `저장.회차_채점완료()` 자리다.
+ *
+ * ✅ **보호자 리포트를 여기서 띄운다** (이슈 #38 · 리포트 명세 7절 「만드는 자리」).
+ *    앱이 세션을 닫는 길은 턴·이어하기·건너뛰기 셋이지만 **전부 이 함수로 모인다** —
+ *    `completeSession()` 을 부르는 자리가 여기와 `story.ts` 둘뿐이라, 이 둘에만 걸면
+ *    빠지는 경로가 없다.
  */
 export async function completeRun(
   conn: Conn,
@@ -303,6 +312,10 @@ export async function completeRun(
     await markRunScored(tx, run.id)
   })
   printLine('[세션] status=completed')
+  // ⛔ `await` 하지 않는다 — 리포트 한 장에 LLM 2회가 나가고, 그게 느리거나 죽어도 아이는
+  //    다음 화면으로 넘어가야 한다 (결정 R2). 커밋 **뒤에** 부르는 것도 중요하다:
+  //    닫힌 세션을 못 보면 리포트가 안 만들어진다 (`queueReport()` 머리말).
+  queueReport(run.session_id)
 }
 
 /**

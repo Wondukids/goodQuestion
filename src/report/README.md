@@ -14,10 +14,15 @@
 
 | 층 | 폴더 | 하는 일 |
 |---|---|---|
-| controller | `controller/` | HTTP 경계. `src/app/api/**/route.ts` 는 **한 줄 재-내보내기**만 한다 |
+| controller | `controller/` | HTTP 경계. `src/app/api/**/route.ts` 는 **한 줄 재-내보내기**만 한다. 문지기(내 아이인가)도 여기다 |
 | service | `service/` | 한 요청의 시퀀스. 생성 흐름 ①~⑤ 의 **순서는 이 층만 안다** |
 | engine | `engine/` | LLM 을 부르고 응답을 대조한다 |
+| repo | `repo/` | SQL 이 사는 유일한 곳. 집계 재료를 읽고 두 표(`parent_reports`·`child_words`)를 쓴다 |
 | domain | `domain/` | 순수 함수 — 지표 집계. **DB 도 LLM 도 시각도 난수도 모른다** |
+
+⚠️ 세션 도메인(`src/session`)에는 repo 가 없지만 여기에는 있다 — 새 표 둘을 우리가 세웠고,
+집계에 필요한 읽기 여덟은 대화 진행과 상관이 없어서 `llm/service` 에 얹으면 그쪽이 리포트
+사정을 알게 된다 (`repo/materials.ts` 머리말).
 
 `types.ts` 는 층이 아니라 **셋이 공유하는 계약 하나**다. 프론트 계약 문서 1절을 그대로
 옮긴 것이라 이름을 바꾸기 전에 그 문서를 먼저 고쳐야 한다.

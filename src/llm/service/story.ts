@@ -41,6 +41,8 @@ import {
   readSession,
   readSessionWithStory,
 } from '@/llm/repo/sessions'
+// 활동이 끝나면 보호자 리포트를 뒤에서 만든다 (이슈 #38 · `run.ts` 의 `completeRun()` 과 짝이다).
+import { queueReport } from '@/report/service/generate'
 
 import { isUsableUtterance, runTurn, TurnFailed, type Notify, type TurnResult } from './turn'
 
@@ -221,6 +223,9 @@ export async function runStory(args: RunStoryArgs): Promise<StoryResult> {
       await completeSession(conn, session_id)
       await 알린다({ kind: '회차_완료', step: 할_일 })
       printLine('[세션] status=completed')
+      // 관리자·CLI 로 끝난 활동에도 보호자 리포트를 만든다 (이슈 #38 · 리포트 명세 7절).
+      // ⛔ `await` 하지 않는다 — 대본이 리포트를 기다릴 이유가 없다 (`completeRun()` 과 같은 자리).
+      queueReport(session_id)
       return { turns, step: 할_일, completed: true }
     }
 
