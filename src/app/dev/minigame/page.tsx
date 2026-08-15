@@ -2,8 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MinigamePopup } from "@/stories/fart-bride/minigame-popup";
-import type { MissionConfig } from "@/stories/fart-bride/session-api";
+import type { MissionConfig, PostActivityWiring } from "@/stories/fart-bride/session-api";
 import { MOCK_MISSION_API, openMockMission } from "./mock-mission-api";
+import {
+  MOCK_POST_ACTIVITY_API,
+  mockPostActivityRow,
+  resetMockPostActivity,
+  setMockJudgeDead,
+} from "./mock-post-activity-api";
 
 /**
  * 미니게임만 따로 띄워 보는 개발용 화면 — 로그인 없이 /dev/minigame 로 연다.
@@ -14,6 +20,14 @@ import { MOCK_MISSION_API, openMockMission } from "./mock-mission-api";
  * - 6자 미만으로 짧게 답하면 되묻기(M9), 두 번째는 그대로 진행
  * - 무음으로 두 번 흘리면 건너뜀 — complete 가 발화받기(유도 대화) 분기로 온다
  * - 전부 말로 채우면 complete 가 장면끝 — 아래 기록에 「답변 컷 스킵」이 찍힌다 (M6)
+ *
+ * 마무리(3)도 같은 방식으로 **목 후활동 API**(mock-post-activity-api.ts — 후활동 명세
+ * 5절 A~D)를 주입한다 (이슈 #46). 아이 앱과 순서까지 같다 — 열 때 GET 으로 카드·지금까지의
+ * 결과를 받아 팝업에 넘긴다. 재현 손잡이:
+ * - 카드 제목·핵심 단어가 **서버 config 값**으로 그려진다 (수용 2 — 목 config 를 고쳐 확인)
+ * - 틀리게 놓고 「다 놓았어요!」를 여러 번 누르면 첫 제출만 남고 횟수가 는다 (수용 3)
+ * - 팝업을 닫았다 다시 열면 하던 자리에서 이어진다 (「기록 비우기」로 첫 판부터)
+ * - 「판정 죽이기」를 켜면 `analyzed:false` 가 와도 화면이 끝까지 간다 (수용 10)
  *
  * SPACE 순환(닫힘 → 미션1 → 미션2 → 마무리 → 닫힘)은 예전에 재생 화면에 있던
  * 개발 손잡이를 여기로 격리한 것이다 — 아이 앱에서 SPACE 는 이제 아무 일도 안 한다.
@@ -35,15 +49,42 @@ export default function MinigameDevPage() {
     missionSessionId: string;
     config: MissionConfig;
   } | null>(null);
+  /* 마무리(3) 배선 — 아이 앱과 같은 순서로 GET 을 먼저 태워 받는다 (이슈 #46) */
+  const [postActivity, setPostActivity] = useState<PostActivityWiring | null>(null);
+  const [judgeDead, setJudgeDead] = useState(false);
   const [childName, setChildName] = useState("지훈");
   const [log, setLog] = useState<string[]>([]);
 
   const note = (text: string) => setLog((lines) => [...lines, text]);
 
-  /* 열 때마다 새 목 미션 세션 — 재개는 처음부터라는 M4 와 같은 결이다 */
-  const openMission = useCallback((id: 1 | 2 | 3) => {
+  /** 목에 쌓인 후활동 기록 한 줄 — 수용 기준 3·4 를 눈으로 재는 자리 */
+  const postActivityNote = () => {
+    const row = mockPostActivityRow();
+    return (
+      `후활동 기록 — 첫 제출: ${row.submitted_order?.join(" → ") ?? "없음"} · ` +
+      `누른 횟수 ${row.attempt_count} · 끝내 맞춤 ${row.is_order_correct ?? "아직"} · ` +
+      `줄거리 ${row.retelling_text === null ? "없음" : `“${row.retelling_text}”`} · ` +
+      `마침 ${row.completed_at ?? "아직"}`
+    );
+  };
+
+  /* 미션은 열 때마다 새 목 세션 (재개는 처음부터라는 M4 와 같은 결).
+     ⭐ 마무리는 반대로 **기록을 이어받는다** — 중간에 나갔다 온 아이의 자리를 되살리는
+     동작(명세 5.A 의 result)을 개발 화면에서도 그대로 보려는 것이다. */
+  const openMission = useCallback(async (id: 1 | 2 | 3) => {
     setLog([]);
     setWiring(id === 3 ? null : openMockMission(id));
+    if (id === 3) {
+      const opened = await MOCK_POST_ACTIVITY_API.fetchPostActivity(DEV_SESSION_ID);
+      setPostActivity({
+        sessionId: DEV_SESSION_ID,
+        config: opened.config,
+        result: opened.result,
+        api: MOCK_POST_ACTIVITY_API,
+      });
+    } else {
+      setPostActivity(null);
+    }
     setOpen(id);
   }, []);
 
@@ -56,7 +97,7 @@ export default function MinigameDevPage() {
       /* 스크롤·포커스된 버튼의 스페이스 동작을 막고 미션 전환으로만 쓴다 */
       event.preventDefault();
       if (open === 3) setOpen(null);
-      else openMission(open === null ? 1 : ((open + 1) as 2 | 3));
+      else void openMission(open === null ? 1 : ((open + 1) as 2 | 3));
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -87,12 +128,37 @@ export default function MinigameDevPage() {
           <button
             key={mission.id}
             type="button"
-            onClick={() => openMission(mission.id)}
+            onClick={() => void openMission(mission.id)}
             className="rounded-2xl bg-primary px-7 py-4 text-[16px] font-extrabold text-white"
           >
             {mission.title}
           </button>
         ))}
+      </div>
+
+      {/* 마무리(후활동) 손잡이 둘 — 미션 1·2 와는 상관없다 (이슈 #46) */}
+      <div className="flex items-center gap-4 text-[14px] font-bold text-ink-mid">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={judgeDead}
+            onChange={(event) => {
+              setJudgeDead(event.target.checked);
+              setMockJudgeDead(event.target.checked);
+            }}
+          />
+          마무리 · 판정 죽이기 (analyzed:false — 수용 10)
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            resetMockPostActivity();
+            note("마무리 기록 비움 — 다음에 열면 1단계부터");
+          }}
+          className="rounded-xl border border-divider bg-white px-3 py-2"
+        >
+          마무리 기록 비우기
+        </button>
       </div>
 
       {log.length > 0 && (
@@ -111,8 +177,13 @@ export default function MinigameDevPage() {
         missionSessionId={wiring?.missionSessionId ?? null}
         config={wiring?.config ?? null}
         missionApi={MOCK_MISSION_API}
+        postActivity={postActivity}
         onClose={() => {
-          note("닫음 — 시도는 abandoned (M4), 재생 화면이면 대화로 복귀");
+          note(
+            open === 3
+              ? `닫음 — 아직 마치지 않았다. 재생 화면이면 끝 화면으로 돌아간다 · ${postActivityNote()}`
+              : "닫음 — 시도는 abandoned (M4), 재생 화면이면 대화로 복귀",
+          );
           setOpen(null);
         }}
         onComplete={(result) => {
@@ -125,8 +196,14 @@ export default function MinigameDevPage() {
                 ? "next: 발화받기 — 부족 요소 유도 대화로 이어진다"
                 : `next: ${result.next.kind} — 답변 컷을 건너뛰고 다음 스텝 (M6)`,
             );
+          } else if (open === 3) {
+            /* 「마치기」 — complete(finished) 가 나갔고 리포트가 이 자리에서 만들어진다 (F11) */
+            note(
+              `마무리 마침 — complete(finished) 보냄 (답을 안 기다린다 · F4) · ` +
+                `${postActivityNote()}`,
+            );
           } else {
-            note("미션 완료 — 서버 결과 없음 (complete 실패·마무리 활동)");
+            note("미션 완료 — 서버 결과 없음 (complete 실패)");
           }
           setOpen(null);
         }}

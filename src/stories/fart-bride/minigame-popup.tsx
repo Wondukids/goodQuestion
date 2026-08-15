@@ -4,7 +4,12 @@ import { Popup } from "@/frontendlib";
 import { Finale } from "./minigame/finale";
 import { Mission1 } from "./minigame/mission1";
 import { Mission2 } from "./minigame/mission2";
-import type { MissionApi, MissionCompleteResult, MissionConfig } from "./session-api";
+import type {
+  MissionApi,
+  MissionCompleteResult,
+  MissionConfig,
+  PostActivityWiring,
+} from "./session-api";
 
 /**
  * 미니게임 팝업 — 재생 중인 이야기 위로 활동 화면을 띄운다.
@@ -18,6 +23,10 @@ import type { MissionApi, MissionCompleteResult, MissionConfig } from "./session
  * 미션 1·2 는 미션 세션 배선 넷(sessionId·missionSessionId·config·missionApi)을
  * 그대로 흘려보낸다 (이슈 #20 · 미션 명세 10절 ②). 끝나면 onComplete 에 complete
  * 응답을 실어 알린다 — 재생 화면은 그걸로 종료 요약을 패널에서 재생하고 분기한다.
+ *
+ * ⛔ **마무리(3)는 그 배선 넷을 하나도 안 쓴다** (이슈 #46 · 후활동 명세 8절 ②).
+ *    자기 배선(`postActivity`)으로 자기 API 넷을 부른다 — 미션 세션이 없는 활동이라
+ *    `missionSessionId` 자체가 없다. 이름이 다 「미니게임」으로 묶여 보여도 다른 활동이다.
  */
 export function MinigamePopup({
   open,
@@ -27,6 +36,7 @@ export function MinigamePopup({
   missionSessionId,
   config,
   missionApi,
+  postActivity,
   onClose,
   onComplete,
 }: {
@@ -40,9 +50,11 @@ export function MinigamePopup({
   config: MissionConfig | null;
   /** 실구현(REAL_MISSION_API) 또는 /dev/minigame 의 목 어댑터 */
   missionApi: MissionApi;
+  /** 마무리(3) 전용 배선 — 없으면 마무리는 뜨지 않는다 (미션 1·2 의 wiring 과 같은 규칙) */
+  postActivity: PostActivityWiring | null;
   /** 배경 클릭·뒤로가기 — 미션을 접고 이야기로 돌아간다 (시도는 abandoned, M4) */
   onClose: () => void;
-  /** 미션 완료 — complete 응답. null 이면 서버 결과 없이 끝난 것(complete 실패 등) */
+  /** 미션 완료 — complete 응답. null 이면 서버 결과 없이 끝난 것(complete 실패·마무리) */
   onComplete: (result: MissionCompleteResult | null) => void;
 }) {
   const wiring =
@@ -61,9 +73,10 @@ export function MinigamePopup({
           onComplete={onComplete}
           onQuit={onClose}
         />
-      ) : mission === 3 ? (
+      ) : mission === 3 && postActivity ? (
         <Finale
           childName={childName}
+          postActivity={postActivity}
           onComplete={() => onComplete(null)}
           onQuit={onClose}
         />
