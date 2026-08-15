@@ -18,7 +18,7 @@
 // - 정하지 않는다: 정규화(프론트가 `max(axes[*].score)` 로 그린다) · 문장(LLM #37) ·
 //   저장과 배선(#38).
 
-import type { Axis, AxisName, Quote, ReportMetrics } from '../types'
+import type { Axis, AxisName, PostActivity, PostActivityWord, Quote, ReportMetrics } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 조정할 수 있는 상수 — 🔴 실측 없이 정한 임의값이다 (명세 4.2 · 위험 M1)
@@ -223,6 +223,47 @@ export interface 미션발화행 {
   analysis: 분석 | null
 }
 
+// ── 말하기 후 활동 두 표 (이슈 #47 · 후활동 명세 4.2·4.3) ──────────────────
+
+/** `post_activity_results` 한 행 중 이 층이 보는 칸 (`llm/db/schema.ts` 9절). */
+export interface 후활동결과행 {
+  /** 아이의 **첫 제출** 순서 (`card_id` 넷). 한 번도 안 냈으면 `null` (F7) */
+  submitted_order: string[] | null
+  /** 🔴 **끝내 맞췄나** (F18). 안 냈으면 `null`, 내 봤는데 못 맞췄으면 `false` */
+  is_order_correct: boolean | null
+  /** 「다 놓았어요!」를 누른 횟수 */
+  attempt_count: number
+  /** 서버가 받아쓴 줄거리 원문. 안 말했으면 `null` (F6) */
+  retelling_text: string | null
+  /** 🔴 `null` 이면 **판정을 못 했다** — 「단어를 하나도 안 썼다」와 다르다 (명세 4.2) */
+  analyzed_at: 시각 | null
+}
+
+/** `post_activity_keywords` 한 행 중 이 층이 보는 칸 (명세 4.3). */
+export interface 후활동단어행 {
+  card_id: string
+  /** DB CHECK 가 `'used'|'similar'|'missing'` 셋만 받지만, 이 층은 글자로 받아 제 손으로 가른다 */
+  status: string
+  word: string
+  /** 🔴 `missing`·`used` 는 NULL 이다. 빈 글자가 아니다 (명세 4.3) */
+  evidence: string | null
+}
+
+/** 활동 한 건의 후활동 재료. **결과 행이 없으면 이 덩이째 `null`** 이다 (수용 기준 12). */
+export interface 후활동재료 {
+  result: 후활동결과행
+  words: readonly 후활동단어행[]
+  /**
+   * 칩을 그릴 차례 — `stories.post_activity_config` 의 `cards[]` 를 카드×단어로 편 것이다.
+   *
+   * 🔴 **DB 는 차례를 안 준다.** `post_activity_keywords` 에 순번 칸이 없어서, 읽은 순서에
+   *    기대면 판마다 칩 차례가 흔들린다. 판정도 이 차례로 돌았으므로(명세 7.3 ·
+   *    `src/post-activity/domain/keywords.ts` 의 `규칙_단계`) 설정을 잣대로 삼는다.
+   * ⚠️ 비어 있으면(설정이 깨졌거나 못 읽었으면) **읽어 온 차례를 그대로 둔다.**
+   */
+  word_order: readonly { card_id: string; word: string }[]
+}
+
 /** `aggregateMetrics()` 가 받는 재료 한 덩이. 전부 **읽어 온 행**이고 DB 핸들이 아니다. */
 export interface 집계재료 {
   session: 세션행
@@ -238,6 +279,13 @@ export interface 집계재료 {
    * 「새로 쓴 낱말」 라벨을 「처음 만난 낱말」로 바꾼다 (계약 문서 2절 ③).
    */
   prior_activities: number
+  /**
+   * 말하기 후 활동 (이슈 #47 · 후활동 명세 7.2). 활동을 안 했으면 `null`.
+   *
+   * ⚠️ **없어도 된다.** 후활동을 모르던 시절에 세운 재료(검사 · 목데이터)가 그대로 돌아야
+   *    하고, 없는 것과 안 한 것은 결과가 같다 — 둘 다 `post_activity: null` 이다.
+   */
+  post_activity?: 후활동재료 | null
 }
 
 /**
@@ -583,6 +631,94 @@ function ISO로(값: 시각): string {
   return 값 instanceof Date ? 값.toISOString() : 값
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 말하기 후 활동 (이슈 #47 · 후활동 명세 7.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 단어 하나를 카드×단어로 찾을 열쇠. 카드가 다르면 같은 단어도 다른 칩이다. */
+function 단어열쇠(card_id: string, word: string): string {
+  return `${card_id} ${word}`
+}
+
+/**
+ * `post_activity_keywords.status` 를 계약의 세 글자로 좁힌다.
+ *
+ * DB CHECK 가 이미 셋만 받으므로 여기 걸릴 값은 없다. 그래도 두는 것은, 걸린다면 그것은
+ * **타입이 거짓말을 하는 것**이라 화면에서 색이 없는 칩이 되기 때문이다. 모르는 글자는
+ * 「안 썼다」로 떨어뜨린다 — 안 쓴 것을 썼다고 하는 쪽보다 낫다.
+ */
+function 판정상태(값: string): PostActivityWord['status'] {
+  return 값 === 'used' || 값 === 'similar' ? 값 : 'missing'
+}
+
+/**
+ * 후활동 두 표 → 지표 한 덩이 (명세 7.2). 재료가 없으면 `null` 이다.
+ *
+ * **`null` 이 세 겹이고 셋 다 뜻이 다르다** — 화면이 그것으로 갈라 그린다 (F16):
+ *
+ * | | 언제 | 여기서 나오는 값 |
+ * |---|---|---|
+ * | 덩이째 `null` | 활동을 아예 안 했다 (결과 행이 없다) | `null` |
+ * | `retelling: null` | 순서만 맞추고 나갔다 (`retelling_text` 가 NULL) | `retelling: null` |
+ * | `analyzed: false` | 말은 했는데 판정을 못 했다 (`analyzed_at` 이 NULL) | 단어 0개 |
+ *
+ * 🔴 **`analyzed === false` 면 단어 행을 안 싣는다.** 다시 말한 줄거리는 `analyzed_at` 을
+ *    NULL 로 되돌리고 옛 단어 행을 지우는데(`saveRetellingText()`), 지우다 만 행이 남아
+ *    있어도 「이 글을 판정한 결과」가 아니다. 판정 시각이 없으면 판정도 없다.
+ */
+function 후활동지표(재료: 후활동재료 | null | undefined): PostActivity | null {
+  if (재료 === null || 재료 === undefined) return null
+  const { result } = 재료
+
+  const order = {
+    // NULL(아직 안 냄)과 false(못 맞춤)를 여기서 하나로 접는다 — 둘 다 「못 맞췄다」이고,
+    // 갈라야 하는 「아직 안 냈다」는 `attempts === 0` 이 말해 준다.
+    correct: result.is_order_correct === true,
+    attempts: result.attempt_count,
+    first_submission: result.submitted_order ?? [],
+  }
+
+  if (result.retelling_text === null) return { order, retelling: null }
+
+  const analyzed = result.analyzed_at !== null
+  const 단어들 = analyzed ? 차례대로(재료) : []
+
+  return {
+    order,
+    retelling: {
+      analyzed,
+      text: result.retelling_text,
+      used: 단어들.filter((것) => 것.status === 'used').length,
+      similar: 단어들.filter((것) => 것.status === 'similar').length,
+      missing: 단어들.filter((것) => 것.status === 'missing').length,
+      words: 단어들,
+    },
+  }
+}
+
+/** 단어 행들을 설정의 카드 차례로 세운다. 차례에 없는 단어는 뒤에, 읽어 온 순서대로 남는다. */
+function 차례대로(재료: 후활동재료): PostActivityWord[] {
+  const 차례 = new Map<string, number>()
+  재료.word_order.forEach((것, 자리) => {
+    const 열쇠 = 단어열쇠(것.card_id, 것.word)
+    if (!차례.has(열쇠)) 차례.set(열쇠, 자리)
+  })
+
+  return 재료.words
+    .map((행, 읽은자리) => ({
+      행,
+      // 모르는 단어를 목록 길이만큼 뒤로 밀어 둔다 — 그 안에서는 읽어 온 차례가 남는다
+      순번: 차례.get(단어열쇠(행.card_id, 행.word)) ?? 재료.word_order.length + 읽은자리,
+    }))
+    .sort((가, 나) => 가.순번 - 나.순번)
+    .map(({ 행 }) => ({
+      card_id: 행.card_id,
+      word: 행.word,
+      status: 판정상태(행.status),
+      evidence: 행.evidence,
+    }))
+}
+
 /**
  * 활동 한 건의 지표를 센다. **LLM 이 필요한 칸(`words.main`·`repeated`·`new`)은 비워** 둔다.
  *
@@ -626,6 +762,11 @@ export function aggregateMetrics(재료: 집계재료): ReportMetrics {
     axes,
     words: { main: [], asked, repeated: [], new: [] },
     quotes: 인용후보(발화들),
+    /* 🔴 **옆에 놓는 덩이 하나다** (F15 · 수용 15). 후활동 발화는 위 `counts`·`words`·`axes`
+       어디에도 안 섞인다 — 아이가 후활동을 해도 그 셋의 값이 변하면 안 된다. 섞이지 않는
+       근거는 재료에 있다: 후활동 원문은 `messages` 가 아니라 `post_activity_results` 에
+       있어서 `아이발화들()` 이 볼 수 없다. */
+    post_activity: 후활동지표(재료.post_activity),
   }
 }
 

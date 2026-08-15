@@ -22,6 +22,8 @@ import {
   messages,
   mission_messages,
   mission_sessions,
+  post_activity_keywords,
+  post_activity_results,
   stories,
   story_missions,
   story_scenes,
@@ -30,7 +32,7 @@ import {
   utterance_analyses,
 } from '@/llm/db/schema'
 import type { Conn } from '@/llm/repo/db'
-import type { 집계재료 } from '@/report/domain/metrics'
+import type { 집계재료, 후활동재료 } from '@/report/domain/metrics'
 
 /** 리포트가 붙는 활동 한 건의 신원. 문지기(누구 아이인가)와 생성 판정이 이것만 본다. */
 export interface 세션신원 {
@@ -93,8 +95,8 @@ export async function readSessionIdentity(
 /**
  * 활동 한 건의 집계 재료를 통째로 읽는다. 세션이 없으면 `null`.
  *
- * 질의는 여덟 번이고 서로 기대지 않는다 — 세션 한 줄을 먼저 읽어 `story_id` 와 `child_id`
- * 를 얻은 뒤, 나머지 일곱을 **한꺼번에** 던진다.
+ * 질의는 열 번이고 서로 기대지 않는다 — 세션 한 줄을 먼저 읽어 `story_id` 와 `child_id`
+ * 를 얻은 뒤, 나머지 아홉을 **한꺼번에** 던진다.
  *
  * ⚠️ 순서에 기대지 않게 `messages` 는 `turn_order` 로, 장면은 `scene_order` 로 정렬해 올린다.
  *    집계기도 제 손으로 다시 정렬하지만(같은 입력 = 같은 출력), 읽는 사람이 로그와 대조할 때
@@ -114,6 +116,7 @@ export async function readReportMaterial(
       last_activity_at: story_sessions.last_activity_at,
       story_slug: stories.slug,
       story_title: stories.title,
+      post_activity_config: stories.post_activity_config,
     })
     .from(story_sessions)
     .innerJoin(stories, eq(stories.id, story_sessions.story_id))
@@ -122,7 +125,17 @@ export async function readReportMaterial(
   if (세션들.length === 0) return null
   const 세션 = 세션들[0]
 
-  const [장면들, 발화들, 분석들, 턴조건들, 미션시도들, 미션발화들, 이전활동] = await Promise.all([
+  const [
+    장면들,
+    발화들,
+    분석들,
+    턴조건들,
+    미션시도들,
+    미션발화들,
+    이전활동,
+    후활동결과,
+    후활동단어들,
+  ] = await Promise.all([
     conn
       .select({
         id: story_scenes.id,
@@ -215,6 +228,41 @@ export async function readReportMaterial(
           lt(story_sessions.started_at, 세션.started_at),
         ),
       ),
+
+    // ── 말하기 후 활동 두 표 (이슈 #47 · 후활동 명세 4.2·4.3) ──────────────
+    //
+    // 세션당 한 행이다 (`session_id` 가 UNIQUE). 없으면 활동을 아예 안 한 것이다.
+    conn
+      .select({
+        submitted_order: post_activity_results.submitted_order,
+        is_order_correct: post_activity_results.is_order_correct,
+        attempt_count: post_activity_results.attempt_count,
+        retelling_text: post_activity_results.retelling_text,
+        analyzed_at: post_activity_results.analyzed_at,
+      })
+      .from(post_activity_results)
+      .where(eq(post_activity_results.session_id, session_id))
+      .limit(1),
+
+    // 단어 행은 결과 행에 달려 있지만 **세션으로 바로 좁힌다** — `result_id` 를 먼저 읽어
+    // 오면 위 질의에 매여 한꺼번에 못 던진다 (`utterance_analyses` 를 `messages` 로 좁힌
+    // 것과 같은 자리). 결과 행이 없으면 조인이 0행을 낸다.
+    //
+    // ⚠️ 차례를 SQL 로 세우지 않는다. 이 표에 순번 칸이 없어서 무엇으로 정렬해도 카드
+    //    차례가 아니고(`card_id` 는 글자다), 그 일은 설정을 가진 집계기 몫이다.
+    conn
+      .select({
+        card_id: post_activity_keywords.card_id,
+        word: post_activity_keywords.word,
+        status: post_activity_keywords.status,
+        evidence: post_activity_keywords.evidence,
+      })
+      .from(post_activity_keywords)
+      .innerJoin(
+        post_activity_results,
+        eq(post_activity_results.id, post_activity_keywords.result_id),
+      )
+      .where(eq(post_activity_results.session_id, session_id)),
   ])
 
   return {
@@ -235,7 +283,41 @@ export async function readReportMaterial(
     mission_sessions: 미션시도들,
     mission_messages: 미션발화들,
     prior_activities: 이전활동[0]?.수 ?? 0,
+    post_activity:
+      후활동결과.length === 0
+        ? null
+        : {
+            result: 후활동결과[0],
+            words: 후활동단어들,
+            word_order: 단어차례(세션.post_activity_config),
+          },
   }
+}
+
+/**
+ * `stories.post_activity_config` 에서 **칩을 그릴 차례**만 떠 온다 (카드 넉 장 × 단어 셋).
+ *
+ * ⛔ **여기서 설정을 검사하지 않는다.** 세션 도메인에는 zod 로 읽고 안 맞으면 **던지는**
+ *    자리가 있지만(`src/session/service/post-activity.ts` 의 `설정을_읽는다`), 그쪽은 활동을
+ *    **열어 주는** 길이라 안 맞으면 아이가 못 논다. 이쪽은 이미 끝난 활동을 **보여 주는**
+ *    길이다 — 설정이 그새 어그러졌다고 리포트가 통째로 안 나오면 그게 더 나쁘다.
+ *    그래서 읽히는 만큼만 읽고 나머지는 빈 목록으로 둔다 (그러면 읽어 온 차례가 남는다).
+ */
+function 단어차례(config: unknown): 후활동재료['word_order'] {
+  if (typeof config !== 'object' || config === null) return []
+  const { cards } = config as { cards?: unknown }
+  if (!Array.isArray(cards)) return []
+
+  const 차례: { card_id: string; word: string }[] = []
+  for (const 카드 of cards) {
+    if (typeof 카드 !== 'object' || 카드 === null) continue
+    const { id, keywords } = 카드 as { id?: unknown; keywords?: unknown }
+    if (typeof id !== 'string' || !Array.isArray(keywords)) continue
+    for (const 단어 of keywords) {
+      if (typeof 단어 === 'string') 차례.push({ card_id: id, word: 단어 })
+    }
+  }
+  return 차례
 }
 
 /**
