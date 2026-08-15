@@ -12,7 +12,8 @@ import Link from 'next/link'
 
 import type { AutoScoreSummary, TurnRow } from '@/llm/service/view'
 
-import { 라벨, 입력칸 } from '../ui'
+import { 개발자용, 라벨, 입력칸 } from '../ui'
+import { 말읽기, 쌓인것, 정한것 } from './wording'
 
 export { 한칸, 오류띠, 라벨 } from '../ui'
 
@@ -217,6 +218,10 @@ export function 칸들({ 값들 }: { 값들: readonly [string, unknown][] }) {
  *
  * 🔴 **문자열을 새로 만들지 않는다.** `service/view.ts` 의 `turnLogLines()` 가 `lib/log.ts` 를
  * 불러 만든 그 문자열을 그대로 찍는다 (`CLAUDE.md` — 지우거나 요약하지 말 것).
+ *
+ * ⛔ **이제 이것은 「개발자용」 안에서만 쓴다** (2026-08-15 · 규칙 1-1 · 1-4). 화면 본문에는
+ *    `runs/wording.tsx` 가 옮긴 사람 말이 나가고, 이 원문은 개발자가 터미널 로그와 눈으로
+ *    대조할 자리로만 남는다. **원문을 지우는 것이 아니라 접는 것이다.**
  */
 export function 로그세줄({
   줄들,
@@ -235,6 +240,82 @@ export function 로그세줄({
 }
 
 /**
+ * 아이가 말한 한 차례에 AI 가 남긴 판단을, **사람 말로** 세 묶음 (규칙 1-1).
+ *
+ * 🔴 **여기가 가장 심하게 DB 를 비추던 자리였다.** 회차 진행 화면이 대화 줄마다
+ *    `[분석] child_intent=OFF_TOPIC … [상태] accumulated_elements=[] … [판정] reaction_key=…`
+ *    를 통째로 찍고 있었고, 운영자에게 그건 읽을 수 없는 글자였다.
+ *
+ * ⛔ **여기에 규칙이 없다.** `turn_conditions` 에 박제된 값과 `messages` 에 저장된 분석
+ *    넷을 그대로 읽어 이름표만 바꾼다 — 판정을 다시 계산하지 않는다 (경계 6).
+ *
+ * ⚠️ 스냅샷이 없는 옛 턴이면 **꾸며 내지 않고** 없다고 말한다.
+ */
+export function 턴판정({ 행 }: { 행: TurnRow }) {
+  const 조건 = 행.turn_condition
+  const 줄들 = 행.log_lines
+  const 분석있음 = 행.child_intent !== null && 행.child_intent !== ''
+
+  if (!분석있음 && 조건 === null) {
+    return (
+      <p className="text-[14px] text-ink-faint">
+        이 차례에는 AI 의 판단 기록이 남아 있지 않습니다.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {분석있음 && (
+        <말읽기
+          분석={{
+            child_intent: 행.child_intent,
+            main_point: 행.main_point,
+            detected_elements: 행.detected_elements,
+            utterance_validity: 행.utterance_validity,
+            dropped: 줄들?.dropped ?? [],
+          }}
+        />
+      )}
+      {조건 === null && (
+        // 스냅샷이 없는 옛 차례다. **꾸며 내지 않는다** — 되살릴 재료가 아예 없다.
+        <p className="text-[14px] text-ink-faint">
+          이 차례에는 「무엇이 쌓였고 다음에 무엇을 하기로 했는지」가 기록되어 있지 않습니다.
+        </p>
+      )}
+      {조건 !== null && 줄들 !== null && (
+        <>
+          <쌓인것
+            상태={{
+              current_child_turn_count: 조건.current_child_turn_count,
+              accumulated_elements: 조건.accumulated_elements,
+              missing_elements: 줄들.missing_elements,
+              last_response_mode: 조건.last_response_mode,
+              turns_without_new_element: 조건.turns_without_new_element,
+              consecutive_low_information_turns: 조건.consecutive_low_information_turns,
+            }}
+          />
+          <정한것
+            판정={{
+              response_mode: 조건.response_mode,
+              guidance_target: 조건.guidance_target,
+              soft_cue: 조건.soft_cue,
+              reaction_key: 조건.reaction_key,
+              scene_goal_met: 조건.scene_goal_met,
+              scene_end_reason: 조건.scene_end_reason,
+            }}
+          />
+        </>
+      )}
+      {/* 규칙 1-4 — 원문은 지우지 않고 접어 둔다. 개발자가 터미널 로그와 대조할 자리다. */}
+      <개발자용 제목="이 차례의 로그 원문">
+        <로그세줄 줄들={줄들} />
+      </개발자용>
+    </div>
+  )
+}
+
+/**
  * 이 턴이 쓴 LLM 시도로 가는 길 (`/runs/{run_id}/turns/{message_id}`).
  *
  * 🔴 **이 링크가 없으면 그 화면은 주소를 손으로 쳐야만 닿는다.** 파이썬은 턴 카드 안에
@@ -249,8 +330,12 @@ export function 로그세줄({
  */
 export function 시도링크({ run_id, message_id }: { run_id: string; message_id: string }) {
   return (
-    <Link href={`/runs/${run_id}/turns/${message_id}`} className="text-xs underline">
-      LLM 시도 · 프롬프트 원문 · 비용 →
+    <Link
+      href={`/runs/${run_id}/turns/${message_id}`}
+      className="text-[14px] font-bold text-primary-strong underline"
+    >
+      {/* ⚠️ 가는 곳의 제목과 같은 말이라야 눌러 보기 전에 무엇이 나올지 안다 (규칙 2-4). */}
+      AI 를 부른 기록 보기 →
     </Link>
   )
 }
@@ -260,24 +345,36 @@ export function 시도링크({ run_id, message_id }: { run_id: string; message_i
  *
  * ⛔ 여기에 규칙이 없다 — `service/view.runDetail()` 이 이미 정해 준 것을 그릴 뿐이다.
  *    「응답 없음」의 판정도 `character_response === null` 로 저쪽이 낸 값이다.
+ *
+ * 🔴 **머리줄이 `turn_order=10 speaker_type=character` 였다** (2026-08-15 · 규칙 1-1).
+ *    운영자에게 그건 「10번째 차례에 캐릭터가 한 말」이라고 읽히지 않는다.
  */
 export function 대화줄({ run_id, 행 }: { run_id: string; 행: TurnRow }) {
   const 아이 = 행.speaker_type === 'child'
   return (
-    <li className="border-l-2 border-divider pl-2">
-      <p className="font-mono text-xs text-ink-muted">
-        turn_order={행.turn_order} speaker_type={행.speaker_type}
-        {아이 && 행.character_response === null && (
-          <span className="ml-2 text-warn">응답 없음</span>
+    <li className="flex flex-col gap-2 rounded-2xl border border-divider p-4">
+      <p
+        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px]"
+        title={`turn_order=${행.turn_order} speaker_type=${행.speaker_type}`}
+      >
+        <span className="rounded-lg bg-chip px-2.5 py-1 text-[13px] font-bold text-ink-mid">
+          {행.turn_order}번째 차례
+        </span>
+        <span className="font-bold text-ink-soft">
+          {아이 ? '아이가 한 말' : '캐릭터가 한 말'}
+        </span>
+        {!아이 && 행.character_name !== null && (
+          <span className="text-ink-muted">{행.character_name}</span>
         )}
-        {아이 && (
-          <span className="ml-2">
-            <시도링크 run_id={run_id} message_id={행.id} />
+        {아이 && 행.character_response === null && (
+          <span className="rounded-lg bg-warn-soft px-2 py-1 text-[13px] font-bold text-warn">
+            캐릭터가 아직 답하지 못했습니다
           </span>
         )}
+        {아이 && <시도링크 run_id={run_id} message_id={행.id} />}
       </p>
-      <p>{행.text}</p>
-      {아이 && <로그세줄 줄들={행.log_lines} />}
+      <p className="text-[16px] text-ink">{행.text}</p>
+      {아이 && <턴판정 행={행} />}
     </li>
   )
 }

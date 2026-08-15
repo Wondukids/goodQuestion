@@ -22,24 +22,11 @@ import { 값, 단추, 빈자리, 입력칸, 카드, 화면머리말 } from '../u
 import { startRunAction } from './actions'
 import { 보내기 } from './submit'
 import { LLM칸, 라벨, 오류띠, 자동채점칸, 한칸 } from './ui'
+// 🔴 **이름표는 한 곳에만 둔다.** 같은 표가 두 화면에 따로 있으면 한쪽만 고쳐져 갈린다.
+//    ⚠️ 모르는 값이 오면 `이름표()` 가 **꾸며 내지 않고** 원래 글자를 그대로 준다.
+import { 이름표, 진행상태이름 } from './wording'
 
 export const metadata = { title: '회차 — 굿퀘스천 관리자' }
-
-/**
- * `story_sessions.status` 를 사람 말로 (규칙 1-1 · 2-5).
- *
- * ⛔ 여기에 규칙이 없다 — 어떤 값이 있는지는 `db/schema.ts` 의 검사 제약이 정한다
- *    (`in_progress`·`post_activity`·`completed`·`stopped`).
- * ⚠️ 모르는 값이 오면 **꾸며 내지 않고** 원래 글자를 그대로 보여 준다. 새 상태가 생겼을 때
- *    화면이 조용히 거짓말하는 것보다 낫다.
- */
-const 상태_이름: Readonly<Record<string, string>> = {
-  in_progress: '진행 중',
-  post_activity: '마무리 활동 중',
-  completed: '끝남',
-  stopped: '중간에 멈춤',
-  abandoned: '중간에 멈춤',
-}
 
 /**
  * 목록을 어떻게 줄 세울까 (규칙 1-5).
@@ -264,7 +251,7 @@ export default async function RunsPage({
                       )}
                     </td>
                     <td className="py-2.5 pr-4 whitespace-nowrap">
-                      {상태_이름[회차.status] ?? 회차.status}
+                      {이름표(진행상태이름, 회차.status) ?? 회차.status}
                     </td>
                     <td className="py-2.5 pr-4">
                       <값 것={회차.turn_count === 0 ? null : `${회차.turn_count}번`} 없을때="아직 없음" />

@@ -292,13 +292,7 @@ export default async function GoldensetPage({
                     <br />
                     장면 {항목.scene_order} · {항목.장면_이름}
                     <br />
-                    <span
-                      className={
-                        항목.검수 === '검수완료'
-                          ? 'text-green-700'
-                          : 'text-warn'
-                      }
-                    >
+                    <span className={항목.검수 === '검수완료' ? 'text-ok' : 'text-warn'}>
                       {항목.검수}
                     </span>
                   </td>

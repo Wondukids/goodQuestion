@@ -1362,20 +1362,23 @@ describe('대화 한 줄 — 그 턴의 LLM 시도로 내려가는 길', () => {
     const 마크업 = 그려본다(아이턴)
     expect(마크업).toContain(`href="/runs/9f/turns/${아이턴.id}"`)
     // 무엇을 보러 가는 길인지가 글자에 있어야 사람이 누른다.
-    expect(마크업).toContain('LLM 시도')
+    // ⚠️ 2026-08-15 에 글자가 「LLM 시도 …」에서 「AI 를 부른 기록 보기」로 바뀌었다
+    //    (규칙 1-1 · 가는 곳의 제목과 같은 말로). 재는 것은 그대로 「길이 글자로 보인다」다.
+    expect(마크업).toContain('AI 를 부른 기록')
   })
 
   it('⚠️ 캐릭터 턴에는 안 붙는다 — `llm_calls.message_id` 는 아이 발화 행을 가리킨다', () => {
     // 캐릭터 행의 id 로 열면 늘 「호출 없음」이 나와 「이 턴은 LLM 을 안 썼다」로 잘못 읽힌다.
     const 마크업 = 그려본다({ ...아이턴, speaker_type: 'character', character_response: null })
     expect(마크업).not.toContain('/turns/')
-    expect(마크업).not.toContain('응답 없음')
+    expect(마크업).not.toContain('답하지 못했습니다')
   })
 
-  it('대사를 못 받은 아이 턴은 「응답 없음」과 링크를 **둘 다** 낸다', () => {
+  it('대사를 못 받은 아이 턴은 「캐릭터가 아직 답하지 못했습니다」와 링크를 **둘 다** 낸다', () => {
     // 여기가 사람이 가장 자주 눌러 볼 자리다 — 왜 대사가 없나를 원문에서 봐야 한다.
+    // ⚠️ 옛 글자는 「응답 없음」이었다 (2026-08-15 · 규칙 2-5 — 운영자에게 그건 오류로 읽힌다).
     const 마크업 = 그려본다({ ...아이턴, character_response: null })
-    expect(마크업).toContain('응답 없음')
+    expect(마크업).toContain('캐릭터가 아직 답하지 못했습니다')
     expect(마크업).toContain(`href="/runs/9f/turns/${아이턴.id}"`)
   })
 })
@@ -1516,6 +1519,8 @@ describe('화면 파일은 service 만 부른다', () => {
     'app/(admin)/runs/page.tsx',
     'app/(admin)/runs/actions.ts',
     'app/(admin)/runs/ui.tsx',
+    // 엔진 값을 사람 말로 옮기는 표 (규칙 1-1). 이름표만 붙이는 자리라 여기도 같은 그물에 든다.
+    'app/(admin)/runs/wording.tsx',
     'app/(admin)/runs/[run_id]/page.tsx',
     'app/(admin)/runs/[run_id]/log/page.tsx',
   ]
@@ -1582,7 +1587,12 @@ describe('화면 파일은 service 만 부른다', () => {
     expect(단추들[0][1], '첫 단추가 폼의 action 이 아닌 다른 액션으로 샌다').not.toMatch(
       /formAction/,
     )
-    expect(단추들[0][2], '첫 단추가 「한 턴 돌리기 (①②③)」가 아니다').toContain('①②③')
+    // ⚠️ **글자가 2026-08-15 에 바뀌었다** (규칙 1-1 · 3-6). 옛 글자는 「한 턴 돌리기 (①②③)」
+    //    였는데 ①②③ 은 우리 계약의 번호일 뿐 운영자에게는 뜻이 없다. 재는 것은 그대로
+    //    「첫 단추가 한 차례를 끝까지 도는 쪽이다」이고, 그 사실을 새 글자로 잰다.
+    expect(단추들[0][2], '첫 단추가 「캐릭터 대답까지 한 번에」가 아니다').toContain(
+      '캐릭터 대답까지 한 번에',
+    )
 
     // 🔴 **첫 단추의 `표식` 도 여기서 잰다** (2026-08-13 통합 — 이 줄이 없어 무보호였다).
     //    `표식` 만 지워 봤더니 64건이 전부 초록인 채로 **고쳤다던 버그가 그대로 돌아왔다.**
@@ -1598,7 +1608,10 @@ describe('화면 파일은 service 만 부른다', () => {
     expect(단추들[1][1], '둘째 단추가 analysisAction 에 안 걸렸다').toMatch(
       /formAction=\{analysisAction\}/,
     )
-    expect(단추들[1][2], '둘째 단추가 「① 분석만」이 아니다').toContain('① 분석만')
+    // ⚠️ 옛 글자는 「① 분석만 (검수)」였다 (같은 2026-08-15 갈이).
+    expect(단추들[1][2], '둘째 단추가 「아이 말만 먼저 읽어 보기」가 아니다').toContain(
+      '아이 말만 먼저 읽어 보기',
+    )
     // ⚠️ 둘째 단추에는 `표식` 이 **없어야** 한다 — `formAction` 이 붙은 단추의 `name` 은
     //    React 가 `$ACTION_ID_…` 로 덮어쓰므로(`pushFormActionAttribute`) 얹어도 안 실려 오고,
     //    개발 콘솔에 경고만 찍힌다. 가르는 것은 `status.action` 쪽이다.
