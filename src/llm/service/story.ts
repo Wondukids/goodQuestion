@@ -225,7 +225,9 @@ export async function runStory(args: RunStoryArgs): Promise<StoryResult> {
       printLine('[세션] status=completed')
       // 관리자·CLI 로 끝난 활동에도 보호자 리포트를 만든다 (이슈 #38 · 리포트 명세 7절).
       // ⛔ `await` 하지 않는다 — 대본이 리포트를 기다릴 이유가 없다 (`completeRun()` 과 같은 자리).
-      queueReport(session_id)
+      // 🔴 후활동이 있는 이야기면 여기서 안 만든다 (이슈 #43 · 후활동 명세 7.1 F10·F13) —
+      //    `completeRun()` 과 같은 조건이다. 왜인지는 그쪽 주석에 적었다.
+      queueReport(session_id, { 후활동을_기다린다: true })
       return { turns, step: 할_일, completed: true }
     }
 

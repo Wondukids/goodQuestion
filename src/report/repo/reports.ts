@@ -128,6 +128,42 @@ export async function listReports(conn: Conn, child_id: string): Promise<ReportL
   }))
 }
 
+/**
+ * 리포트가 **아직 없는** 끝난 활동들 — 보호자 열람 시 받침이 쓴다 (후활동 명세 F12).
+ *
+ * 후활동이 있는 이야기는 세션이 끝나도 리포트를 안 만든다 (F10). 아이가 활동을 안 하고
+ * **앱을 그냥 꺼버리면** 만들라는 신호가 영영 안 오는데, 그 구멍을 메우는 자리가 여기다.
+ *
+ * 🔴 **끝난 활동만 올린다.** 도중에 그만둔 활동(`in_progress`)에 리포트를 만들면 아이가
+ *    이어서 놀던 이야기가 「끝난 것」처럼 목록에 뜬다. `queueReport()` 도 같은 것을 다시
+ *    보지만(그 문지기가 이 갈래의 마지막 방어선이다), 애초에 안 올리는 편이 싸다.
+ *
+ * 최근 순(`completed_at DESC`)이고 `한도` 개까지다 — 한 번 열 때 몇 장까지 띄울지는
+ * 부르는 쪽(service)이 정한다. 밀린 것이 더 있으면 그다음 열람이 이어 받는다.
+ */
+export async function 리포트없는_활동들(
+  conn: Conn,
+  child_id: string,
+  한도: number,
+): Promise<string[]> {
+  const 행들 = await conn
+    .select({ session_id: story_sessions.id })
+    .from(story_sessions)
+    .leftJoin(parent_reports, eq(parent_reports.session_id, story_sessions.id))
+    .where(
+      and(
+        eq(story_sessions.child_id, child_id),
+        eq(story_sessions.status, 'completed'),
+        isNull(parent_reports.session_id),
+      ),
+    )
+    // ⚠️ `desc` 는 포스트그레스에서 NULL 이 **먼저** 온다. 끝난 활동인데 끝난 시각이 비어
+    //    있는 행(옛 데이터)이 최근 것을 밀어내지 않게 뒤로 보낸다.
+    .orderBy(sql`${story_sessions.completed_at} desc nulls last`)
+    .limit(한도)
+  return 행들.map((행) => 행.session_id)
+}
+
 /** `child_words` 에 넣을 낱말 하나 (명세 6.2). */
 export interface 넣을_낱말 {
   word: string
