@@ -59,6 +59,8 @@ import { chooseBody } from '@/llm/prompts'
 import { buildChain, complete } from '@/llm/provider'
 import type { Conn } from '@/llm/repo/db'
 import { aggregateMetrics, type 집계재료 } from '@/report/domain/metrics'
+// ✅ 리포트를 실제로 만드는 함수 (#38). 명세 8절 ①~⑤ 를 한 번에 한다 — 여기서는 부르기만 한다.
+import { generateReport } from '@/report/service/generate'
 
 import {
   child_words,
@@ -1345,25 +1347,61 @@ export async function 지표보기(
 /**
  * ⏳ **아직 부를 함수가 없다.**
  *
- * 리포트를 실제로 만드는 `generateReport(session_id)` 와 API 넷은 **#38(P-4)** 이 짜는
- * 중이고 이 브랜치에는 없다(전수 grep 0건 · 2026-08-15). 여기 있는 것은 재료
- * (`src/report/engine/` 의 프롬프트 두 편과 인용 대조 — #37)까지다.
+ * ✅ **#38 이 합쳐져 이제 실제로 돈다** (2026-08-15). `generateReport()` 한 번이 명세 8절의
+ * ①~⑤ 를 다 한다 — 집계 · LLM 두 편 · 저장 · 낱말 누적. 여기서는 **부르기만 한다.**
  *
- * ⛔ **`generateReport()` 를 여기서 만들지 않는다.** #38 의 자리이고, 두 벌이 생기면
- *    나중에 어느 쪽이 정본인지 아무도 모른다. 자리만 비워 둔다.
+ * ⛔ **`generateReport()` 를 여기서 다시 만들지 않는다.** 두 벌이 생기면 나중에 어느 쪽이
+ *    정본인지 아무도 모른다.
  *
- * #38 이 합쳐지면 이 함수 안이 이렇게 된다 —
- *   1. 샤드가 맡은 활동마다 `generateReport(session_id)` 를 부른다 (활동당 LLM 2회)
- *   2. 그 함수가 `parent_reports` upsert 와 `child_words` 누적까지 한다 (명세 8절 ④⑤)
- * 그때까지 숫자만 보려면 `--metrics` 를 쓴다. 집계기(#36)는 이미 있어서 그건 지금도 된다.
+ * 🔴 **한 아이의 활동은 차례대로 돈다.** 아이 8번은 활동이 셋이고 「새로 쓴 낱말」이
+ *    `child_words` 누적과 대조돼 정해지므로(명세 4.3), 2회차를 1회차보다 먼저 만들면
+ *    새 낱말 수가 뒤바뀐다. `일감들()` 이 이미 `아이번호 * 100 + 차례` 로 정렬해 두었고
+ *    이 함수는 **그 순서대로 하나씩** 돈다.
+ *    ⚠️ 그래서 **아이 8번이 샤드로 갈리면 안 된다.** `--shard` 로 나눠 돌릴 때는 활동이
+ *    여럿인 아이가 한 샤드에 모이는지 확인해라. 확실하지 않으면 샤드 없이 한 번에 돌려라.
+ *
+ * ⚠️ `generateReport()` 는 **던지지 않는다.** 실패는 `null` 로 나온다 (그 함수 머리말).
+ *    그래서 연속 실패를 여기서 세어 멈춘다 — 키가 통째로 막힌 채로 남은 건을 계속 던지면
+ *    시간만 태운다 (킥오프 ④).
  */
-export function 리포트하기(고른것: readonly 일감[]): never {
-  throw new ValueError(
-    '리포트 생성은 아직 못 돈다 — `generateReport()` 가 이 브랜치에 없다 (#38 P-4 가 짜는 중).\n' +
-      `  맡은 활동 ${고른것.length}건은 이미 심겨 있고 분석도 끝나 있을 수 있다.\n` +
-      '  숫자만 보려면: tsx src/llm/db/seed-report-mock.ts --metrics\n' +
-      '  #38 이 api_team 에 합쳐진 뒤 이 자리에 generateReport(session_id) 를 잇는다.',
-  )
+export async function 리포트하기(
+  db: Conn,
+  고른것: readonly 일감[],
+  settings: Settings,
+): Promise<void> {
+  let 연속 = 0
+  let 만든것 = 0
+  const 빈것: string[] = []
+
+  for (const 일 of 고른것) {
+    const 이름 = `아이${일.아이.번호} ${일.아이.이름} ${일.활동.차례}회차`
+    const 행 = await generateReport({ conn: db, session_id: 일.session_id, settings })
+
+    if (행 === null) {
+      연속 += 1
+      찍기(`[리포트] ✗ ${이름} — 만들지 못했다 (연속 ${연속}/${연속실패_한계})`)
+      if (연속 >= 연속실패_한계) {
+        throw new ValueError(
+          `연속 ${연속실패_한계}건 실패해서 멈춘다. 키가 막혔는지 보고 다시 돌려라 ` +
+            `(만든 것 ${만든것}건은 그대로 남아 있다 — 다시 돌리면 덮어쓴다).`,
+        )
+      }
+      continue
+    }
+
+    연속 = 0
+    만든것 += 1
+    // `metrics_only` 는 숫자만 남고 문장이 없는 판이다 (명세 8절 · R18). 실패가 아니라
+    // **저장된 상태**라 여기서 멈추지 않지만, 몇 건인지는 끝에 알려 준다.
+    if (행.status === 'metrics_only') 빈것.push(이름)
+    찍기(`[리포트] ✓ ${이름} — ${행.status}`)
+  }
+
+  찍기(`[리포트] 끝. ${만든것}/${고른것.length}건 만들었다.`)
+  if (빈것.length > 0) {
+    찍기(`[리포트] ⚠️ 문장이 안 붙은 것 ${빈것.length}건 — ${빈것.join(' · ')}`)
+    찍기('          숫자는 다 있다. 화면에서 「다시 만들기」로 문장만 채울 수 있다.')
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1461,8 +1499,6 @@ async function main(): Promise<void> {
     찍기(`[키] --key ${옵.키} → 체인 한 칸: ${체인이_한_칸인가(settings)}`)
   }
 
-  if (옵.단계 === 'report') 리포트하기(고른것)
-
   // max: 1 — 한 연결로 순서대로 돈다. 세 프로세스가 나란히 돌아도 샤드가 갈려 있어
   //          같은 행을 두 프로세스가 건드리지 않는다 (킥오프 ④).
   const sql연결 = postgres(url, { max: 1 })
@@ -1479,6 +1515,11 @@ async function main(): Promise<void> {
         // 분석 전에 항상 심는다 — 대본이 바뀌었는데 옛 발화를 분석하는 일이 없게.
         await 심기(db, 고른것)
         await 분석하기(db, 고른것, settings!)
+        break
+      case 'report':
+        // 심지도 분석하지도 않는다 — 이미 끝나 있어야 한다. 안 끝나 있으면
+        // `generateReport()` 가 재료를 못 찾아 그 건만 `null` 로 나온다.
+        await 리포트하기(db, 고른것, settings!)
         break
       case 'metrics':
         await 지표보기(db, 고른것, 옵.출력경로)
