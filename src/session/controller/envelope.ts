@@ -13,6 +13,8 @@ import {
   AnalysisResponseError,
   LLMError,
   LookupError,
+  MissionInProgress,
+  MissionNotActive,
   TurnIncomplete,
   TurnInProgress,
   TurnNotAllowed,
@@ -56,7 +58,13 @@ export function 옮긴다(오류: unknown): { status: number; error: SessionErro
     return { status: 409, error: { ...짓기(409, 'TURN_INCOMPLETE').error, pending: 오류.pending } }
   }
   // 409 — 같은 세션에서 아직 끝나지 않은 호출이 있다. **재시도 가능하다.**
+  //       미션 API 도 같은 회차 잠금을 공유한다 (미션 명세 7절 E).
   if (오류 instanceof TurnInProgress) return 짓기(409, 'TURN_IN_PROGRESS', true)
+  // 409 — 미션이 도는 중이라 일반 턴을 받을 수 없다 (미션 명세 7절 E).
+  //       재시도해도 같다: 앱이 할 일은 미션을 마치는 것(complete)이다.
+  if (오류 instanceof MissionInProgress) return 짓기(409, 'MISSION_IN_PROGRESS')
+  // 409 — 그 미션 시도가 `in_progress` 가 아니다. 이미 끝났거나 버려졌다 (미션 명세 7절 E).
+  if (오류 instanceof MissionNotActive) return 짓기(409, 'MISSION_NOT_ACTIVE')
   // 409 — 이어 돌릴 것이 없다 · 회차 없는 세션 · 부를 차례가 아니다.
   if (오류 instanceof TurnNotAllowed) return 짓기(409, 'TURN_NOT_ALLOWED')
   // 502 — 분석 LLM 이 규격 밖 응답을 냈다. v1 은 422 로 가르지만 아이 앱 계약(명세 4.2절 표)에

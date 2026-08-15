@@ -14,11 +14,12 @@
 // 그래서 관리자 화면이든 검사든 텍스트만 있으면 같은 길을 탄다.
 
 import type { Settings } from '@/llm/config'
+import { activeMission, missionTrigger, MissionInProgress } from '@/llm/service/mission'
 import { sessionPendingTurn, submitTurn, type Conn } from '@/llm/service/run'
 import { advanceAfterClosing } from '@/llm/service/session-turn'
 import { ValueError } from '@/llm/service/step'
 import { isUsableUtterance } from '@/llm/service/turn'
-import { nextAfterTurn, type NextForApp } from '@/session/domain/progress'
+import { nextAfterTurn, nextMissionStart, type NextForApp } from '@/session/domain/progress'
 
 export interface RunSessionTurnArgs {
   session_id: string
@@ -55,17 +56,39 @@ export interface EmptyUtterance {
  *
  * `next` 판정은 `domain/progress.ts` 의 순수 함수다 — 전진이 **실제로 멈춘 자리**를
  * 계약 모양으로 옮길 뿐, 여기서 재계산하지 않는다.
+ *
+ * ## 미션 둘 (이슈 #19 · 미션 명세 7절 A·E)
+ *
+ * - **가드**: 미션이 도는 중이면 409 `MISSION_IN_PROGRESS` 다. 팝업이 열린 채 본 대화가
+ *   흘러가면 두 흐름이 같은 씬 상태(누적 요소·턴 수)를 두고 다툰다.
+ * - **트리거**: `missionTrigger()` 손잡이를 끼워 보낸다. 판단 직후 발동하면 ③ 이 다리
+ *   대사로 갈리고, 그 사실이 `손잡이.started` 로 돌아온다 (`llm/service/mission.ts`).
  */
 export async function runSessionTurn(args: RunSessionTurnArgs): Promise<SessionTurn | EmptyUtterance> {
-  const { run } = await sessionPendingTurn({ session_id: args.session_id, conn: args.conn })
+  const { run, pending } = await sessionPendingTurn({ session_id: args.session_id, conn: args.conn })
 
   if (!isUsableUtterance(args.utterance)) return { empty: true }
 
+  // ⚠️ 미완 턴이 있으면 **그쪽이 먼저다** — 앱이 할 일은 resume 이고, 그 409(`TURN_INCOMPLETE`
+  //    + pending)는 `submitTurn()` 이 던진다. 미션 가드를 앞에 두면 다리 대사가 끊긴 턴에서
+  //    「미션 중」만 알려 주게 되어, 앱이 팝업부터 열고 그 턴은 영영 미완으로 남는다.
+  if (pending === null) {
+    const 도는_미션 = await activeMission({ session_id: args.session_id, conn: args.conn })
+    if (도는_미션 !== null) {
+      throw new MissionInProgress(
+        `미션이 도는 중이라 대화 턴을 받을 수 없다 (mission_session_id=${도는_미션.id}). ` +
+          '미션을 마치면(complete) 다시 받는다.',
+      )
+    }
+  }
+
+  const 손잡이 = missionTrigger()
   const 결과 = await submitTurn({
     run_id: run.id,
     child_utterance: args.utterance,
     conn: args.conn,
     base_settings: args.base_settings,
+    mission: 손잡이,
   })
 
   // ② 직후의 세션 행이다 — `current_scene_id` 는 이 턴이 돈 대화 장면이고, 전진(4번)은
@@ -75,6 +98,8 @@ export async function runSessionTurn(args: RunSessionTurnArgs): Promise<SessionT
     throw new ValueError(`턴이 돌았는데 현재 장면이 없다: ${args.session_id}`)
   }
 
+  // 미션이 발동한 턴은 전진하지 않는다 — 다리 대사는 `generated` 라 아래 조건에도 안 걸리지만,
+  // 씬이 닫히는 자리가 미션 완료 하나뿐이라는 것을 여기서도 읽히게 둔다 (명세 5절 게이트).
   const next_scene =
     결과.dialogue.source === 'fixed'
       ? await advanceAfterClosing({ run_id: run.id, conn: args.conn })
@@ -87,6 +112,9 @@ export async function runSessionTurn(args: RunSessionTurnArgs): Promise<SessionT
       text: 결과.dialogue.text,
       source: 결과.dialogue.source,
     },
-    next: nextAfterTurn(결과.dialogue.source, scene_id, next_scene),
+    next:
+      손잡이.started === null
+        ? nextAfterTurn(결과.dialogue.source, scene_id, next_scene)
+        : nextMissionStart(scene_id, 손잡이.started),
   }
 }

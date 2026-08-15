@@ -489,6 +489,81 @@ export async function markSceneSkipped(conn: Conn, session_id: string): Promise<
 }
 
 /**
+ * 미션이 씬을 닫는다 — 요소를 다 채웠다 (명세 7절 D · 이슈 #19).
+ *
+ * ⚠️ `markSceneSkipped()` 와 갈리는 자리: 여기서는 `scene_goal_met` 도 켠다. 건너뛰기는
+ *    「아이가 넘겼다」라 목표가 안 찼지만, 이 자리는 **`required − accumulated` 가 비었다**를
+ *    보고 부른다 — 목표가 실제로 찼다. 사유를 넓히지 않는 것은 명세 6절 그대로다
+ *    (미션 완료로 닫혀도 사유는 요소 충족이라 `GOAL_MET`).
+ *
+ * ⛔ 누적 요소·턴 수는 건드리지 않는다. 그 둘은 미션 턴이 이미 적었다.
+ */
+export async function markSceneGoalMet(conn: Conn, session_id: string): Promise<void> {
+  await conn
+    .update(story_sessions)
+    .set({ scene_goal_met: true, scene_end_reason: 'GOAL_MET', last_activity_at: sql`now()` })
+    .where(eq(story_sessions.id, session_id))
+}
+
+/**
+ * 이번 턴의 닫힘을 무른다 — 미션 트리거가 CLOSING 을 눌렀다 (명세 5절 닫힘 게이트 · 이슈 #19).
+ *
+ * ② 는 `decide()` 가 낸 `scene_end_reason` 을 이미 적어 뒀고, 그 한 칸이 곧 전진 신호다
+ * (`domain/progress.nextStep()`). 미션으로 갈아탄 턴이 그것을 그대로 두면 다리 대사를
+ * 말하자마자 씬이 닫힌다. 씬은 미션 완료 뒤 `markSceneGoalMet()` 의 산식으로만 닫힌다.
+ *
+ * ⚠️ **`turn_conditions` 는 안 고친다.** 그 표는 「그 턴에 `decide()` 가 무엇이라 했나」의
+ *    박제다 — 실제로 CLOSING 이라고 했으므로 그대로 두는 것이 사실이다.
+ */
+export async function clearSceneEnd(conn: Conn, session_id: string): Promise<void> {
+  await conn
+    .update(story_sessions)
+    .set({ scene_goal_met: false, scene_end_reason: null, last_activity_at: sql`now()` })
+    .where(eq(story_sessions.id, session_id))
+}
+
+/**
+ * 미션 발화의 요소를 씬 누적에 합산한다 — **이 한 칸만** 쓴다 (M3 · 이슈 #19).
+ *
+ * 🔴 `updateSession()` 을 쓰지 않는 것이 요점이다. 그쪽은 턴 수와 유도 카운터 넷을 함께
+ *    쓰는데, 미션 턴은 씬 턴 수에 세지 않고 유도도 하지 않는다. 칸이 없으면 실수로도
+ *    저장할 수 없다 (`domain/mission.ts` 의 답에 그 칸들이 아예 없는 것과 같은 이유).
+ */
+export async function accumulateElements(
+  conn: Conn,
+  { session_id, accumulated }: { session_id: string; accumulated: readonly string[] },
+): Promise<void> {
+  await conn
+    .update(story_sessions)
+    .set({ accumulated_elements: [...accumulated], last_activity_at: sql`now()` })
+    .where(eq(story_sessions.id, session_id))
+}
+
+/**
+ * 그 장면에 저장된 미션 종료 요약 행 (명세 7절 D — `utterance_source='mission_summary'`).
+ *
+ * complete 를 두 번 불렀을 때 **같은 요약을 다시 내주는** 자리다. 없으면 `null`.
+ */
+export async function missionSummaryMessage(
+  conn: Conn,
+  { session_id, scene_id }: { session_id: string; scene_id: string },
+): Promise<{ id: string; text: string; turn_order: number } | null> {
+  const [행] = await conn
+    .select({ id: messages.id, text: messages.text, turn_order: messages.turn_order })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.session_id, session_id),
+        eq(messages.scene_id, scene_id),
+        eq(messages.utterance_source, 'mission_summary'),
+      ),
+    )
+    .orderBy(desc(messages.turn_order))
+    .limit(1)
+  return 행 ?? null
+}
+
+/**
  * 마지막 장면이 끝났다 (결정 22).
  *
  * `'post_activity'` 로 두지 않는다 — 이 레포에 말하기 후 활동이 없어 영영 안 끝난 세션이 남는다.

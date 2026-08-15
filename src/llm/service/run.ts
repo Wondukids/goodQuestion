@@ -59,6 +59,7 @@ import {
   runDialogueStage,
   runTurn,
   type DialogueStage,
+  type MissionHook,
   type Notify,
   type TurnResult,
 } from './turn'
@@ -535,6 +536,11 @@ export interface SubmitTurnArgs {
    */
   analysis_prompt?: string | null
   character_prompt?: string | null
+  /**
+   * ②½ 미션 손잡이 (이슈 #19 · 명세 7절 A). **안 주면 이 함수는 미션을 모른다** —
+   * 관리자 v1 과 골든셋은 안 주므로 그 길은 바이트 하나 안 바뀐다 (명세 11절 9).
+   */
+  mission?: MissionHook
 }
 
 /**
@@ -617,9 +623,12 @@ export async function submitTurn(args: SubmitTurnArgs): Promise<TurnResult> {
       analysis_prompt: 프롬프트.analysis,
       character_prompt: 프롬프트.character,
       notify: inProgress.notify(run_id),
+      mission: args.mission,
     })
 
     // 이 턴으로 장면이나 회차가 끝났으면 닫는다 (파이썬 `_대사_단계()` 의 꼬리).
+    // ⚠️ 미션이 닫힘을 눌렀으면(명세 5절 게이트) 손잡이가 종료 사유를 이미 물러 놓아
+    //    여기서 「아직 안 끝났다」로 읽힌다 — 씬은 미션 완료 뒤에만 닫힌다.
     await 끝났으면_닫는다(conn, run_id)
     return 결과
   } finally {
@@ -635,6 +644,11 @@ export interface ResumeTurnArgs {
   base_settings?: Settings
   analysis_prompt?: string | null
   character_prompt?: string | null
+  /**
+   * ②½ 미션 손잡이 (이슈 #19). 다리 대사에서 죽은 턴은 **다시 다리 대사로** 이어 돌린다 —
+   * 손잡이를 안 끼우면 그 자리에 일반 캐릭터 대사가 들어가 팝업 앞 문장이 어긋난다.
+   */
+  mission?: MissionHook
 }
 
 export interface ResumedTurn {
@@ -719,6 +733,7 @@ export async function resumeTurn(args: ResumeTurnArgs): Promise<ResumedTurn> {
         analysis_prompt: 프롬프트.analysis,
         character_prompt: 프롬프트.character,
         notify,
+        mission: args.mission,
       })
       await 끝났으면_닫는다(conn, run_id)
       return {
@@ -762,21 +777,42 @@ export async function resumeTurn(args: ResumeTurnArgs): Promise<ResumedTurn> {
       판정 = restoreDecision(조건)
     }
 
-    const dialogue = await runDialogueStage({
-      conn,
-      run_id,
-      session_id: run.session_id,
-      scene: 장면,
-      precedingNarrations: 앞선,
-      child_utterance: 아이.text,
-      child_message_id,
-      turn_order: 아이.turn_order,
-      main_point: 분석.main_point,
-      decision: 판정,
-      settings: 설정.character,
-      prompt: 프롬프트.character,
-      notify,
-    })
+    // ②½ — `runTurn()` 과 **같은 자리**다. 다리 대사에서 죽은 턴이면 손잡이가 그때 만든
+    //      `mission_sessions` 행을 그대로 다시 써서(반복 안전) 다리 대사만 새로 만든다.
+    const 다리 =
+      (await args.mission?.afterDecision({
+        conn,
+        run_id,
+        session_id: run.session_id,
+        scene: 장면,
+        precedingNarrations: 앞선,
+        child_utterance: 아이.text,
+        child_message_id,
+        turn_order: 아이.turn_order,
+        main_point: 분석.main_point,
+        detected_elements: kept,
+        response_mode: 판정.response_mode,
+        settings: 설정.character,
+        notify,
+      })) ?? null
+
+    const dialogue =
+      다리 ??
+      (await runDialogueStage({
+        conn,
+        run_id,
+        session_id: run.session_id,
+        scene: 장면,
+        precedingNarrations: 앞선,
+        child_utterance: 아이.text,
+        child_message_id,
+        turn_order: 아이.turn_order,
+        main_point: 분석.main_point,
+        decision: 판정,
+        settings: 설정.character,
+        prompt: 프롬프트.character,
+        notify,
+      }))
     // `runTurn()` 과 같은 자리에서 같은 줄을 찍는다 — 이어 돈 턴도 로그가 온전해야 한다.
     if (dialogue.source === 'fixed') printLine(sceneEndLine(장면, 판정))
 
