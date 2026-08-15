@@ -17,7 +17,7 @@ export default defineConfig({
   out: './src/llm/db/migrations',
   dialect: 'postgresql',
   dbCredentials: { url: process.env.DATABASE_URL! },
-  // 둘째 담 — 명령줄과 상관없이 **우리가 선언한 23표 밖을 아예 안 본다.**
+  // 둘째 담 — 명령줄과 상관없이 **우리가 선언한 24표 밖을 아예 안 본다.**
   // (개수는 선언에서 뽑으므로 이 숫자는 사람이 읽는 주석일 뿐이다. 표가 늘면 여기만 낡는다 —
   //  실제 개수를 못박는 자리는 `tests/push-guard.test.ts` 다.)
   // 위 가드가 argv 를 못 보게 되는 날(드리즐이 설정을 딴 프로세스에서 읽는 등)에도 남는다.

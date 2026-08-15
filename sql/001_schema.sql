@@ -298,11 +298,20 @@ CREATE TABLE utterance_analyses (
 CREATE TABLE post_activity_results (
     id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id       uuid        NOT NULL UNIQUE REFERENCES story_sessions (id) ON DELETE CASCADE,
+    -- 아이의 **첫 제출** 순서. 틀렸어도 그대로 남는다 (F7)
     submitted_order  text[],
+    -- 🔴 **「끝내 맞췄나」**다 (F18). 「첫 제출이 정답이었나」가 아니다 — 그건 attempt_count=1 로 안다
     is_order_correct boolean,
     attempt_count    smallint    NOT NULL DEFAULT 0,
     retelling_text   text,
-    completed_at     timestamptz
+    completed_at     timestamptz,
+    -- ⬇ 아래 둘은 sql/007 이 늘린 칸이다 (이슈 #42 · 말하기 후 활동 명세 4.2).
+    --   001 은 「처음 만들 때」의 정본이라 여기에도 적는다 — 006 이 story_scenes.vocabulary 를
+    --   넣을 때와 같은 처리다.
+    -- 판정을 끝낸 시각. 🔴 NULL 이면 **판정을 못 한 것**이다 (LLM 실패·아직 안 말함)
+    analyzed_at      timestamptz,
+    -- 어느 판 프롬프트가 낸 결과인가 ('retelling_v1' 로 시작)
+    analysis_version varchar
 );
 
 -- ─────────────────────────────────────────────────────────────
