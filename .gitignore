@@ -41,5 +41,7 @@ yarn-error.log*
 # 생성형 이미지 스크래치 — 코드에서 참조하지 않음
 images/
 
-# 병렬 작업용 워크트리 — 리포 하위에 중첩으로 생긴다
+# 병렬 작업용 워크트리 — 리포 하위에 중첩 폴더로 생긴다
 .claude/worktrees/
+# Orca 가 만드는 갈래 워크트리는 리포 **루트 바로 밑**에 선다 (`issue-35-report-schema` 꼴)
+/issue-*/
