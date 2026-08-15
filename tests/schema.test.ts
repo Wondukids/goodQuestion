@@ -280,6 +280,7 @@ describe('sql 파일과 표 선언', () => {
       ...sql파일의_표들('001_schema.sql'),
       ...sql파일의_표들('003_admin.sql'),
       ...sql파일의_표들('005_missions.sql'),
+      ...sql파일의_표들('006_parent_report.sql'),
     ].sort()
 
     expect(선언된_표_이름).toEqual(적힌_표)
@@ -319,6 +320,14 @@ describe('sql 파일과 표 선언', () => {
       'public.mission_sessions',
       'public.story_missions',
     ])
+    // 보호자 리포트 2표도 엔진 쪽이다 (이슈 #35).
+    // ⛔ 저쪽(팀 레포)의 `reports`·`wordbook` 은 여기 없다 — 쓰임이 겹쳐 보여도 계정 영역 표라
+    //    선언에 넣지 않는다 (보호자 리포트 명세 6.2 · `db/push-guard.ts` 머리말).
+    //    그 짝은 `tests/push-guard.test.ts` 가 이름 목록으로 한 번 더 못박는다.
+    expect(sql파일의_표들('006_parent_report.sql').sort()).toEqual([
+      'public.child_words',
+      'public.parent_reports',
+    ])
   })
 
   it('sql 파일이 이름 붙여 건 제약이 전부 schema.ts 에 있다', () => {
@@ -326,6 +335,7 @@ describe('sql 파일과 표 선언', () => {
       ...sql파일의_제약이름들('001_schema.sql'),
       ...sql파일의_제약이름들('003_admin.sql'),
       ...sql파일의_제약이름들('005_missions.sql'),
+      ...sql파일의_제약이름들('006_parent_report.sql'),
     ]
     const 선언한_제약 = new Set(선언된_제약이름들())
 
@@ -338,6 +348,7 @@ describe('sql 파일과 표 선언', () => {
       ...sql파일의_CHECK본문('001_schema.sql'),
       ...sql파일의_CHECK본문('003_admin.sql'),
       ...sql파일의_CHECK본문('005_missions.sql'),
+      ...sql파일의_CHECK본문('006_parent_report.sql'),
     ])
 
     const 어긋난: string[] = []

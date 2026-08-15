@@ -162,6 +162,11 @@ CREATE TABLE story_scenes (
     -- 목표 달성으로 끝내려면 아이가 최소 몇 번 말해야 하는지. 2026-08-05 확정 (결정 2)
     preferred_turns   smallint,
     max_turns         smallint,
+    -- 이 장면에 나오는, 6~9세에게 어려운 낱말과 그 뜻 (R20 · 보호자 리포트 명세 6.3).
+    --   [{ "word": "며느리", "meaning": "아들의 아내" }]
+    -- 「질문한 낱말」을 세고 「새로 쓴 낱말」에 뜻을 붙이는 데 쓴다.
+    -- ⚠️ 이미 선 DB 는 sql/006_parent_report.sql 이 ALTER 로 따라잡힌다 (이슈 #35).
+    vocabulary        jsonb    NOT NULL DEFAULT '[]',
 
     UNIQUE (story_id, scene_order),
     UNIQUE (story_id, code),

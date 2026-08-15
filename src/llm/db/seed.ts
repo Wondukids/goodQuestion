@@ -66,6 +66,10 @@
  *   `characters.code` 는 002 에 이미 있던 값 그대로다.
  *   `stories.slug` 는 저쪽 URL 슬러그라 콘텐츠 문서가 아니라 **저쪽 DB** 에서 왔다
  *   (`fart-bride` — 41행 중 유일한 `published` 행. 파이썬 판 `_슬러그` 와 같은 글자다).
+ *
+ *   ✏️ `story_scenes.vocabulary` — 이슈 #35 에서 새로 채웠다. 어느 문서에도 없는 값이라
+ *      **장면의 지문·고정 대사를 읽고 사람이 고른 초안**이다 (보호자 리포트 명세 6.3 · R20).
+ *      기획자 검수 전에는 이 목록으로 「질문한 낱말 4개」 같은 숫자를 판단하지 말 것.
  */
 
 import { pathToFileURL } from 'node:url'
@@ -204,37 +208,82 @@ const 캐릭터들 = [
 // 그대로 대응한다 (docs/기준/콘텐츠_방귀뀌는며느리.md:201,236).
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * 어려운 낱말 하나 — `story_scenes.vocabulary` 의 원소 (R20 · 보호자 리포트 명세 6.3).
+ *
+ * 그 장면의 지문·대사에 실제로 나오는 말 중 **6~9세가 뜻을 물을 만한 것**을 고른다.
+ * 리포트가 두 곳에서 쓴다 —
+ *   ① 아이의 QUESTION 발화 원문에 이 낱말이 있으면 「질문한 낱말」로 센다 (R15)
+ *   ② 아이가 처음 쓴 낱말이면 이 뜻이 `child_words.meaning` 이 된다 (R6)
+ * 그래서 뜻은 **아이에게 읽어 줄 수 있는 한 문장**으로 적는다. 사전 정의를 옮기지 않는다.
+ */
+type 낱말 = { word: string; meaning: string }
+
 /** 전개 장면 5개 — 아이가 말하지 않는다. 대화 관련 값이 전부 없다 */
-const 전개장면들: { code: string; scene_order: number; scene_description: string }[] = [
+const 전개장면들: {
+  code: string
+  scene_order: number
+  scene_description: string
+  vocabulary: 낱말[]
+}[] = [
   {
     code: 'sc_banggui_01',
     scene_order: 1,
     scene_description:
       '옛날 어느 마을에 방귀를 아주 크게 뀌는 며느리가 살았습니다. 며느리는 시집에 온 뒤로 늘 얌전하고 예의 바르게 보이고 싶었습니다. 시댁 식구들이 자신을 이상하게 볼까 봐 걱정했기 때문입니다.',
+    vocabulary: [
+      { word: '며느리', meaning: '아들의 아내' },
+      { word: '시집', meaning: '결혼한 여자가 들어가 사는 남편의 집' },
+      { word: '시댁', meaning: '남편의 부모님이 사는 집' },
+      { word: '얌전하다', meaning: '말과 행동이 조용하고 차분하다' },
+    ],
   },
   {
     code: 'sc_banggui_02',
     scene_order: 2,
     scene_description:
       '그래서 며느리는 방귀가 나오려고 할 때마다 꾹꾹 참았습니다. 하루도 참고, 이틀도 참고, 그렇게 오래 참다 보니 배는 점점 빵빵하게 부풀어 올랐고 얼굴은 노랗게 변했습니다. 몸도 마음도 너무 힘들었지만, 며느리는 차마 가족들에게 솔직하게 말하지 못했습니다.',
+    vocabulary: [
+      { word: '부풀다', meaning: '속에 무언가 차서 크게 불어나다' },
+      { word: '솔직하다', meaning: '숨기지 않고 있는 그대로 말하다' },
+      { word: '차마', meaning: '아무리 해도 도저히' },
+    ],
   },
   {
     code: 'sc_banggui_04',
     scene_order: 4,
     scene_description:
       '며느리는 더 이상 참을 수 없어 몰래 살짝만 방귀를 뀌려고 합니다. 하지만 오래 참았던 탓에 방귀가 크게 터져 나왔습니다. 마당의 먼지가 휘리릭 날아가고, 기왓장이 달그락거리고, 시아버지의 갓까지 휙 날아가 버렸습니다.',
+    vocabulary: [
+      { word: '시아버지', meaning: '남편의 아버지' },
+      { word: '기왓장', meaning: '지붕을 덮는 납작한 흙 조각' },
+      { word: '갓', meaning: '옛날 어른 남자가 머리에 쓰던 모자' },
+      { word: '마당', meaning: '집 앞의 넓고 평평한 땅' },
+    ],
   },
   {
     code: 'sc_banggui_06',
     scene_order: 6,
     scene_description:
       '한참 걷다 보니 아랫마을 길가에 아주 높은 배나무가 한 그루 서 있었습니다. 나무 꼭대기에는 노랗고 탐스러운 배들이 주렁주렁 매달려 있었습니다. 시아버지는 배를 보자 군침이 돌았습니다. 마침 아랫마을 사람들도 그 배를 먹고 싶어 했지만, 나무가 너무 높아 아무도 딸 수 없었습니다.',
+    vocabulary: [
+      { word: '배나무', meaning: '배가 열리는 나무' },
+      { word: '탐스럽다', meaning: '보기에 먹음직스럽고 갖고 싶다' },
+      { word: '주렁주렁', meaning: '열매가 많이 매달려 있는 모습' },
+      { word: '군침', meaning: '먹고 싶을 때 입안에 고이는 침' },
+    ],
   },
   {
     code: 'sc_banggui_08',
     scene_order: 8,
     scene_description:
       '시아버지는 며느리의 방귀가 시끄럽고 별난 것이 아니라, 모두를 도울 수 있는 특별한 힘이라는 것을 깨닫습니다. 자신이 며느리를 구박했던 일을 후회하고 사과합니다.',
+    vocabulary: [
+      { word: '별나다', meaning: '보통과 달리 유난히 다르다' },
+      { word: '깨닫다', meaning: '몰랐던 것을 알게 되다' },
+      { word: '구박', meaning: '남을 못살게 굴며 괴롭히는 일' },
+      { word: '후회', meaning: '지난 일을 뉘우치며 아쉬워하는 마음' },
+    ],
   },
 ]
 
@@ -260,6 +309,12 @@ type 대화장면 = {
   element_criteria: Record<string, string>
   preferred_turns: number
   max_turns: number
+  /**
+   * 🔴 **대화 장면 넷은 전부 한 개 이상이어야 한다** (이슈 #35).
+   * 아이가 말하는 곳이 여기뿐이라, 여기가 비면 「질문한 낱말」이 영영 0이 된다 (R15).
+   * 대화 장면은 `scene_description` 이 없으므로 `conflict`·고정 대사·`scene_goal` 에서 고른다.
+   */
+  vocabulary: 낱말[]
 }
 
 const 대화장면들: 대화장면[] = [
@@ -306,6 +361,12 @@ const 대화장면들: 대화장면[] = [
     },
     preferred_turns: 2,
     max_turns: 4,
+    // 며느리가 처음 말을 거는 장면이다. 관계를 가리키는 말(며느리·시댁)이 여기서 처음 나온다.
+    vocabulary: [
+      { word: '며느리', meaning: '아들의 아내' },
+      { word: '시댁', meaning: '남편의 부모님이 사는 집' },
+      { word: '용기', meaning: '무섭고 두려워도 마음을 굳게 먹고 해내는 힘' },
+    ],
   },
 
   // 대화2 · sc_banggui_05 -----------------------------------------------------
@@ -355,6 +416,13 @@ const 대화장면들: 대화장면[] = [
     },
     preferred_turns: 3,
     max_turns: 5,
+    // 시아버지가 화내는 까닭이 「체면」이라, 그 말을 모르면 장면이 안 풀린다.
+    vocabulary: [
+      { word: '시아버지', meaning: '남편의 아버지' },
+      { word: '체면', meaning: '남에게 떳떳하고 부끄럽지 않게 보이고 싶은 마음' },
+      { word: '친정', meaning: '결혼한 여자의 부모님이 사는 집' },
+      { word: '집안', meaning: '한집에서 함께 사는 가족 모두' },
+    ],
   },
 
   // 대화3 · sc_banggui_07 -----------------------------------------------------
@@ -388,6 +456,15 @@ const 대화장면들: 대화장면[] = [
     },
     preferred_turns: 3,
     max_turns: 5,
+    // 소쿠리·보자기·볏짚은 미션1(`ms_banggui_pear`)이 이 장면 안에서 고르게 하는 소품이다.
+    // 미션 config 의 `desc` 와 같은 뜻을 적는다 — 아이가 화면에서 그 문장을 보기 때문이다.
+    vocabulary: [
+      { word: '이장', meaning: '마을 일을 맡아서 돌보는 어른' },
+      { word: '배나무', meaning: '배가 열리는 나무' },
+      { word: '장대', meaning: '높은 곳에 닿게 쓰는 아주 긴 막대기' },
+      { word: '소쿠리', meaning: '물건을 담는 대나무 바구니' },
+      { word: '볏짚', meaning: '벼를 베고 남은 마른 줄기' },
+    ],
   },
 
   // 대화4 · sc_banggui_09 -----------------------------------------------------
@@ -422,6 +499,12 @@ const 대화장면들: 대화장면[] = [
     },
     preferred_turns: 2,
     max_turns: 4,
+    // 이 장면의 주제어들이다. 「부끄럽다 → 당당하다」가 며느리가 건너온 거리 그 자체다.
+    vocabulary: [
+      { word: '부끄럽다', meaning: '남 앞에서 얼굴이 화끈거리고 숨고 싶은 마음이 들다' },
+      { word: '당당하다', meaning: '부끄러워하지 않고 떳떳하다' },
+      { word: '인정하다', meaning: '그렇다고 받아들이다' },
+    ],
   },
 ]
 
@@ -624,6 +707,7 @@ export async function seed(db: Conn) {
       element_criteria: {},
       preferred_turns: null,
       max_turns: null,
+      vocabulary: 장.vocabulary,
     })),
     ...대화장면들.map(({ character_code, ...장 }) => ({
       story_id,
@@ -642,6 +726,7 @@ export async function seed(db: Conn) {
       element_criteria: 장.element_criteria,
       preferred_turns: 장.preferred_turns,
       max_turns: 장.max_turns,
+      vocabulary: 장.vocabulary,
     })),
   ].sort((a, b) => a.scene_order - b.scene_order)
 
