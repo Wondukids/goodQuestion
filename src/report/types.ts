@@ -42,7 +42,14 @@ export interface Axis {
 export interface Quote {
   message_id: string
   scene_code: string
-  /** 화면에 찍을 이름. 예: "장면 3 · 들켜버린 큰 방귀" */
+  /**
+   * 화면에 찍을 이름. 두 꼴이 나란히 온다 (미정 M7 — 2026-08-15 사람이 정했다).
+   *
+   * - 본 대화 — `"장면 3 · 들켜버린 큰 방귀"`
+   * - 미션   — `"미션 · 배 따기"` (이름은 `story_missions.title`)
+   *
+   * ⚠️ 화면은 이 값을 **그대로 찍는다.** 「장면 N ·」 꼴만 온다고 가정하지 마라.
+   */
   scene_label: string
   text: string
   /** 사고 요소 8종 코드 (`src/llm/elements.ts`) */
