@@ -34,7 +34,7 @@ export function 소수셋(값: number): string {
 const 칸_색 = (행: ResultView | undefined): string => {
   if (행 === undefined) return ''
   if (행.판정불가) return 'bg-chip'
-  return 행.맞음 ? 'bg-green-50' : 'bg-danger-soft'
+  return 행.맞음 ? 'bg-ok-soft' : 'bg-danger-soft'
 }
 
 /**

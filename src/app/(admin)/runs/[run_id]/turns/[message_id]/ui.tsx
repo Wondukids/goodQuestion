@@ -85,7 +85,8 @@ export function 시도표({ 시도들 }: { 시도들: TurnAttemptsView }) {
 function 판정표기(값: number | null): { 글: string; 꾸밈: string } {
   if (값 === null) return { 글: '판정 안 함', 꾸밈: 'text-ink-muted' }
   if (값 === 0) return { 글: '위반', 꾸밈: 'font-bold text-danger' }
-  return { 글: '지킴', 꾸밈: 'text-green-700' }
+  // ⚠️ 제품 토큰만 쓴다 (규칙 1-7). 여기 초록은 Tailwind 기본 팔레트였고 견본과 색이 갈렸다.
+  return { 글: '지킴', 꾸밈: 'font-bold text-ok' }
 }
 
 /**

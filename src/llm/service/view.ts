@@ -191,6 +191,16 @@ export interface TurnLogLines {
   판정: string
   accumulated_elements: readonly string[]
   missing_elements: readonly string[]
+  /**
+   * `[분석]` 줄의 `버림` — 근거를 아이 말에서 못 찾아 떨어낸 요소.
+   *
+   * ⭐ **문자열 안에만 있던 값을 밖으로 낸 것뿐이다** (2026-08-15). 세 줄을 화면에서 사람
+   *    말로 옮기려면(규칙 1-1) 화면이 이 목록을 손에 쥐어야 하는데, 유일한 길이 `[분석]`
+   *    문자열을 되파싱하거나 화면이 `postProcess()` 를 다시 돌리는 것이었다.
+   *    앞은 로그 형식에 화면을 매고, 뒤는 엔진 규칙을 화면에 복사한다 — 둘 다 안 된다.
+   *    ⛔ **계산은 그대로 여기서 한다.** 새로 하는 일이 없고 이미 낸 답을 함께 실을 뿐이다.
+   */
+  dropped: readonly string[]
 }
 
 /**
@@ -226,9 +236,11 @@ export function turnLogLines(
   )
 
   let 분석_줄: string | null = null
+  let 버린것: readonly string[] = []
   if (메시지.child_intent !== null && 메시지.child_intent !== '') {
     // `버림` 도 저장하지 않는다 — 순수 함수라 매번 다시 돌린다.
     const { dropped } = postProcess(메시지.detected_elements ?? [], 메시지.text)
+    버린것 = dropped
     분석_줄 = analysisLine(
       {
         child_intent: 메시지.child_intent,
@@ -246,6 +258,7 @@ export function turnLogLines(
     판정: decisionLine(판정),
     accumulated_elements: 상태.accumulated_elements,
     missing_elements: missing,
+    dropped: 버린것,
   }
 }
 

@@ -71,5 +71,8 @@ export async function skipScene(args: SkipSceneArgs): Promise<SkippedScene> {
     conn: args.conn,
   })
 
+  // ⚠️ 마지막 대화를 건너뛰면 여기서 회차가 닫히지만, 보호자 리포트를 만드는 자리는
+  //    그 닫는 함수(`completeRun()` · `llm/service/run.ts`) 꼬리다 (이슈 #38). 이 층에서
+  //    한 번 더 부르지 않는다.
   return { skipped: 결과.skipped, scene: 결과.waiting }
 }

@@ -54,11 +54,37 @@ export const 축_요소: Readonly<Record<AxisName, readonly string[]>> = {
 export const 축밖_요소: readonly string[] = ['REQUEST']
 
 /**
- * 「상호작용」 점수를 만드는 대화 지표 둘 (명세 4.2 · 결정 R4).
+ * 「상호작용」 점수를 만드는 대화 지표 셋 (명세 4.2 · 결정 R4 · 실측 뒤 셋째 항 추가).
  *
  * 점수 = 여기 적힌 칸들의 **단순 합**이다. 가중치를 두지 않는다.
+ *
+ * ## 🔴 셋째 항(`soft_cue_answered`)이 왜 붙었나 — 2026-08-15 목데이터 실측
+ *
+ * 원래 둘(`child_questions` + `reprompt_recovered`)뿐이었는데 목데이터 활동 12건을 재 보니
+ * **점수가 거꾸로 섰다.** `reprompt_recovered` 는 「캐릭터가 다시 물어봐 준 다음 턴에
+ * 살아났나」라서 **먼저 헤매야 얻는 점수**다. 그래서 —
+ *
+ * | 아이 | 다른 네 축 | 옛 상호작용 |
+ * |---|---|---|
+ * | 민서 (가장 풍부하게 말함) | 7~9 | **0** |
+ * | 서준 (짧게만 답함) | 2~3 | 2 |
+ * | 시우 (3마디 하고 중단) | 전부 0 | 1 |
+ *
+ * 처음부터 잘 답한 아이는 영영 0 이고, 오각형이 「말을 잘한 아이일수록 주고받기가 낮다」로
+ * 그려졌다. 12건 22점 중 20점이 회복이라 사실상 한 항짜리 축이기도 했다.
+ *
+ * 셋째 항은 **헤매지 않아도 얻는 주고받기**를 센다. 캐릭터는 아이가 잘 답했을 때도 대화를
+ * 잇기 위해 걱정·궁금함을 한 줄 얹는데(soft-cue · `src/llm/domain/decide.ts:255`), 거기에
+ * 곧바로 반응한 발화다. 실측에서 민서 0 → 8 로 올라오고 순서가 바로 섰다.
+ *
+ * ⛔ **가중치를 곱해 단위를 맞추지 않았다.** 다른 네 축이 전부 「그런 말을 한 발화 수」라는
+ *    같은 뜻의 정수라서, 셋째 항도 **세는 것**이어야 그 결이 안 깨진다.
  */
-export const 상호작용_점수칸 = ['child_questions', 'reprompt_recovered'] as const
+export const 상호작용_점수칸 = [
+  'child_questions',
+  'reprompt_recovered',
+  'soft_cue_answered',
+] as const
 
 /**
  * 담기만 하고 **점수에 넣지 않는** 칸 (`Axis.context`).
@@ -145,12 +171,29 @@ export interface 분석행 extends 분석 {
   message_id: string
 }
 
-/** `gq_admin.turn_conditions` 한 행 중 이 층이 보는 칸 (`:695`). */
+/** `gq_admin.turn_conditions` 한 행 중 이 층이 보는 칸 (`:805`). */
 export interface 턴조건행 {
   /** PK — 턴당 한 행이라 아이 메시지 하나에 판정 하나다 */
   message_id: string
   /** `'NORMAL' | 'GUIDED' | 'CLOSING'` (`src/llm/domain/decide.ts:99`) */
   response_mode: string
+  /**
+   * 이번 턴의 캐릭터 대사가 **끌어내려 한 사고 요소** (`'EMPATHY'`·`'SOLUTION'`…).
+   * `GUIDED`(대놓고 다시 물음)와 soft-cue(걱정 한 줄 얹음) 둘 다 여기에 남는다.
+   *
+   * ⚠️ **부르는 쪽이 알면 준다.** `src/report/repo/materials.ts` 는 준다. `seed-report-mock.ts`
+   *    의 `--metrics` 는 옛 두 칸만 뽑아서 안 준다 — 그때는 `soft_cue_answered` 가 0 이 된다.
+   */
+  guidance_target?: string | null
+  /**
+   * 이 턴의 캐릭터 대사에 **걱정 한 줄(soft-cue)이 얹혔나** (`src/llm/domain/decide.ts:255`).
+   *
+   * `response_mode === 'NORMAL'` 이면서 아이가 새 요소를 말했고 아직 못 채운 요소가 남았을 때
+   * 참이다. 즉 **아이가 잘 답한 턴에만 선다** — 헤맨 턴은 `GUIDED` 로 갈라진다.
+   *
+   * ⚠️ 위 `guidance_target` 과 같은 이유로 없을 수 있다.
+   */
+  soft_cue?: boolean
 }
 
 /**
@@ -348,26 +391,52 @@ function 요소축(발화들: readonly 아이발화[], 요소코드들: readonly
 }
 
 /**
- * 「상호작용」 축 — 요소가 아니라 대화 지표 둘의 합이다 (명세 4.2 · 결정 R4).
+ * 「상호작용」 축 — 요소가 아니라 대화 지표 셋의 합이다 (명세 4.2 · 결정 R4).
  *
  * - `child_questions` — `child_intent === 'QUESTION'` 인 아이 발화 수 (미션 포함, R23)
  * - `reprompt_recovered` — `GUIDED` 인 턴 **다음** 아이 발화가 `VALID` 인 횟수.
- *   ⚠️ **본 대화에서만 센다.** 미션 발화에는 `turn_conditions` 가 없다 — 미션 턴은
- *   유도하지 않기 때문이다 (`src/llm/domain/mission.ts:206`).
+ * - `soft_cue_answered` — soft-cue 가 얹힌 턴 **다음** 아이 발화가 그 `guidance_target` 을
+ *   실제로 말한 횟수. 셋째 항이 왜 붙었는지는 위 `상호작용_점수칸` 머리말에 있다.
+ *
+ * ⚠️ 셋 다 **아이 발화를 센다.** 뒤 둘은 「앞 턴에 무슨 판정이 났나」를 조건으로 쓸 뿐,
+ *    오르는 것은 **뒤 발화 하나**다. 네 요소 축이 「그런 말을 한 발화 수」인 것과 같은 단위다.
+ *
+ * ⚠️ 뒤 둘은 **본 대화에서만** 센다. 미션 발화에는 `turn_conditions` 가 없다 — 미션 턴은
+ *    유도하지 않기 때문이다 (`src/llm/domain/mission.ts:206`).
+ *
+ * ⚠️ **장면 경계를 따로 막지 않는다.** 장면은 `CLOSING` 턴에서만 끝나는데
+ *    (`src/llm/domain/progress.ts:134` — `scene_end_reason` 이 붙은 턴), `GUIDED` 도
+ *    soft-cue 도 `CLOSING` 이 아닌 턴에만 선다. 그래서 조건이 맞은 턴의 「다음 발화」는
+ *    **언제나 같은 장면 안**이거나(대화가 이어졌다) 아예 없다(활동을 중단했다).
+ *
+ * ⚠️ 두 항은 **겹치지 않는다.** `soft_cue` 는 `response_mode === 'NORMAL'` 일 때만 참이라
+ *    같은 앞 턴이 `GUIDED` 이면서 soft-cue 일 수는 없다.
  */
 function 상호작용축(발화들: readonly 아이발화[], turn_conditions: readonly 턴조건행[]): Axis {
   const child_questions = 발화들.filter((발화) => 발화.분석?.child_intent === 'QUESTION').length
 
-  const 모드_message_id로 = new Map(turn_conditions.map((행) => [행.message_id, 행.response_mode]))
+  const 판정_message_id로 = new Map(turn_conditions.map((행) => [행.message_id, 행]))
   const 본대화 = 발화들.filter((발화) => 발화.본대화)
 
   let reprompt_recovered = 0
+  let soft_cue_answered = 0
   for (let i = 1; i < 본대화.length; i += 1) {
-    const 앞턴_유도 = 모드_message_id로.get(본대화[i - 1].message_id) === 'GUIDED'
-    if (앞턴_유도 && 본대화[i].분석?.utterance_validity === 'VALID') reprompt_recovered += 1
+    const 앞턴 = 판정_message_id로.get(본대화[i - 1].message_id)
+
+    if (앞턴?.response_mode === 'GUIDED' && 본대화[i].분석?.utterance_validity === 'VALID') {
+      reprompt_recovered += 1
+    }
+
+    // 걱정 한 줄을 얹었고(=아이가 잘 답한 턴), 그 걱정이 가리킨 요소를 다음 발화가 말했다.
+    const 걱정 = 앞턴?.soft_cue === true ? (앞턴.guidance_target ?? null) : null
+    if (걱정 !== null && 감지된_요소(본대화[i]).has(걱정)) soft_cue_answered += 1
   }
 
-  const parts: Record<string, number> = { child_questions, reprompt_recovered }
+  const parts: Record<string, number> = {
+    child_questions,
+    reprompt_recovered,
+    soft_cue_answered,
+  }
   const score = 상호작용_점수칸.reduce((합, 칸) => 합 + parts[칸], 0)
 
   // `child_turns` 는 담기만 하고 점수에 안 넣는다 — 위 `상호작용_참고칸` 머리말 참고.

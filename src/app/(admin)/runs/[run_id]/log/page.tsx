@@ -12,8 +12,8 @@ import { connection } from 'next/server'
 
 import { runDetail, type RunDetail } from '@/llm/service/view'
 
-import { 개발자용, 곁링크, 빈자리, 카드, 화면머리말 } from '../../../ui'
-import { 로그세줄, 시도링크 } from '../../ui'
+import { 곁링크, 빈자리, 카드, 화면머리말 } from '../../../ui'
+import { 시도링크, 턴판정 } from '../../ui'
 
 export const metadata = { title: '턴 로그 — 굿퀘스천 관리자' }
 
@@ -97,10 +97,10 @@ export default async function TurnLogPage({
               ))}
               {행.speaker_type === 'child' && (
                 <>
-                  {/* 🔴 규칙 1-1 — 화면에는 사람 말, 원문 로그는 접어 둔다. */}
-                  <개발자용 제목="AI 가 그때 본 것과 판단">
-                    <로그세줄 줄들={행.log_lines} />
-                  </개발자용>
+                  {/* 🔴 규칙 1-1 — 화면에는 사람 말, 원문 로그는 그 안에서 접힌다.
+                      ⚠️ 예전에는 이 자리가 **접힌 원문 세 줄뿐**이었다. 펼쳐도 읽을 수 있는
+                         글자가 없었으므로, 사람 말로 옮긴 세 묶음을 본문에 둔다. */}
+                  <턴판정 행={행} />
                   {행.character_response === null && (
                     // 「바로 다음 한 행」이 이 장면의 캐릭터가 아니었다 — 이 턴은 대사를 못 받았다.
                     <p className="mt-2 text-[14px] font-bold text-warn">
