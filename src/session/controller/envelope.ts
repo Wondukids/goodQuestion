@@ -21,6 +21,13 @@ import {
   ValueError,
 } from '@/llm/service/step'
 import type { PendingTurn } from '@/llm/service/run'
+// 후활동의 둘만 예외로 세션 도메인 안에서 온다 (이슈 #45 · 명세 5.E). 위 목록이
+// `llm/service/step` 에 모인 것은 **라우트가 repo·provider 를 못 물어서**인데, 이 둘은
+// 세션 도메인이 스스로 던지는 것이라 그 구멍과 무관하다 — 던지는 파일이 이름의 집이다.
+import {
+  PostActivityNotAllowed,
+  PostActivityNotConfigured,
+} from '@/session/service/post-activity'
 
 export interface SessionErrorBody {
   code: string
@@ -67,6 +74,10 @@ export function 옮긴다(오류: unknown): { status: number; error: SessionErro
   if (오류 instanceof MissionNotActive) return 짓기(409, 'MISSION_NOT_ACTIVE')
   // 409 — 이어 돌릴 것이 없다 · 회차 없는 세션 · 부를 차례가 아니다.
   if (오류 instanceof TurnNotAllowed) return 짓기(409, 'TURN_NOT_ALLOWED')
+  // 409 — 이야기가 아직 안 끝났다. 후활동은 `completed` 세션에만 붙는다 (후활동 명세 5.E).
+  if (오류 instanceof PostActivityNotAllowed) return 짓기(409, 'POST_ACTIVITY_NOT_ALLOWED')
+  // 404 — 이 이야기에 후활동 설정이 없다. 앱은 그때 활동 버튼을 아예 안 그린다.
+  if (오류 instanceof PostActivityNotConfigured) return 짓기(404, 'POST_ACTIVITY_NOT_CONFIGURED')
   // 502 — 분석 LLM 이 규격 밖 응답을 냈다. v1 은 422 로 가르지만 아이 앱 계약(명세 4.2절 표)에
   //       그 칸이 없다 — 저장 상태는 그대로고 앱이 할 수 있는 일은 다시 resume 뿐이라 502 다.
   if (오류 instanceof AnalysisResponseError) return 짓기(502, 'LLM_UNAVAILABLE', true)
