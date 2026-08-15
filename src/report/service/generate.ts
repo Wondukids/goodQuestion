@@ -181,6 +181,22 @@ export async function generateReport(args: GenerateReportArgs): Promise<ReportRo
   return 저장된
 }
 
+/** `queueReport()` 의 곁다리 하나. 안 주면 「지금 만든다」다. */
+export interface QueueReportOptions {
+  /**
+   * **이 이야기에 말하기 후 활동이 있으면 여기서 만들지 않는다** (F10·F13 · 후활동 명세 7.1).
+   *
+   * 세션이 끝나는 두 자리(`completeRun()` · `story.ts` 재생 꼬리)만 `true` 로 넘긴다.
+   * 후활동이 있는 이야기는 이야기가 끝난 **뒤에** 아이가 활동을 하나 더 하므로, 거기서
+   * 만들면 그 결과가 리포트에 못 들어간다. 대신 셋 중 하나가 만든다 —
+   * 후활동 종료 API(`complete` · #45) · 활동을 건너뛰고 떠난 길 · 보호자 열람 시 받침(F12).
+   *
+   * ⛔ 그 세 자리는 이 값을 넘기지 마라. 넘기면 후활동이 있는 이야기의 리포트가 **영영**
+   *    안 만들어진다 — 「기다린다」의 상대가 바로 그들이다.
+   */
+  후활동을_기다린다?: boolean
+}
+
 /**
  * 활동이 끝난 자리에서 부르는 문 — **기다리지 않는다** (명세 7절 「만드는 자리」 · R2).
  *
@@ -188,17 +204,25 @@ export async function generateReport(args: GenerateReportArgs): Promise<ReportRo
  *    죽어도 아이는 「참 잘했어요」 화면으로 넘어가야 한다. 그래서 `await` 하지 않고 띄우고,
  *    실패는 로그로만 남긴다.
  *
+ * ## 이 문이 열리는 자리 (후활동 명세 7.1 — 이슈 #43 이 곁다리와 받침을 더했다)
+ *
+ * | 자리 | `후활동을_기다린다` |
+ * |---|---|
+ * | 세션 닫기 — `completeRun()` · `story.ts` 재생 꼬리 | **`true`** (F13 의 길) |
+ * | 후활동 종료 — `complete(reason=finished\|left)` (#45) | 안 넘긴다 (F11) |
+ * | 보호자 열람 시 받침 — `service/reports.ts` (F12) | 안 넘긴다 |
+ *
  * ## 이미 있으면 다시 안 만든다
  *
- * 세션 닫기가 두 자리(`llm/service/run.ts` 의 `completeRun()` · `story.ts` 의 재생 꼬리)라
- * 같은 활동에서 이 문이 두 번 열릴 수 있다. 저장은 덮어쓰기라 행은 안 늘지만 **LLM 2회가
- * 또 나간다.** 그래서 행이 이미 있으면 그냥 돌아간다 — 다시 만드는 길은 보호자가 누르는
+ * 위 넷 가운데 둘 이상이 겹쳐 들어올 수 있다 — 아이가 활동을 마치고 끝 화면을 떠나면
+ * `complete` 가 두 번 불린다. 저장은 덮어쓰기라 행은 안 늘지만 **LLM 2회가 또 나간다.**
+ * 그래서 행이 이미 있으면 그냥 돌아간다 — 다시 만드는 길은 보호자가 누르는
  * 「다시 만들기」뿐이다 (R19).
  *
  * ⛔ 여기에 `conn` 을 넘기지 마라. 검사 트랜잭션을 넘기면 요청이 끝난 뒤에 그 트랜잭션이
  *    되돌려져 저장이 사라진다. 검사는 `generateReport()` 를 직접 부른다.
  */
-export function queueReport(session_id: string): void {
+export function queueReport(session_id: string, options: QueueReportOptions = {}): void {
   __testing.마지막작업 = (async () => {
     try {
       const conn = getDb()
@@ -207,8 +231,14 @@ export function queueReport(session_id: string): void {
 
       // 아직 안 끝난 활동에는 리포트를 만들지 않는다. 닫는 자리에서 불렀는데 안 닫혀 있으면
       // 다른 갈래가 먼저 왔다는 뜻이고, 그 갈래가 자기 자리에서 다시 부른다.
+      //
+      // ⚠️ 후활동은 **이미 `completed` 인 세션**에 붙는 활동이라 이 문지기와 어긋나지 않는다
+      //    (F10 — 세션 상태는 안 건드린다. `post_activity` 상태는 F5 로 접었다).
       const 신원 = await readSessionIdentity(conn, session_id)
       if (신원 === null || 신원.status !== 'completed') return
+
+      // 후활동이 남았다 — 그 결과까지 담아 **한 번에** 만들려고 여기서는 안 만든다 (F10).
+      if (options.후활동을_기다린다 === true && 신원.has_post_activity) return
 
       await generateReport({ session_id })
     } catch (오류) {
