@@ -573,3 +573,5 @@ export { LLMError } from '@/llm/provider'
 export { SceneNotFound } from '@/llm/repo/content'
 export { TurnIncomplete, TurnInProgress, TurnNotAllowed } from './run'
 export { TurnFailed } from './turn'
+// 미션 API 의 409 둘 (미션 명세 7절 E · 이슈 #19).
+export { MissionInProgress, MissionNotActive } from './mission'
