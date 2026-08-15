@@ -119,6 +119,31 @@ interface Step {
   apiKey: string | null
 }
 
+// ── SDK 불러오기 — **모듈마다 딱 한 번** ───────────────────────────────────
+//
+// 🔴 세 SDK 는 동적 import 로 가져온다(첫 호출 전까지 안 붙이려고). 그런데 `import()` 를
+//    **부를 때마다** 하면, 두 호출이 **동시에** 나갈 때 검사의 F-1 그물(진짜 LLM 금지 ·
+//    `tests/setup.ts`)에 구멍이 난다. 2026-08-15 에 실제로 재현했다:
+//
+//    ```
+//    const [가, 나] = await Promise.all([import('@google/genai'), import('@google/genai')])
+//    // 가 = 가짜(그물)  ·  나 = 진짜 SDK   ← 두 번째가 vi.mock 을 지나쳐 버린다
+//    ```
+//
+//    그래서 보호자 리포트(이슈 #38)가 두 편을 **동시에** 부르는 순간(명세 8절 ②③) 뒤엣것이
+//    진짜 제미나이를 11초간 불렀다. **돈이 나갔고, 검사는 초록이었다.** 차례로 부르면
+//    안 나는 일이라 여태 아무도 안 밟았다 — 이 레포에서 LLM 을 동시에 부르는 자리가 없었다.
+//
+//    고치는 자리는 여기다. `import()` 를 **한 번만** 하고 그 프라미스를 재사용하면 모듈
+//    등록부를 두 번 두드릴 일이 없어서 경합 자체가 사라진다. 제품에서도 이득이다 —
+//    호출마다 하던 해석을 한 번으로 줄인다.
+//
+// ⚠️ 프라미스를 담는다. 값이 아니라 프라미스를 담아야 **동시에 온 둘이 같은 것을 기다린다.**
+
+let 제미나이_모듈: Promise<typeof import('@google/genai')> | null = null
+let 앤트로픽_모듈: Promise<typeof import('@anthropic-ai/sdk')> | null = null
+let 오픈에이아이_모듈: Promise<typeof import('openai')> | null = null
+
 // ── 토큰 세기 ──────────────────────────────────────────────────────────────
 
 /** 공급자마다 칸 이름이 달라 **아는 이름을 차례로** 본다. 없으면 `null`(모름)이다. */
@@ -181,7 +206,8 @@ async function callGemini(
   json_schema: Record<string, unknown> | null,
   apiKey: string | null,
 ): Promise<ProviderResponse> {
-  const { GoogleGenAI } = await import('@google/genai')
+  제미나이_모듈 ??= import('@google/genai')
+  const { GoogleGenAI } = await 제미나이_모듈
 
   const client = new GoogleGenAI({
     apiKey: apiKey ?? geminiKey(settings, 1) ?? '',
@@ -216,7 +242,8 @@ async function callAnthropic(
   user: string,
   json_schema: Record<string, unknown> | null,
 ): Promise<ProviderResponse> {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk')
+  앤트로픽_모듈 ??= import('@anthropic-ai/sdk')
+  const { default: Anthropic } = await 앤트로픽_모듈
 
   const client = new Anthropic({
     apiKey: settings.anthropic_api_key ?? '',
@@ -270,7 +297,8 @@ async function callOpenAI(
   user: string,
   json_schema: Record<string, unknown> | null,
 ): Promise<ProviderResponse> {
-  const { default: OpenAI } = await import('openai')
+  오픈에이아이_모듈 ??= import('openai')
+  const { default: OpenAI } = await 오픈에이아이_모듈
 
   const client = new OpenAI({
     apiKey: settings.openai_api_key ?? '',

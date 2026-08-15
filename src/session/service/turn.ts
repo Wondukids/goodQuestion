@@ -105,6 +105,14 @@ export async function runSessionTurn(args: RunSessionTurnArgs): Promise<SessionT
       ? await advanceAfterClosing({ run_id: run.id, conn: args.conn })
       : null
 
+  // ⚠️ 회차가 끝났을 때 보호자 리포트를 만드는 자리는 **여기가 아니다.** 세션을 닫는 곳이
+  //    `completeRun()`(`llm/service/run.ts`) 하나로 모이므로 그 꼬리에 걸어 뒀다 (이슈 #38).
+  //    여기에도 걸면 같은 활동에서 문이 두 번 열린다.
+  const next =
+    손잡이.started === null
+      ? nextAfterTurn(결과.dialogue.source, scene_id, next_scene)
+      : nextMissionStart(scene_id, 손잡이.started)
+
   return {
     child: { message_id: 결과.child_message_id, text: args.utterance },
     dialogue: {
@@ -112,9 +120,6 @@ export async function runSessionTurn(args: RunSessionTurnArgs): Promise<SessionT
       text: 결과.dialogue.text,
       source: 결과.dialogue.source,
     },
-    next:
-      손잡이.started === null
-        ? nextAfterTurn(결과.dialogue.source, scene_id, next_scene)
-        : nextMissionStart(scene_id, 손잡이.started),
+    next,
   }
 }

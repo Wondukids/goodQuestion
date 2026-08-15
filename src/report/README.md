@@ -14,10 +14,15 @@
 
 | 층 | 폴더 | 하는 일 |
 |---|---|---|
-| controller | `controller/` | HTTP 경계. `src/app/api/**/route.ts` 는 **한 줄 재-내보내기**만 한다 |
+| controller | `controller/` | HTTP 경계. `src/app/api/**/route.ts` 는 **한 줄 재-내보내기**만 한다. 문지기(내 아이인가)도 여기다 |
 | service | `service/` | 한 요청의 시퀀스. 생성 흐름 ①~⑤ 의 **순서는 이 층만 안다** |
 | engine | `engine/` | LLM 을 부르고 응답을 대조한다 |
+| repo | `repo/` | SQL 이 사는 유일한 곳. 집계 재료를 읽고 두 표(`parent_reports`·`child_words`)를 쓴다 |
 | domain | `domain/` | 순수 함수 — 지표 집계. **DB 도 LLM 도 시각도 난수도 모른다** |
+
+⚠️ 세션 도메인(`src/session`)에는 repo 가 없지만 여기에는 있다 — 새 표 둘을 우리가 세웠고,
+집계에 필요한 읽기 여덟은 대화 진행과 상관이 없어서 `llm/service` 에 얹으면 그쪽이 리포트
+사정을 알게 된다 (`repo/materials.ts` 머리말).
 
 `types.ts` 는 층이 아니라 **셋이 공유하는 계약 하나**다. 프론트 계약 문서 1절을 그대로
 옮긴 것이라 이름을 바꾸기 전에 그 문서를 먼저 고쳐야 한다.
@@ -28,10 +33,24 @@
 활동 종료 (status → completed)
   ├─① 지표 집계        순수 함수, LLM 0회.  실패하면 여기서 끝 — 행을 만들지 않는다
   ├─② report_analysis  ┐ 서로를 안 보므로 **동시에** 부른다
-  ├─③ report_guide     ┘ 둘 중 하나라도 실패하면 status='metrics_only'
+  ├─③ report_guide     ┘ **둘 다** 실패해야 narrative=null · status='metrics_only'
   ├─④ 저장             parent_reports upsert (session_id 로)
   └─⑤ 낱말 누적        child_words ← 🔴 ④가 성공한 뒤에만
 ```
+
+🔴 **「한 편만 실패」는 살린다** (2026-08-15 확정 · 명세 8절 표). 이 줄은 원래 「둘 중
+하나라도 실패하면 `metrics_only`」였는데, `types.ts` 가 「`metrics_only` 면 `narrative`
+는 `null`」을 못박고 있어 그대로 하면 **성공한 절반을 통째로 버린다.** R18 의 뜻은
+「실패해도 남은 것을 보여 준다」이므로 살리는 쪽이 맞다.
+
+| 무슨 일이 있었나 | `status` | `narrative` |
+|---|---|---|
+| 둘 다 성공 | `complete` | 다 참 |
+| **한 편만 실패** | `complete` | 실패한 편의 칸만 빈다 (`''`) |
+| 둘 다 실패 | `metrics_only` | `null` |
+
+⚠️ 실패한 편의 글자 칸은 `null` 이 아니라 **빈 글자**로 온다. 화면이 `??` 로 받으면
+안내 문구 대신 빈 줄이 그려진다 — `src/lib/report.ts` 의 `textOr()` 가 막는 자리다.
 
 🔴 **⑤를 ④보다 먼저 하면 안 된다.** 먼저 넣으면 「다시 만들기」를 눌렀을 때 그 낱말들이
 이미 있어서 **새 낱말이 0개**가 된다 (명세 4.3).

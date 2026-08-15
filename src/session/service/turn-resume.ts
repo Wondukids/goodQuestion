@@ -81,6 +81,8 @@ export async function resumeSessionTurn(args: ResumeSessionTurnArgs): Promise<Re
     mission: 손잡이,
   })
 
+  // ⚠️ 이어 돌린 턴이 이야기의 마지막이면 엔진 꼬리(`끝났으면_닫는다()`)가 세션을 닫고,
+  //    보호자 리포트는 그 안의 `completeRun()` 이 띄운다 (이슈 #38). 여기서 다시 안 부른다.
   return {
     resumed_from: 결과.resumed_from,
     child: { message_id: 결과.child_message_id, text: 결과.child_text },
