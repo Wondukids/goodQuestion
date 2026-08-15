@@ -70,6 +70,11 @@
  *   ✏️ `story_scenes.vocabulary` — 이슈 #35 에서 새로 채웠다. 어느 문서에도 없는 값이라
  *      **장면의 지문·고정 대사를 읽고 사람이 고른 초안**이다 (보호자 리포트 명세 6.3 · R20).
  *      기획자 검수 전에는 이 목록으로 「질문한 낱말 4개」 같은 숫자를 판단하지 말 것.
+ *
+ *   `stories.post_activity_config` — 이슈 #42 에서 넣었다. 값은 화면 상수
+ *      (`src/stories/fart-bride/minigame/finale-script.ts`)에서 왔고 초안이 아니다.
+ *      🔴 **정본은 여기가 아니라 `sql/007_post_activity.sql` 의 UPDATE 다** — `stories` 가
+ *      `onConflictDoNothing` 이라 이미 선 행에는 시드를 다시 돌려도 안 들어간다 (아래 결정 4).
  */
 
 import { pathToFileURL } from 'node:url'
@@ -89,6 +94,29 @@ loadEnvFile()
 // ─────────────────────────────────────────────────────────────
 // 이야기
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * 말하기 후 활동의 카드 넉 장·정답 순서·섞인 순서 (F1 · 말하기 후 활동 명세 4.1).
+ *
+ * 🔴 **정본은 여기가 아니라 `sql/007_post_activity.sql` 의 UPDATE 다.** 아래 이야기를 넣는
+ *    자리가 `onConflictDoNothing` 이라(결정 4 · 4차) 이미 선 `fart-bride` 행에는 시드를
+ *    다시 돌려도 이 칸이 **안 들어간다.** 이 값은 **새 DB 를 처음 세울 때**만 쓰인다.
+ *
+ * ⛔ **앱·API 는 이 상수를 읽지 않는다** — DB 의 `stories.post_activity_config` 를 읽는다
+ *    (F1 의 요점이 그것이다). 내보내는 것은 `tests/post-activity-schema.test.ts` 가
+ *    007·화면 상수와 **글자까지 같은지** 재기 위해서다.
+ */
+export const 후활동_config = {
+  cards: [
+    { id: 'endure', title: '방귀를 참는 며느리', keywords: ['시집', '참다', '걱정'] },
+    { id: 'burst', title: '들켜버린 큰 방귀', keywords: ['방귀', '깜짝', '기둥'] },
+    { id: 'pear', title: '배나무 앞 방귀 대작전', keywords: ['배나무', '힘껏', '우수수'] },
+    { id: 'pride', title: '마을의 자랑이 된 며느리', keywords: ['당당하다', '칭찬', '고마워'] },
+  ],
+  answer_order: ['endure', 'burst', 'pear', 'pride'],
+  tray_order: ['pear', 'pride', 'endure', 'burst'],
+}
+
 const 이야기 = {
   // 저쪽 `stories` 41행 중 유일한 `published` 행의 슬러그다 (결정 3 · 4차).
   slug: 'fart-bride',
@@ -97,6 +125,9 @@ const 이야기 = {
   difficulty: '보통',
   topics: ['다름', '자기이해', '장점 발견'],
   estimated_minutes: 20,
+  // 카드 넉 장·정답 순서·섞인 순서 (바로 위 `후활동_config` 의 머리말을 읽을 것 —
+  // 값이 실제로 들어가는 자리는 `sql/007_post_activity.sql` 이다)
+  post_activity_config: 후활동_config,
   status: 'published',
 }
 

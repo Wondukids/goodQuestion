@@ -281,6 +281,7 @@ describe('sql 파일과 표 선언', () => {
       ...sql파일의_표들('003_admin.sql'),
       ...sql파일의_표들('005_missions.sql'),
       ...sql파일의_표들('006_parent_report.sql'),
+      ...sql파일의_표들('007_post_activity.sql'),
     ].sort()
 
     expect(선언된_표_이름).toEqual(적힌_표)
@@ -328,6 +329,12 @@ describe('sql 파일과 표 선언', () => {
       'public.child_words',
       'public.parent_reports',
     ])
+    // 후활동 단어 표도 엔진 쪽이다 (이슈 #42).
+    // ⚠️ **한 표뿐이다.** 007 은 `post_activity_results` 의 칸도 둘 늘리지만 그건
+    //    `ALTER TABLE` 이고, 위 파서는 `CREATE TABLE` 만 본다 (그 표는 001 에서 이미 걸린다).
+    expect(sql파일의_표들('007_post_activity.sql').sort()).toEqual([
+      'public.post_activity_keywords',
+    ])
   })
 
   it('sql 파일이 이름 붙여 건 제약이 전부 schema.ts 에 있다', () => {
@@ -336,6 +343,7 @@ describe('sql 파일과 표 선언', () => {
       ...sql파일의_제약이름들('003_admin.sql'),
       ...sql파일의_제약이름들('005_missions.sql'),
       ...sql파일의_제약이름들('006_parent_report.sql'),
+      ...sql파일의_제약이름들('007_post_activity.sql'),
     ]
     const 선언한_제약 = new Set(선언된_제약이름들())
 
@@ -349,6 +357,7 @@ describe('sql 파일과 표 선언', () => {
       ...sql파일의_CHECK본문('003_admin.sql'),
       ...sql파일의_CHECK본문('005_missions.sql'),
       ...sql파일의_CHECK본문('006_parent_report.sql'),
+      ...sql파일의_CHECK본문('007_post_activity.sql'),
     ])
 
     const 어긋난: string[] = []

@@ -2,10 +2,11 @@
  * 굿퀘스천 스키마 (Drizzle · Postgres 16)
  *
  * 근거: sql/001_schema.sql (엔진) · sql/003_admin.sql (관리 도구) ·
- * sql/005_missions.sql (미션 — 이슈 #17) · sql/006_parent_report.sql (보호자 리포트 — 이슈 #35)
- * 를 옮긴 것이다.
+ * sql/005_missions.sql (미션 — 이슈 #17) · sql/006_parent_report.sql (보호자 리포트 — 이슈 #35) ·
+ * sql/007_post_activity.sql (말하기 후 활동 — 이슈 #42) 를 옮긴 것이다.
  * 앞 두 파일의 근거 문서는 docs/기준/db구조.md (원본 PDF 전사본),
- * 005 의 근거 문서는 docs/미션_명세.md 6절, 006 은 docs/보호자_리포트_명세.md 6절이다.
+ * 005 의 근거 문서는 docs/미션_명세.md 6절, 006 은 docs/보호자_리포트_명세.md 6절,
+ * 007 은 docs/말하기후활동_명세.md 4절이다.
  *
  * ⚠️ 원본 SQL 의 주석을 통째로 옮겼다. 원본 문서에서 무엇을 왜 바꿨는지가
  *    그 주석에만 적혀 있기 때문이다 (docs/설계/이식목록.md 3절).
@@ -429,6 +430,10 @@ export const utterance_analyses = pgTable(
 // 9. post_activity_results — 말하기 후 활동 결과
 //
 // 세션당 최종 결과 한 건만 저장한다. 시도별 과정은 남기지 않는다.
+//
+// 🔴 미션 1·2 와는 다른 활동이다 (말하기 후 활동 명세 3절). 아래 `story_missions` 세 표는
+//    **이야기 도중**에 끼어드는 미니게임이고, 이 표는 이야기를 **다 본 뒤**의 활동이다.
+//    이름이 다 「미니게임」으로 묶여 보여도 코드도 흐름도 겹치지 않는다.
 // ─────────────────────────────────────────────────────────────
 export const post_activity_results = pgTable('post_activity_results', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -437,12 +442,72 @@ export const post_activity_results = pgTable('post_activity_results', {
     .notNull()
     .unique('post_activity_results_session_id_key')
     .references(() => story_sessions.id, { onDelete: 'cascade' }),
+  // 아이의 **첫 제출** 순서. 틀렸어도 그대로 남는다 (F7)
   submitted_order: text('submitted_order').array(),
+  // 🔴 **「끝내 맞췄나」**다 (F18). 「첫 제출이 정답이었나」가 **아니다** — 그건
+  //    `attempt_count = 1` 로 안다. 못 맞추고 나갔으면 `false`.
+  //    이름을 안 바꾼 것은 팀 DB 에 이미 선 칸이기 때문이다 (말하기 후 활동 명세 4.2)
   is_order_correct: boolean('is_order_correct'),
+  // 「다 놓았어요!」를 누른 횟수 (통과한 회차 포함)
   attempt_count: smallint('attempt_count').notNull().default(0),
+  // 서버가 받아쓴 아이 줄거리 원문 (F6)
   retelling_text: text('retelling_text'),
+  // 「마치기」를 누른 시각. 중간에 나갔으면 NULL
   completed_at: timestamp('completed_at', { withTimezone: true }),
+  // ⬇ 아래 둘은 sql/007 이 늘린 칸이다 (이슈 #42 · 명세 4.2)
+  //
+  // 판정을 끝낸 시각. 🔴 NULL 이면 **판정을 못 한 것**이다 (LLM 실패·아직 안 말함).
+  // 「단어를 하나도 안 썼다」와 다르다 — 그쪽은 이 칸이 차고 아래 표 12행이 전부 `missing` 이다
+  analyzed_at: timestamp('analyzed_at', { withTimezone: true }),
+  // 어느 판 프롬프트가 낸 결과인가. `'retelling_v1'` 로 시작한다.
+  // ⚠️ `utterance_analyses.analysis_version` 과 이름은 같지만 다른 프롬프트를 가리키고,
+  //    **판정 전에 행이 먼저 생기므로** 여기는 NULL 을 허용한다 (그쪽은 NOT NULL 이다)
+  analysis_version: varchar('analysis_version'),
 })
+
+// ─────────────────────────────────────────────────────────────
+// post_activity_keywords — 필수 단어 하나가 한 행 (F3 · sql/007 · 이슈 #42)
+//
+// 정본 문서는 docs/말하기후활동_명세.md 4.3 이다. 결과 행 하나에 12행이 달린다
+// (카드 넉 장 × 단어 셋). **판정한 단어는 12개 전부 행이 생긴다** — `missing` 도 남는다.
+// 「이 아이가 어떤 단어를 놓쳤나」를 세려면 없는 것에도 행이 있어야 하기 때문이다.
+//
+// 🔴 다시 판정하면 그 `result_id` 의 행을 **모두 지우고 다시 넣는다.** 지우는 쪽은
+//    `ON DELETE CASCADE` 가, 겹쳐 넣는 쪽은 `UNIQUE (result_id, card_id, word)` 가 받친다.
+// ─────────────────────────────────────────────────────────────
+export const post_activity_keywords = pgTable(
+  'post_activity_keywords',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    result_id: uuid('result_id')
+      .notNull()
+      .references(() => post_activity_results.id, { onDelete: 'cascade' }),
+    // 어느 카드(장면)의 단어인가. `stories.post_activity_config` 의 `cards[].id` 값이다
+    // ('endure' · 'burst' · 'pear' · 'pride'). 카드 표가 따로 없어 FK 를 걸 대상이 없다
+    card_id: varchar('card_id').notNull(),
+    // 필수 단어 그대로. 같은 카드의 `keywords[]` 에 적힌 글자다
+    word: varchar('word').notNull(),
+    // 판정 3단계 (F2) — 'used' 그대로 씀 · 'similar' 비슷한 말로 씀 · 'missing' 안 씀
+    status: varchar('status').notNull(),
+    // 그렇게 본 근거 — 아이 말 **원문에서 떼어 온 조각**이다 (명세 6절 ③).
+    // 🔴 지어낸 문장이면 버린다. `missing` 이면 인용할 말이 없으므로 NULL 이다
+    evidence: text('evidence'),
+    // 'rule' 규칙이 글자로 찾음 · 'llm' 판정 LLM 이 비슷한 말로 봄 (명세 6.1 ①②)
+    decided_by: varchar('decided_by').notNull(),
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // 이름을 직접 준다 — 이 레포는 드리즐이 지어 주는 `…_unique` 꼴을 안 쓴다
+    unique('post_activity_keywords_result_id_card_id_word_key').on(t.result_id, t.card_id, t.word),
+    check(
+      'post_activity_keywords_status_check',
+      sql`${t.status} IN ('used', 'similar', 'missing')`,
+    ),
+    check('post_activity_keywords_decided_by_check', sql`${t.decided_by} IN ('rule', 'llm')`),
+    // 「이 단어는 아이들이 잘 안 쓰나」— 아이를 가로질러 단어 하나를 훑는다 (F3)
+    index('idx_post_activity_keywords_word').on(t.word),
+  ],
+)
 
 // ═════════════════════════════════════════════════════════════
 // 미션(미니게임) 세 표 (sql/005_missions.sql · 이슈 #17)
