@@ -46,9 +46,10 @@ prompts/
   mission_summary/               보낼것.md (영어) · 해설.md   ← 이슈 #18
   report_analysis/               보낼것.md (영어) · 해설.md   ← 이슈 #37
   report_guide/                  보낼것.md (영어) · 해설.md   ← 이슈 #37
+  retelling_keywords/            보낼것.md (한국어) · 해설.md ← 이슈 #44
 ```
 
-폴더가 열이라는 것과 이름 목록, 그리고 **폴더마다 두 파일이 다 있는지**를
+폴더가 열하나라는 것과 이름 목록, 그리고 **폴더마다 두 파일이 다 있는지**를
 `tests/prompts.test.ts` 가 검사한다. 늘리거나 지우면 그 검사가 먼저 빨개진다.
 
 🔴 **폴더 이름을 바꾸지 마라.** `'analysis'`·`'character'` 는 실험판 표의 값이기도 해서
@@ -86,9 +87,9 @@ DB CHECK(`src/llm/db/schema.ts`)·리포(`src/llm/repo/prompt-lab.ts`)·폼 검�
 
 ### 정본 md 는 검사도 안 건드린다
 
-`tests/prompts.test.ts` 는 가짜 md 를 만들어 통과시키지 않는다. **정본 열을 그대로
+`tests/prompts.test.ts` 는 가짜 md 를 만들어 통과시키지 않는다. **정본 열하나를 그대로
 읽는다** — 「md 를 고치면 코드가 따라온다」는 성질은 진짜 파일로만 확인되기 때문이다.
-스무 파일을 다 읽은 뒤에도 그대로인지까지 본다.
+스물두 파일을 다 읽은 뒤에도 그대로인지까지 본다.
 
 ---
 
@@ -145,10 +146,11 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | `[K-…]` | `child` (Kid) | 5 |
 | `[R-…]` | `mission_reply` (Reply / 아이대답요약) | 8 |
 | `[S-…]` | `mission_summary` (Summary / 종료 요약) | 7 |
-| `[A-…]` | `report_analysis` (Analysis / 말하기 분석) | 17 |
-| `[G-…]` | `report_guide` (Guide / 가정 연계) | 14 |
+| `[A-…]` | `report_analysis` (Analysis / 말하기 분석) | 18 |
+| `[G-…]` | `report_guide` (Guide / 가정 연계) | 15 |
+| `[W-…]` | `retelling_keywords` (Word / 후활동 단어 판정) | 10 |
 
-**78쌍이 맞는다.** 예를 들어 `analysis` 는 `E-BARE` · `E-EMOTION` · `E-EMPATHY` ·
+**90쌍이 맞는다.** 예를 들어 `analysis` 는 `E-BARE` · `E-EMOTION` · `E-EMPATHY` ·
 `E-INTENT` · `E-MULTI` · `E-NOCRIT` · `E-REASON` · `E-REQUEST` · `E-RESULT` · `E-SHORT` ·
 `E-SOLUTION` · `E-VERBATIM` · `E-YOUNG` 열셋이 양쪽에 다 있다.
 
@@ -164,7 +166,7 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | ② 인용 누출 | `보낼것.md` 에 `docs/`·`CLAUDE.md`·`notes/`·`이슈 #`·📄·✏️ 가 없는가 |
 | ③ 경로 봉인 | 해설 파일 이름이 LLM 경로 소스에 한 글자도 없는가 |
 
-①에는 **78쌍 고정 단언**이 있다. 규칙을 더하거나 지우면 빨개진다 — 의도한 것인지
+①에는 **90쌍 고정 단언**이 있다. 규칙을 더하거나 지우면 빨개진다 — 의도한 것인지
 확인하고 숫자를 고쳐라.
 
 ②에는 **자리표시자 검사**가 붙어 있다. `보낼것.md` 에 `{child_name}` 처럼 괄호 안이 이름
@@ -188,6 +190,7 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | --- | --- |
 | `analysis` · `character` · `child` · `mission_reply` · `mission_summary` | **영어** |
 | `judge_gave_away_element` · `judge_guided_toward_target` · `judge_invented_setting` | **한국어** |
+| `retelling_keywords` | **한국어** |
 
 **분석·캐릭터·아이가 영어인 이유는 토큰 절약이다.** 한글 한 글자가 영어보다 토큰을 더
 먹는다. 지시문은 길고 매 턴 나가므로 여기서 아끼는 것이 크다.
@@ -196,6 +199,10 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 한국어 대사를 읽고 「경계를 넘었나」를 매기고, 판정 근거로 **대사에서 글자를 그대로
 잘라 내야** 한다(`src/llm/judge.ts:429` 가 근거가 대사 안에 있는지 대조하고, 없으면 그
 판정을 버린다). 판정 어휘 자체도 한국어다 — `{"판정": "위반"|"통과"|"판정불가", …}`.
+
+**후활동 단어 판정도 같은 이유로 한국어다.** 아이가 말한 한국어 줄거리를 읽고 근거를
+**그 원문에서 글자 그대로 잘라 내야** 하고, 「비슷한 말」의 경계 표(통과·탈락 예시 12줄)가
+전부 한국어 발화다. 여기서는 토큰을 아끼는 것이 판정 정확도에 진다.
 
 ### 예시 발화는 영어 프롬프트 안에서도 한국어다
 
@@ -332,7 +339,7 @@ system 없이 도는데, 그게 실험인지 실수인지 나중에 못 가른�
 
 ---
 
-## 8. 열 프롬프트 — 무엇이고, 어디까지 배선됐나
+## 8. 열한 프롬프트 — 무엇이고, 어디까지 배선됐나
 
 | 프롬프트 | 무엇 | 엔진에 붙었나 |
 | --- | --- | --- |
@@ -346,6 +353,7 @@ system 없이 도는데, 그게 실험인지 실수인지 나중에 못 가른�
 | `mission_summary` | 미션 종료 요약 (이슈 #18) | ⭕ `src/llm/engine/mission.ts` — 미션 API(#19)가 아직 안 부른다 |
 | `report_analysis` | 보호자 리포트 · 말하기 분석 탭의 문장 + 낱말 추출 (이슈 #37) | ⭕ `src/report/engine/narrative.ts` — 생성 배선(#38)이 아직 안 부른다 |
 | `report_guide` | 보호자 리포트 · 가정 연계 질문 6개 (이슈 #37) | ⭕ `src/report/engine/narrative.ts` — 생성 배선(#38)이 아직 안 부른다 |
+| `retelling_keywords` | 말하기 후 활동 · 아이가 핵심 단어를 비슷한 말로 말했나 (이슈 #44) | 🔴 **아직 안 돈다** — 판정 엔진이 다음 갈래 몫이다 |
 
 심판 셋은 `boundaryChecks()`(`src/llm/judge.ts:572-590`)가 한 번에 부르고, 턴을 도는 길이
 자동 채점을 켠 회차에서 그것을 부른다(`src/llm/service/turn.ts:609-614`).
