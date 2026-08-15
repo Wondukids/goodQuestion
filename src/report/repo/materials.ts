@@ -145,12 +145,17 @@ export async function readReportMaterial(
       .innerJoin(messages, eq(messages.id, utterance_analyses.message_id))
       .where(eq(messages.session_id, session_id)),
 
-    // 턴당 한 행이다 (`turn_conditions.message_id` 가 PK). 「유도 다음 발화가 살아났나」를
-    // 세는 데만 쓰므로 `response_mode` 한 칸이면 된다.
+    // 턴당 한 행이다 (`turn_conditions.message_id` 가 PK). 상호작용 축이 앞 턴의 판정을
+    // 조건으로 쓰는 자리 둘에 필요한 칸만 뽑는다 —
+    //   ① 「유도(GUIDED) 다음 발화가 살아났나」 → `response_mode`
+    //   ② 「걱정 한 줄(soft-cue) 다음 발화가 그 요소를 말했나」 → `soft_cue` + `guidance_target`
+    // ②는 2026-08-15 실측 뒤에 붙었다 (`report/domain/metrics.ts` 의 `상호작용_점수칸` 머리말).
     conn
       .select({
         message_id: turn_conditions.message_id,
         response_mode: turn_conditions.response_mode,
+        guidance_target: turn_conditions.guidance_target,
+        soft_cue: turn_conditions.soft_cue,
       })
       .from(turn_conditions)
       .innerJoin(messages, eq(messages.id, turn_conditions.message_id))

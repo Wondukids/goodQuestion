@@ -10,6 +10,8 @@
 //   ③ 발화가 아주 적은 활동에서도 안 터진다 (결정 R16)
 //   ④ 미션 발화가 세어진다 (결정 R23)
 //   ⑤ `GUIDED` 다음 발화가 `VALID` 일 때만 `reprompt_recovered` 가 오른다
+//   ⑥ 🔴 **한 번도 안 헤맨 아이도 상호작용 점수를 얻는다** — 2026-08-15 실측으로 붙은
+//      `soft_cue_answered` 가 되돌아가지 않게 막는 자리다 (아래 「헤맨 적 없는 아이」 절)
 
 import { describe, expect, it } from 'vitest'
 
@@ -155,9 +157,13 @@ describe('축 표 — 8요소가 5축에 빠짐없이 들어간다', () => {
     expect(축에_담긴.length).toBe(new Set(축에_담긴).size)
   })
 
-  it('상호작용만 요소가 아니라 대화 지표 둘이다 (R4)', () => {
+  it('상호작용만 요소가 아니라 대화 지표 셋이다 (R4 · 실측 뒤 셋째 항)', () => {
     expect(축_요소.상호작용).toEqual([])
-    expect(상호작용_점수칸).toEqual(['child_questions', 'reprompt_recovered'])
+    expect(상호작용_점수칸).toEqual([
+      'child_questions',
+      'reprompt_recovered',
+      'soft_cue_answered',
+    ])
   })
 })
 
@@ -283,7 +289,7 @@ describe('axes — 감지된 발화 수 그대로 (R17)', () => {
   })
 })
 
-describe('상호작용 축 — 대화 지표 둘 (R4)', () => {
+describe('상호작용 축 — 대화 지표 셋 (R4)', () => {
   it('child_questions 는 QUESTION 인 아이 발화 수다', () => {
     const { axes } = aggregateMetrics(보통활동())
     expect(axes.상호작용.parts.child_questions).toBe(1)
@@ -330,9 +336,11 @@ describe('상호작용 축 — 대화 지표 둘 (R4)', () => {
     ).toBe(1)
   })
 
-  it('점수는 두 칸의 합이고 child_turns 는 context 로만 담긴다', () => {
+  it('점수는 세 칸의 합이고 child_turns 는 context 로만 담긴다', () => {
     const { axes } = aggregateMetrics(보통활동())
-    expect(axes.상호작용.score).toBe(2) // 질문 1 + 회복 1
+    // 보통활동의 `turn_conditions` 에는 soft-cue 가 없다 → 셋째 항 0.
+    expect(axes.상호작용.parts.soft_cue_answered).toBe(0)
+    expect(axes.상호작용.score).toBe(2) // 질문 1 + 회복 1 + cue 0
     expect(axes.상호작용.context).toEqual({ child_turns: 7 })
   })
 
@@ -348,6 +356,125 @@ describe('상호작용 축 — 대화 지표 둘 (R4)', () => {
     )
     expect(axes.상호작용.score).toBe(0)
     expect(axes.상호작용.context).toEqual({ child_turns: 20 })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 헤맨 적 없는 아이 — 이 절이 되돌아오면 오각형이 다시 거꾸로 선다
+//
+// 2026-08-15 목데이터 실측에서 드러난 것: `reprompt_recovered` 는 **먼저 헤매야** 얻는
+// 점수라, 처음부터 잘 답한 아이의 상호작용이 **영영 0** 이었다. 말을 가장 풍부하게 한
+// 아이(다른 축 7~9)가 상호작용 0%, 3마디 하고 그만둔 아이가 100% 로 그려졌다.
+// `soft_cue_answered` 가 그것을 푼 항이고, 아래가 그 항이 사라지지 않게 박은 못이다.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * 한 번도 안 헤맨 아이의 활동. **`GUIDED` 가 한 턴도 없다.**
+ *
+ * 캐릭터가 잘 답한 아이에게도 걱정 한 줄을 얹고(soft-cue), 아이가 그 요소로 곧바로 답한다.
+ */
+function 안헤맨활동(): 집계재료 {
+  const 발화들 = [
+    아이행('s-1', 2, 'sid-03', '며느리가 방귀를 참았어요.', { elements: ['PERSPECTIVE'] }),
+    아이행('s-2', 4, 'sid-03', '말 못 해서 답답했을 거예요.', { elements: ['EMPATHY'] }),
+    아이행('s-3', 6, 'sid-03', '가족한테 말하면 돼요.', { elements: ['SOLUTION'] }),
+    아이행('s-4', 8, 'sid-03', '그럼 배가 안 아파요.', { elements: ['RESULT'] }),
+  ]
+  return 재료세우기({
+    messages: 발화들.map((것) => 것.message),
+    analyses: 발화들.map((것) => 것.analysis),
+    turn_conditions: [
+      { message_id: 's-1', response_mode: 'NORMAL', soft_cue: true, guidance_target: 'EMPATHY' },
+      { message_id: 's-2', response_mode: 'NORMAL', soft_cue: true, guidance_target: 'SOLUTION' },
+      { message_id: 's-3', response_mode: 'NORMAL', soft_cue: true, guidance_target: 'RESULT' },
+      { message_id: 's-4', response_mode: 'CLOSING', soft_cue: false, guidance_target: null },
+    ],
+  })
+}
+
+describe('🔴 한 번도 안 헤맨 아이도 상호작용 점수를 얻는다', () => {
+  it('GUIDED 가 한 턴도 없어도 점수가 0 이 아니다', () => {
+    const { axes } = aggregateMetrics(안헤맨활동())
+    expect(axes.상호작용.parts.reprompt_recovered).toBe(0) // 헤맨 적이 없다
+    expect(axes.상호작용.parts.child_questions).toBe(0) // 묻지도 않았다
+    expect(axes.상호작용.parts.soft_cue_answered).toBe(3)
+    expect(axes.상호작용.score).toBe(3)
+  })
+
+  it('잘 답한 아이가 헤맨 아이보다 낮게 나오지 않는다 — 순서가 뒤집히지 않는다', () => {
+    // 헤맨 쪽: 두 턴 다 저정보였다가 유도를 받고 한 번 살아났다. 사고 요소는 하나뿐이다.
+    const 헤맨발화들 = [
+      아이행('w-1', 2, 'sid-03', '몰라요', { validity: 'SHORT' }),
+      아이행('w-2', 4, 'sid-03', '음….', { validity: 'UNCLEAR' }),
+      아이행('w-3', 6, 'sid-03', '참았어요.', { elements: ['PERSPECTIVE'] }),
+    ]
+    const 헤맨활동 = 재료세우기({
+      messages: 헤맨발화들.map((것) => 것.message),
+      analyses: 헤맨발화들.map((것) => 것.analysis),
+      turn_conditions: [
+        { message_id: 'w-1', response_mode: 'NORMAL', soft_cue: false, guidance_target: null },
+        {
+          message_id: 'w-2',
+          response_mode: 'GUIDED',
+          soft_cue: false,
+          guidance_target: 'PERSPECTIVE',
+        },
+        { message_id: 'w-3', response_mode: 'CLOSING', soft_cue: false, guidance_target: null },
+      ],
+    })
+
+    const 잘함 = aggregateMetrics(안헤맨활동()).axes
+    const 헤맴 = aggregateMetrics(헤맨활동).axes
+
+    // 다른 네 축은 잘 답한 쪽이 높다 — 그러면 상호작용도 낮아서는 안 된다.
+    expect(잘함.관점과공감.score).toBeGreaterThan(헤맴.관점과공감.score)
+    expect(잘함.상호작용.score).toBeGreaterThanOrEqual(헤맴.상호작용.score)
+  })
+})
+
+describe('soft_cue_answered — 걱정 한 줄에 곧바로 답한 발화', () => {
+  /** 두 턴짜리 최소 활동. 앞 턴의 판정만 갈아 끼워 가며 잰다. */
+  const 두턴 = (앞턴: 턴조건행, 뒷요소: string[]) => {
+    const 발화들 = [
+      아이행('c-1', 2, 'sid-03', '며느리가 방귀를 참았어요.', { elements: ['PERSPECTIVE'] }),
+      아이행('c-2', 4, 'sid-03', '답답했을 거예요.', { elements: 뒷요소 }),
+    ]
+    return aggregateMetrics(
+      재료세우기({
+        messages: 발화들.map((것) => 것.message),
+        analyses: 발화들.map((것) => 것.analysis),
+        turn_conditions: [앞턴],
+      }),
+    ).axes.상호작용.parts.soft_cue_answered
+  }
+
+  const cue턴: 턴조건행 = {
+    message_id: 'c-1',
+    response_mode: 'NORMAL',
+    soft_cue: true,
+    guidance_target: 'EMPATHY',
+  }
+
+  it('걱정이 가리킨 요소를 다음 발화가 말하면 오른다', () => {
+    expect(두턴(cue턴, ['EMPATHY'])).toBe(1)
+  })
+
+  it('다음 발화가 다른 요소만 말하면 안 오른다 — 「살아났나」가 아니라 「그 말에 답했나」다', () => {
+    expect(두턴(cue턴, ['REASON'])).toBe(0)
+  })
+
+  it('soft_cue 가 아니면 guidance_target 이 있어도 안 오른다 — 회복과 겹치지 않는다', () => {
+    // GUIDED 턴에도 `guidance_target` 은 남는다. 그것까지 세면 `reprompt_recovered` 와
+    // 같은 사건을 두 번 세게 된다.
+    expect(두턴({ ...cue턴, response_mode: 'GUIDED', soft_cue: false }, ['EMPATHY'])).toBe(0)
+  })
+
+  it('soft_cue 인데 대상이 없으면 안 오른다', () => {
+    expect(두턴({ ...cue턴, guidance_target: null }, ['EMPATHY'])).toBe(0)
+  })
+
+  it('부르는 쪽이 두 칸을 안 주면 0 이다 — 옛 읽기도 터지지 않는다', () => {
+    expect(두턴({ message_id: 'c-1', response_mode: 'NORMAL' }, ['EMPATHY'])).toBe(0)
   })
 })
 
@@ -687,7 +814,7 @@ describe('말이 아주 적은 활동에서도 안 터진다 (R16)', () => {
     expect(지표.quotes).toEqual([])
     expect(지표.axes.상호작용).toEqual({
       score: 0,
-      parts: { child_questions: 0, reprompt_recovered: 0 },
+      parts: { child_questions: 0, reprompt_recovered: 0, soft_cue_answered: 0 },
       context: { child_turns: 0 },
     })
   })
