@@ -12,6 +12,8 @@
 //   ⑤ `GUIDED` 다음 발화가 `VALID` 일 때만 `reprompt_recovered` 가 오른다
 //   ⑥ 🔴 **한 번도 안 헤맨 아이도 상호작용 점수를 얻는다** — 2026-08-15 실측으로 붙은
 //      `soft_cue_answered` 가 되돌아가지 않게 막는 자리다 (아래 「헤맨 적 없는 아이」 절)
+//   ⑦ 🔴 **후활동은 옆에 놓인 덩이다** — 해도 ①~⑥ 의 숫자가 안 변한다 (F15 · 이슈 #47,
+//      파일 맨 아래 두 절)
 
 import { describe, expect, it } from 'vitest'
 
@@ -30,6 +32,9 @@ import {
   type 미션발화행,
   type 미션시도행,
   type 턴조건행,
+  type 후활동결과행,
+  type 후활동단어행,
+  type 후활동재료,
 } from '@/report/domain/metrics'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -821,5 +826,279 @@ describe('말이 아주 적은 활동에서도 안 터진다 (R16)', () => {
 
   it('prior_activities = 0 인 아이의 결과가 첫 활동으로 나온다', () => {
     expect(aggregateMetrics(적은활동()).activity.prior_activities).toBe(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 말하기 후 활동 (이슈 #47 · 후활동 명세 7.2 · 수용 기준 11·12·15)
+//
+// 재는 것 넷:
+//   ① **`null` 세 겹이 서로 다르다** — 안 했다 / 순서만 했다 / 판정을 못 했다
+//   ② 칩 차례가 설정의 카드 차례다 (읽어 온 차례가 아니다)
+//   ③ 세 갈래(used·similar·missing)를 센다
+//   ④ 🔴 **기존 지표가 안 흔들린다** (F15 · 수용 15) — 이 갈래에서 가장 조용히 깨질 자리다
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 「방귀 뀌는 며느리」의 후활동 설정 그대로 — 카드 넉 장 × 단어 셋 (명세 4.1). */
+const 후활동_차례: 후활동재료['word_order'] = [
+  { card_id: 'endure', word: '시집' },
+  { card_id: 'endure', word: '참다' },
+  { card_id: 'endure', word: '걱정' },
+  { card_id: 'burst', word: '방귀' },
+  { card_id: 'burst', word: '깜짝' },
+  { card_id: 'burst', word: '기둥' },
+  { card_id: 'pear', word: '배나무' },
+  { card_id: 'pear', word: '힘껏' },
+  { card_id: 'pear', word: '우수수' },
+  { card_id: 'pride', word: '당당하다' },
+  { card_id: 'pride', word: '칭찬' },
+  { card_id: 'pride', word: '고마워' },
+]
+
+/** 판정 셋 — 그대로 쓴 낱말 셋 · 비슷하게 말한 둘 · 나머지는 안 나왔다. */
+const 판정갈래: Record<string, string> = {
+  시집: 'used',
+  참다: 'similar',
+  걱정: 'missing',
+  방귀: 'used',
+  깜짝: 'missing',
+  기둥: 'missing',
+  배나무: 'used',
+  힘껏: 'missing',
+  우수수: 'missing',
+  당당하다: 'similar',
+  칭찬: 'missing',
+  고마워: 'missing',
+}
+
+/**
+ * 단어 12행 — DB 가 돌려줄 법한 **뒤섞인** 차례로 세운다.
+ *
+ * `post_activity_keywords` 에는 순번 칸이 없어서 읽어 온 차례에 뜻이 없다. 일부러
+ * 거꾸로 세워 두고, 집계기가 설정의 카드 차례로 다시 세우는지를 본다.
+ */
+function 단어행들(): 후활동단어행[] {
+  return [...후활동_차례].reverse().map(({ card_id, word }) => ({
+    card_id,
+    word,
+    status: 판정갈래[word],
+    // 근거는 「비슷한 말로 말했다」에만 있다 — 나머지는 NULL 이다 (명세 4.3)
+    evidence: 판정갈래[word] === 'similar' ? `${word} 비슷하게 말한 조각` : null,
+  }))
+}
+
+function 후활동(
+  고칠것: Partial<후활동결과행> = {},
+  단어: 후활동단어행[] = 단어행들(),
+): 후활동재료 {
+  return {
+    result: {
+      submitted_order: ['endure', 'burst', 'pear', 'pride'],
+      is_order_correct: true,
+      attempt_count: 2,
+      retelling_text: '며느리가 시집에서 방귀를 참았어요.',
+      analyzed_at: '2026-08-03T19:40:00+09:00',
+      ...고칠것,
+    },
+    words: 단어,
+    word_order: 후활동_차례,
+  }
+}
+
+describe('말하기 후 활동 — 지표에 덩이 하나가 붙는다 (F16)', () => {
+  it('활동을 아예 안 했으면 null 이다 (수용 12)', () => {
+    // 재료에 칸이 아예 없는 판(후활동을 모르던 시절의 재료)과 `null` 을 준 판이 같다.
+    expect(aggregateMetrics(보통활동()).post_activity).toBeNull()
+    expect(aggregateMetrics(재료세우기({ post_activity: null })).post_activity).toBeNull()
+  })
+
+  it('순서만 맞추고 나갔으면 retelling 이 null 이다 — 순서는 그대로 실린다', () => {
+    const 지표 = aggregateMetrics(
+      재료세우기({ post_activity: 후활동({ retelling_text: null, analyzed_at: null }, []) }),
+    )
+
+    expect(지표.post_activity?.retelling).toBeNull()
+    expect(지표.post_activity?.order).toEqual({
+      correct: true,
+      attempts: 2,
+      first_submission: ['endure', 'burst', 'pear', 'pride'],
+    })
+  })
+
+  it('🔴 판정을 못 한 것과 낱말을 하나도 안 쓴 것이 다르다', () => {
+    // ① 판정 실패 — `analyzed_at` 이 NULL 이다. 아이 말은 남아 있다.
+    const 못한판 = aggregateMetrics(
+      재료세우기({ post_activity: 후활동({ analyzed_at: null }, []) }),
+    ).post_activity
+
+    expect(못한판?.retelling?.analyzed).toBe(false)
+    expect(못한판?.retelling?.text).toBe('며느리가 시집에서 방귀를 참았어요.')
+    expect(못한판?.retelling?.words).toEqual([])
+    expect(못한판?.retelling?.missing).toBe(0)
+
+    // ② 한 낱말도 안 썼다 — 판정은 됐고 12행이 전부 `missing` 이다.
+    const 하나도_안쓴판 = aggregateMetrics(
+      재료세우기({
+        post_activity: 후활동(
+          {},
+          후활동_차례.map((것) => ({ ...것, status: 'missing', evidence: null })),
+        ),
+      }),
+    ).post_activity
+
+    expect(하나도_안쓴판?.retelling?.analyzed).toBe(true)
+    expect(하나도_안쓴판?.retelling?.missing).toBe(12)
+    expect(하나도_안쓴판?.retelling?.words).toHaveLength(12)
+  })
+
+  it('🔴 판정 시각이 없으면 남아 있는 단어 행을 안 싣는다', () => {
+    // 다시 말한 줄거리는 `analyzed_at` 을 NULL 로 되돌린다. 지우다 만 옛 행이 남아 있어도
+    // 「이 글을 판정한 결과」가 아니다.
+    const 지표 = aggregateMetrics(재료세우기({ post_activity: 후활동({ analyzed_at: null }) }))
+
+    expect(지표.post_activity?.retelling?.analyzed).toBe(false)
+    expect(지표.post_activity?.retelling?.words).toEqual([])
+  })
+
+  it('단어 12개가 실리고 세 갈래를 센다 (수용 11)', () => {
+    const 덩이 = aggregateMetrics(재료세우기({ post_activity: 후활동() })).post_activity
+
+    expect(덩이?.retelling?.words).toHaveLength(12)
+    expect(덩이?.retelling?.used).toBe(3)
+    expect(덩이?.retelling?.similar).toBe(2)
+    expect(덩이?.retelling?.missing).toBe(7)
+    // 근거는 「비슷하게」에만 있고 나머지는 NULL 이다 — 빈 글자가 아니다
+    const 비슷 = 덩이!.retelling!.words.filter((것) => 것.status === 'similar')
+    expect(비슷.map((것) => 것.word)).toEqual(['참다', '당당하다'])
+    for (const 것 of 덩이!.retelling!.words) {
+      if (것.status === 'similar') expect(것.evidence).not.toBeNull()
+      else expect(것.evidence).toBeNull()
+    }
+  })
+
+  it('⭐ 칩 차례는 읽어 온 차례가 아니라 설정의 카드 차례다', () => {
+    const 지표 = aggregateMetrics(재료세우기({ post_activity: 후활동() }))
+
+    expect(지표.post_activity?.retelling?.words.map((것) => 것.word)).toEqual(
+      후활동_차례.map((것) => 것.word),
+    )
+  })
+
+  it('설정을 못 읽었으면(차례가 비었으면) 읽어 온 차례를 그대로 둔다', () => {
+    const 뒤섞인 = 단어행들()
+    const 지표 = aggregateMetrics(
+      재료세우기({ post_activity: { ...후활동(), word_order: [] } }),
+    )
+
+    expect(지표.post_activity?.retelling?.words.map((것) => 것.word)).toEqual(
+      뒤섞인.map((것) => 것.word),
+    )
+  })
+
+  it('차례에 없는 단어는 버리지 않고 뒤에 붙인다', () => {
+    const 단어 = [
+      ...단어행들(),
+      { card_id: 'ghost', word: '없던말', status: 'used', evidence: null },
+    ]
+    const 지표 = aggregateMetrics(재료세우기({ post_activity: 후활동({}, 단어) }))
+    const 낱말들 = 지표.post_activity!.retelling!.words.map((것) => 것.word)
+
+    expect(낱말들).toHaveLength(13)
+    expect(낱말들[낱말들.length - 1]).toBe('없던말')
+  })
+
+  it('순서를 한 번도 안 냈으면 attempts 가 0 이고 첫 제출이 빈 목록이다', () => {
+    // 줄거리만 말하고 나간 판 — 결과 행은 있는데 순서 칸이 전부 NULL 이다.
+    const 지표 = aggregateMetrics(
+      재료세우기({
+        post_activity: 후활동({
+          submitted_order: null,
+          is_order_correct: null,
+          attempt_count: 0,
+        }),
+      }),
+    )
+
+    expect(지표.post_activity?.order).toEqual({
+      correct: false,
+      attempts: 0,
+      first_submission: [],
+    })
+  })
+
+  it('내 봤는데 못 맞춘 것(false)과 아직 안 낸 것(NULL)이 attempts 로 갈린다', () => {
+    const 못맞춘 = aggregateMetrics(
+      재료세우기({ post_activity: 후활동({ is_order_correct: false, attempt_count: 3 }) }),
+    ).post_activity
+
+    expect(못맞춘?.order.correct).toBe(false)
+    expect(못맞춘?.order.attempts).toBe(3)
+  })
+
+  it('DB CHECK 밖의 status 는 「안 썼다」로 떨어진다 — 색 없는 칩을 만들지 않는다', () => {
+    const 지표 = aggregateMetrics(
+      재료세우기({
+        post_activity: 후활동({}, [
+          { card_id: 'endure', word: '시집', status: '이상한값', evidence: '조각' },
+        ]),
+      }),
+    )
+
+    expect(지표.post_activity?.retelling?.words[0].status).toBe('missing')
+    expect(지표.post_activity?.retelling?.missing).toBe(1)
+  })
+
+  it('같은 입력이면 같은 출력이다', () => {
+    const 재료 = 재료세우기({ post_activity: 후활동() })
+    expect(aggregateMetrics(재료)).toEqual(aggregateMetrics(재료))
+  })
+})
+
+describe('🔴 F15 — 후활동을 해도 기존 지표가 한 칸도 안 변한다 (수용 15)', () => {
+  // 이 갈래에서 가장 조용히 깨질 수 있는 자리다. 후활동 발화를 `child_utterances` 에
+  // 더하거나 낱말 세기에 섞으면 여기서 걸린다.
+
+  it('counts · words · axes · quotes 가 후활동 유무와 무관하게 같다', () => {
+    const 없는판 = aggregateMetrics(보통활동())
+    const 있는판 = aggregateMetrics({ ...보통활동(), post_activity: 후활동() })
+
+    expect(있는판.counts).toEqual(없는판.counts)
+    expect(있는판.words).toEqual(없는판.words)
+    expect(있는판.axes).toEqual(없는판.axes)
+    expect(있는판.quotes).toEqual(없는판.quotes)
+    expect(있는판.activity).toEqual(없는판.activity)
+    // 덩이 하나만 늘었다.
+    expect(없는판.post_activity).toBeNull()
+    expect(있는판.post_activity).not.toBeNull()
+  })
+
+  it('후활동 줄거리에만 있는 낱말은 「주요 어휘」로 새지 않는다', () => {
+    // 「기둥」은 아이 발화 어디에도 없고 후활동 줄거리에만 있다. 낱말 세기는 본 대화와
+    // 미션 발화만 본다 — LLM 이 그 낱말을 뽑아 와도 발화에 없으면 버려진다 (명세 5.3 ②).
+    const 재료: 집계재료 = {
+      ...보통활동(),
+      post_activity: 후활동({ retelling_text: '기둥을 잡고 깜짝 놀랐어요.' }),
+    }
+    const 지표 = applyExtractedWords(aggregateMetrics(재료), 재료, {
+      extracted: ['기둥'],
+      repeated: ['깜짝'],
+      child_words: [],
+    })
+
+    expect(지표.words.main).toEqual([])
+    expect(지표.words.repeated).toEqual([])
+    expect(지표.counts.new_words).toBe(0)
+  })
+
+  it('낱말을 얹어도 후활동 덩이가 그대로 흘러간다', () => {
+    const 재료: 집계재료 = { ...보통활동(), post_activity: 후활동() }
+    const 원본 = aggregateMetrics(재료)
+    const 얹은 = applyExtractedWords(원본, 재료, {
+      extracted: ['부끄럽다'],
+      repeated: [],
+      child_words: [],
+    })
+
+    expect(얹은.post_activity).toEqual(원본.post_activity)
   })
 })

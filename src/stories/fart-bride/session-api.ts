@@ -378,3 +378,285 @@ export const REAL_MISSION_API: MissionApi = {
   submitMissionTurn,
   completeMission,
 };
+
+/* ── 말하기 후 활동 API (이슈 #46 · `docs/말하기후활동_명세.md` 5절 A~D) ────────
+   봉투·오디오 방식은 위 세션 계약 그대로다. ⛔ 미션 API 와 이름만 이웃일 뿐 남남이다 —
+   후활동은 **미션 세션 배선 넷을 안 쓰고** 자기 API 만 쓴다 (명세 3절 · 8절 ②).
+   전용 오류 코드는 404 POST_ACTIVITY_NOT_CONFIGURED(이 이야기엔 후활동이 없다) ·
+   409 POST_ACTIVITY_NOT_ALLOWED(이야기가 아직 안 끝났다) · 502 STT_FAILED 다. */
+
+/** `stories.post_activity_config.cards[]` 한 장 (명세 4.1). 그림·칩 색은 없다 — 앱이 id 로 잇는다. */
+export type PostActivityCard = { id: string; title: string; keywords: string[] };
+
+/** 카드·정답 순서의 **정본** (F1). 화면 상수(finale-script.ts)는 이제 비상용 사본이다. */
+export type PostActivityConfig = {
+  cards: PostActivityCard[];
+  /** 이야기 순서 = 정답 */
+  answer_order: string[];
+  /** 트레이에 처음 깔리는 (섞인) 순서 */
+  tray_order: string[];
+};
+
+/** 지금까지 저장된 것 — 중간에 나갔다 돌아온 아이의 자리를 되살리는 재료다 (명세 5.A). */
+export type PostActivityResult = {
+  /** 아이의 **첫 제출** 순서 (F7). 아직 한 번도 안 냈으면 null */
+  submitted_order: string[] | null;
+  /** 「끝내 맞췄나」 — 첫 제출이 정답이었나가 아니다 (F18) */
+  is_order_correct: boolean | null;
+  attempt_count: number;
+  retelling_text: string | null;
+  /** 「마치기」를 누른 시각. 중간에 나갔으면 null */
+  completed_at: string | null;
+};
+
+/** `GET …/post-activity` 의 data (명세 5.A). */
+export type PostActivityOpen = { config: PostActivityConfig; result: PostActivityResult };
+
+/** `POST …/post-activity/order` 의 data — `is_correct` 는 **서버가 계산한 값**이다 (명세 5.B). */
+export type PostActivityOrderResult = { is_correct: boolean; attempt_count: number };
+
+/** 단어 하나의 판정 (명세 4.3). 앱은 지금 쓰지 않는다 — 보호자 리포트(#47) 몫이다. */
+export type PostActivityKeyword = {
+  card_id: string;
+  word: string;
+  status: "used" | "similar" | "missing";
+  evidence: string | null;
+  decided_by: "rule" | "llm";
+};
+
+/**
+ * `POST …/post-activity/retelling` 의 data — 무음이면 `{ empty: true }` 뿐이다 (명세 5.C).
+ *
+ * 🔴 `analyzed: false` 는 **오류가 아니다.** 판정 LLM 이 죽어도 아이 말은 이미 저장됐고
+ *    화면은 끝까지 진행된다 (F4·F8 · 수용 기준 10).
+ */
+export type PostActivityRetellingResult =
+  | { empty: true }
+  | {
+      empty?: undefined;
+      text: string;
+      analyzed: boolean;
+      keywords: PostActivityKeyword[] | null;
+    };
+
+/** `finished` 「마치기」를 눌렀다 · `left` 끝 화면을 떠났다 (명세 5.D). */
+export type PostActivityCompleteReason = "finished" | "left";
+
+/** `exists` 면 리포트가 이미 있어 안 만들었다 — 아이 화면은 어느 쪽이든 그대로 넘어간다. */
+export type PostActivityCompleteResult = { report: "queued" | "exists" };
+
+/**
+ * 활동 열기 — 카드·정답 순서와 지금까지의 결과 (명세 5.A).
+ *
+ * 404 `POST_ACTIVITY_NOT_CONFIGURED` 면 이 이야기엔 후활동이 없다 — 부르는 쪽은 활동
+ * 버튼을 **아예 그리지 않는다**. 그 이야기의 리포트는 세션이 끝나는 자리에서 이미
+ * 만들어졌다 (F13).
+ */
+export async function fetchPostActivity(sessionId: string): Promise<PostActivityOpen> {
+  const res = await fetch(`/api/sessions/${sessionId}/post-activity`);
+  return unwrap<PostActivityOpen>(res);
+}
+
+/* 서버가 세션을 닫을 때까지 기다리는 한도. 남은 것은 건너뛰기 요청 한 번의 왕복이라
+   회차 잠금(30초)만큼 길 이유가 없다 — 넘기면 조용히 포기한다 (아래 머리말). */
+const POST_ACTIVITY_WAIT_MS = 10_000;
+const POST_ACTIVITY_POLL_MS = 600;
+
+/**
+ * **서버가 이 세션을 닫을 때까지 기다렸다가** 활동을 연다 — 이야기가 끝나는 자리 전용.
+ *
+ * ## 🔴 왜 한 번 물어서는 안 되나
+ *
+ * 앱이 말하는 「끝」과 서버가 말하는 「끝」이 다르다. 앱의 끝은 화면 조각을 다 넘겼다는
+ * 뜻이고(`sequencer.ts` 의 `finished`), 서버의 끝은 자기 장면 차례가 `회차끝` 에 닿아
+ * 세션이 `completed` 로 닫힌 것이다(`llm/service/run.ts` 의 `completeRun()`).
+ * 후활동 API 는 **닫힌 세션에만** 열어 준다 (명세 5.E · F10).
+ *
+ * 아이가 마지막 대화를 건너뛰면 앱은 건너뛰기를 보내 놓고 **답을 안 기다리고** 다음
+ * 화면으로 넘어간다 (`play.tsx` 의 `skip()` — 아이를 기다리게 하지 않으려고 일부러 그렇다).
+ * 그 요청이 서버에 닿기 전에 아이가 끝 화면에 도착하면 409 가 오고, 한 번 묻고 마는
+ * 코드는 **활동을 영영 못 연다.** 늦게 도착하면 열린다 — 그래서 들쭉날쭉했다.
+ *
+ * ⚠️ **404 는 기다리지 않는다.** 「이 이야기엔 후활동이 없다」는 시간이 지나도 안 바뀐다
+ *    (F13). 되물으면 그런 이야기마다 10초씩 헛되이 기다린다.
+ *
+ * ⚠️ 그래도 안 열리는 경우가 남는다 — 앱의 장면 추적이 어긋나 건너뛰기를 **아예 안 보낸**
+ *    판이다. 서버는 그 장면에 그대로 서 있어 세션이 안 닫힌다. 그때는 포기하고, 리포트는
+ *    보호자가 열 때 만들어진다 (F12).
+ *
+ * @param 기다림 검사가 짧게 돌리려고 연 손잡이 — 안 주면 위 상수다.
+ */
+export async function fetchPostActivityWhenReady(
+  sessionId: string,
+  기다림?: { waitMs?: number; pollMs?: number },
+): Promise<PostActivityOpen> {
+  const pollMs = 기다림?.pollMs ?? POST_ACTIVITY_POLL_MS;
+  const deadline = Date.now() + (기다림?.waitMs ?? POST_ACTIVITY_WAIT_MS);
+  for (;;) {
+    try {
+      return await fetchPostActivity(sessionId);
+    } catch (error) {
+      /* 404(후활동 없음)는 기다려도 안 바뀐다. 나머지(409 아직 안 닫힘·네트워크)는 되묻는다 */
+      const 기다릴만한가 =
+        !(error instanceof SessionApiError) ||
+        error.code !== "POST_ACTIVITY_NOT_CONFIGURED";
+      if (!기다릴만한가 || Date.now() >= deadline) throw error;
+      await sleep(pollMs);
+    }
+  }
+}
+
+/**
+ * **아이가 「할래」를 눌렀다** — 서버가 아직 이야기를 안 닫았으면 밀어 닫고 활동을 연다.
+ *
+ * ## 🔴 왜 밀어 닫나
+ *
+ * 서버는 **마지막 대화 장면이 끝나야** 세션을 닫는다. 아이가 그 장면에서 말을 안 하고
+ * 지나가면 서버는 거기 그대로 선다 — 실측(팀 DB)으로 끝까지 본 판의 셋 중 하나가 그랬다.
+ * 그런 판은 기다려도 **영영** 안 닫혀서, 되묻기만으로는 활동을 못 연다.
+ *
+ * 그래서 아이가 활동을 하겠다고 **직접 누른 그 자리에서** 남은 장면을 건너뛰기로 밀어
+ * 닫는다 (2026-08-15 결정). 이미 있는 건너뛰기 길을 그대로 쓴다 — 새 서버 코드가 없다.
+ *
+ * ⚠️ 그 장면들은 **건너뛴 것으로 기록**되고 리포트의 「끝까지 봤나」가 참이 된다.
+ *    아이가 실제로 이야기를 끝까지 본 것은 맞으므로 그 편이 사실에 가깝다.
+ * ⚠️ `serverScene` 이 `null` 이면 밀 곳을 모른다 — 그때는 되묻기만 하고 만다.
+ *
+ * @param serverScene 서버가 지금 서 있다고 앱이 아는 장면 code (`play.tsx` 의 추적값)
+ * @param 기다림 검사가 짧게 돌리려고 연 손잡이 — `fetchPostActivityWhenReady()` 로 흘린다
+ */
+export async function openPostActivityClosingStory(
+  sessionId: string,
+  story: string,
+  serverScene: string | null,
+  기다림?: { waitMs?: number; pollMs?: number },
+): Promise<PostActivityOpen> {
+  try {
+    return await fetchPostActivity(sessionId);
+  } catch (error) {
+    const 안닫혔다 =
+      error instanceof SessionApiError && error.code === "POST_ACTIVITY_NOT_ALLOWED";
+    if (!안닫혔다) throw error;
+  }
+  /* 서버가 선 장면부터 끝까지. 이야기의 대화 장면은 아홉이라 열두 번이면 넉넉하다 */
+  let 장면 = serverScene;
+  for (let i = 0; 장면 !== null && i < 12; i += 1) {
+    장면 = await skipSessionSceneWithResume(sessionId, 장면, story);
+  }
+  /* 닫히는 것은 건너뛰기 응답 **뒤에** 커밋되므로 여기서도 조금 기다려 준다 */
+  return fetchPostActivityWhenReady(sessionId, 기다림);
+}
+
+/**
+ * 순서 제출 — 「다 놓았어요!」를 누를 때마다 (명세 5.B).
+ *
+ * 🔴 **판정은 앱이 하고, 이 호출은 기록용이다** (명세 8절 ③). 화면은 응답을 기다리지
+ * 않는다 — 아이 화면이 네트워크를 기다리면 안 된다. 앱이 보낸 판정은 서버가 받지도 않는다.
+ */
+export async function submitPostActivityOrder(
+  sessionId: string,
+  submittedOrder: readonly string[],
+): Promise<PostActivityOrderResult> {
+  const res = await fetch(`/api/sessions/${sessionId}/post-activity/order`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ submitted_order: submittedOrder }),
+  });
+  return unwrap<PostActivityOrderResult>(res);
+}
+
+/**
+ * 줄거리 녹음 보내기 — **받아쓰기는 서버가 한다** (F6).
+ *
+ * ⚠️ 명세 5.C 는 `multipart/form-data` 라고 적었지만 **실제 서버는 그렇게 안 받는다.**
+ *    턴·미션 API 와 똑같이 녹음을 본문에 그대로 싣고 채널 수를 헤더로 보낸다
+ *    (`src/session/controller/post-activity.ts` 의 `POST_retelling` 이 정본).
+ */
+export async function submitPostActivityRetelling(
+  sessionId: string,
+  audio: Blob,
+  channelCount: number,
+): Promise<PostActivityRetellingResult> {
+  const res = await fetch(`/api/sessions/${sessionId}/post-activity/retelling`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "X-Audio-Channels": String(channelCount),
+    },
+    body: audio,
+  });
+  return unwrap<PostActivityRetellingResult>(res);
+}
+
+/**
+ * 활동 종료 — ⭐ **보호자 리포트를 띄우는 신호다** (F11 · 명세 5.D).
+ *
+ * 「마치기」는 `finished`, 끝 화면을 떠나는 모든 길은 `left` 다. **반복 호출이 안전하므로**
+ * 앱은 「이미 불렀나」를 관리하지 않는다 — 마치고 나서 떠나면 두 번 가고 서버가 삼킨다.
+ */
+export async function completePostActivity(
+  sessionId: string,
+  reason: PostActivityCompleteReason,
+): Promise<PostActivityCompleteResult> {
+  const res = await fetch(`/api/sessions/${sessionId}/post-activity/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  return unwrap<PostActivityCompleteResult>(res);
+}
+
+/**
+ * 페이지를 떠나는 순간의 종료 알림 — 브라우저 뒤로가기·탭 닫기 (F11 의 「뒤로가기」).
+ *
+ * 그 순간의 `fetch()` 는 브라우저가 취소한다. `sendBeacon` 은 문서가 사라져도 요청을
+ * 마저 보내 준다 — 답은 못 받지만 이 호출은 답을 볼 일이 없다.
+ *
+ * 🟡 **명세에 없는 판단이라 되돌려도 된다.** 없어도 F12(보호자가 리포트를 열 때 만든다)가
+ *    받아 주므로 잃는 것은 「리포트가 조금 늦게 생긴다」뿐이다.
+ */
+export function beaconPostActivityComplete(
+  sessionId: string,
+  reason: PostActivityCompleteReason,
+): boolean {
+  if (typeof navigator === "undefined" || typeof navigator.sendBeacon !== "function") {
+    return false;
+  }
+  return navigator.sendBeacon(
+    `/api/sessions/${sessionId}/post-activity/complete`,
+    new Blob([JSON.stringify({ reason })], { type: "application/json" }),
+  );
+}
+
+/**
+ * 후활동 화면이 주입받는 호출 4벌 — 미션의 `MissionApi` 와 같은 자리다 (이슈 #20).
+ * 아이 앱(play.tsx)은 아래 실구현을, /dev/minigame 은 목 어댑터를 주입한다.
+ */
+export type PostActivityApi = {
+  fetchPostActivity: typeof fetchPostActivity;
+  submitPostActivityOrder: typeof submitPostActivityOrder;
+  submitPostActivityRetelling: typeof submitPostActivityRetelling;
+  completePostActivity: typeof completePostActivity;
+};
+
+export const REAL_POST_ACTIVITY_API: PostActivityApi = {
+  fetchPostActivity,
+  submitPostActivityOrder,
+  submitPostActivityRetelling,
+  completePostActivity,
+};
+
+/**
+ * 후활동 화면에 흘려보내는 배선 한 덩이 (명세 8절 ②).
+ *
+ * ⛔ 미션 세션 배선 넷(sessionId·missionSessionId·config·missionApi)과 **다른 것**이다 —
+ *    `missionSessionId` 가 없다. 후활동은 세션당 한 건이라 세션 id 하나로 찾힌다.
+ */
+export type PostActivityWiring = {
+  sessionId: string;
+  /** 서버가 준 정본. null 이면 화면 상수로 그린다 — 서버가 안 열릴 때의 비상용 (명세 8절 4) */
+  config: PostActivityConfig | null;
+  /** 중간에 나갔다 돌아온 자리. null 이면 처음부터 */
+  result: PostActivityResult | null;
+  api: PostActivityApi;
+};

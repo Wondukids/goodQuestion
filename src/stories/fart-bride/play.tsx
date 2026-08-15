@@ -10,13 +10,21 @@ import { MinigamePopup } from "./minigame-popup";
 import { buildPlanSequence } from "./plan-sequence";
 import { useStorySequencer } from "./sequencer";
 import {
+  beaconPostActivityComplete,
+  completePostActivity,
+  fetchPostActivity,
+  fetchPostActivityWhenReady,
+  openPostActivityClosingStory,
   openSession,
   REAL_MISSION_API,
+  REAL_POST_ACTIVITY_API,
   resumeSessionTurn,
+  SessionApiError,
   skipSessionSceneWithResume,
   type MissionCompleteResult,
   type MissionStart,
   type OpenedSession,
+  type PostActivityOpen,
 } from "./session-api";
 import { VIDEO_SUBTITLES } from "./subtitles";
 
@@ -175,6 +183,117 @@ export default function FartBridePlay({
     next();
   };
 
+  /* ── 말하기 후 활동 (이슈 #46 · `docs/말하기후활동_명세.md` 8절 ①) ──────────
+     끝 화면에 **늘 버튼이 선다.** 할지 말지는 아이가 고른다 (2026-08-15 결정 — 그전에는
+     서버가 열어 준다고 답했을 때만 버튼을 그려서, 아이 눈에는 될 때도 있고 안 될 때도
+     있는 것으로 보였다). 카드·핵심 단어는 서버 config 가 정본이라 팝업까지 그대로
+     흘려보낸다 (F1 · 수용 기준 2). */
+  const [postActivity, setPostActivity] = useState<PostActivityOpen | null>(null);
+  const [finaleOpen, setFinaleOpen] = useState(false);
+  /* 이 이야기엔 활동이 **아예 없다**(404) — 그때만 버튼을 감춘다 (F13) */
+  const [활동없음, set활동없음] = useState(false);
+  /* 눌러서 여는 중 — 서버를 닫아야 하는 판이면 몇 초 걸린다 */
+  const [활동여는중, set활동여는중] = useState(false);
+  const [활동못열림, set활동못열림] = useState(false);
+  const sessionId = session?.session_id ?? null;
+
+  /* 끝 화면에 닿으면 **미리** 받아 둔다 — 버튼을 눌렀을 때 곧바로 열리라고.
+     여기서 실패해도 버튼은 그대로다. 못 받은 사정은 누를 때 다시 푼다 (아래). */
+  useEffect(() => {
+    if (!finished || sessionId === null) return;
+    let alive = true;
+    fetchPostActivityWhenReady(sessionId)
+      .then((opened) => {
+        if (alive) setPostActivity(opened);
+      })
+      .catch((error: unknown) => {
+        if (
+          alive &&
+          error instanceof SessionApiError &&
+          error.code === "POST_ACTIVITY_NOT_CONFIGURED"
+        ) {
+          /* 이 이야기엔 활동이 없다 — 기다린다고 생기지 않는다 (F13) */
+          set활동없음(true);
+        }
+        console.info("[후활동] 미리 받기 실패 — 버튼을 누를 때 다시 푼다", error);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [finished, sessionId]);
+
+  /**
+   * 「이야기 순서 맞추기」를 눌렀다 — 미리 받아 뒀으면 곧바로, 아니면 풀어서 연다.
+   *
+   * 🔴 푸는 자리가 `openPostActivityClosingStory()` 다 (그 머리말) — 서버가 아직 이야기를
+   * 안 닫았으면 **남은 장면을 밀어 닫고** 연다. 아이가 마지막 대화에서 말을 안 하고
+   * 지나간 판이 그렇고, 그런 판은 기다려도 영영 안 닫힌다.
+   *
+   * ⚠️ 건너뛰기는 미완 턴 복구를 안고 있어 몇 초 걸릴 수 있다 — 그동안 버튼이
+   *    「여는 중…」으로 서 있는다.
+   */
+  const 활동을_연다 = () => {
+    set활동못열림(false);
+    if (postActivity !== null) {
+      setFinaleOpen(true);
+      return;
+    }
+    if (sessionId === null || 활동여는중) return;
+    set활동여는중(true);
+    openPostActivityClosingStory(sessionId, "fart-bride", serverScene)
+      .then((열림) => {
+        /* 밀어 닫았으면 서버는 더 기다리는 장면이 없다 */
+        setServerScene(null);
+        setPostActivity(열림);
+        setFinaleOpen(true);
+      })
+      .catch((error: unknown) => {
+        set활동못열림(true);
+        console.info("[후활동] 끝내 열지 못했다", error);
+      })
+      .finally(() => set활동여는중(false));
+  };
+
+  /**
+   * 활동 팝업을 닫는다 — 마쳤든 그냥 닫았든 같은 길이다.
+   *
+   * 닫는 김에 결과를 다시 읽어 둔다. 아이가 순서만 맞추고 닫았다가 다시 열면 그 자리에서
+   * 이어져야 하는데, 팝업은 열릴 때 받은 `result` 만 보기 때문이다. **여는 자리가 아니라
+   * 닫는 자리에서** 받는 것은 아이를 기다리게 하지 않으려는 것이다.
+   */
+  const closeFinale = () => {
+    setFinaleOpen(false);
+    if (sessionId === null) return;
+    fetchPostActivity(sessionId)
+      .then(setPostActivity)
+      .catch((error: unknown) => {
+        /* 실패하면 방금까지 쓰던 값을 그대로 둔다 — 버튼이 사라지면 안 된다 */
+        console.info("[후활동] 결과 다시 읽기 실패 — 지난 값을 그대로 쓴다", error);
+      });
+  };
+
+  /**
+   * 끝 화면을 떠난다 — ⭐ **리포트를 만드는 신호다** (F11 · 명세 5.D).
+   *
+   * 다시 보기 · 이야기 소개로가 이 길을 탄다. 「마치기」를 이미 눌렀어도 한 번 더
+   * 가는데, 서버가 삼킨다 — **「이미 불렀나」를 앱이 관리하지 않는다.**
+   */
+  const leaveFinish = () => {
+    if (sessionId === null || postActivity === null) return;
+    completePostActivity(sessionId, "left").catch((error: unknown) => {
+      console.info("[후활동] 종료 알림 실패 — 리포트는 보호자 열람 때 만들어진다 (F12)", error);
+    });
+  };
+
+  /* 브라우저 뒤로가기·탭 닫기 — 그 순간의 fetch 는 취소돼서 sendBeacon 으로 보낸다.
+     🟡 명세에 없는 보탬이라 되돌려도 된다 (F12 가 받아 준다) */
+  useEffect(() => {
+    if (!finished || sessionId === null || postActivity === null) return;
+    const onHide = () => beaconPostActivityComplete(sessionId, "left");
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [finished, sessionId, postActivity]);
+
   /* 미니게임 팝업 (이슈 #20) — 열기 신호는 대화 씬의 턴 응답 next.kind === "미션시작"
      뿐이다 (다리 대사 재생이 끝난 뒤 — M8). 개발용 SPACE 순환은 /dev/minigame 으로
      격리했다 — 아이 앱 재생 화면에서 SPACE 는 아무 일도 하지 않는다. */
@@ -228,12 +347,28 @@ export default function FartBridePlay({
             며느리와 이야기 나눠 줘서 고마워요.
           </p>
           <div className="flex gap-4">
+            {/* 🔴 서버가 뭐라 답하든 **늘 선다.** 할지 말지는 아이가 고른다
+                (2026-08-15 결정 · 수용 기준 1). 이 이야기에 활동이 아예 없을 때만 뺀다 */}
+            {!활동없음 && (
+              <button
+                type="button"
+                onClick={활동을_연다}
+                disabled={활동여는중}
+                className="rounded-2xl bg-brand-900 px-10 py-4 text-[20px] font-extrabold text-white disabled:opacity-60"
+              >
+                {활동여는중 ? "여는 중…" : "이야기 순서 맞추기"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
+                /* 끝 화면을 떠난다 — 활동을 안 했어도 리포트가 만들어진다 (F11) */
+                leaveFinish();
                 /* 다시 보기는 완전한 처음부터 — 남아 있을 수 있는 재개 지시를 소거한다 */
                 setResumeLine(null);
                 setResumeCutStart(null);
+                setPostActivity(null);
+                set활동못열림(false);
                 restart();
               }}
               className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
@@ -242,11 +377,18 @@ export default function FartBridePlay({
             </button>
             <Link
               href="/stories/fart-bride"
+              onClick={leaveFinish}
               className="rounded-2xl bg-primary px-10 py-4 text-[20px] font-extrabold text-white"
             >
               이야기 소개로
             </Link>
           </div>
+          {/* 끝내 못 열었다 — 버튼이 아무 일도 안 하는 것처럼 보이지 않게 한 줄 남긴다 */}
+          {활동못열림 && (
+            <p className="text-[15px] font-bold text-point-strong">
+              지금은 열 수 없어요. 잠시 뒤에 다시 눌러 주세요.
+            </p>
+          )}
         </div>
       )}
 
@@ -334,17 +476,28 @@ export default function FartBridePlay({
         </div>
       )}
 
-      {/* 미션 코드 → 화면 번호 (명세 3절 — ms_banggui_pear=미션1 · ms_banggui_friend=미션2) */}
+      {/* 미션 코드 → 화면 번호 (명세 3절 — ms_banggui_pear=미션1 · ms_banggui_friend=미션2).
+          마무리(3)는 이야기가 끝난 뒤에만 열리므로 미션 팝업과 겹칠 일이 없다 (이슈 #46) */}
       <MinigamePopup
-        open={mission !== null}
-        mission={mission?.code === "ms_banggui_friend" ? 2 : 1}
+        open={mission !== null || finaleOpen}
+        mission={finaleOpen ? 3 : mission?.code === "ms_banggui_friend" ? 2 : 1}
         childName={childName}
-        sessionId={session?.session_id ?? null}
+        sessionId={sessionId}
         missionSessionId={mission?.mission_session_id ?? null}
         config={mission?.config ?? null}
         missionApi={REAL_MISSION_API}
-        onClose={() => closeMission(null)}
-        onComplete={closeMission}
+        postActivity={
+          finaleOpen && sessionId !== null && postActivity !== null
+            ? {
+                sessionId,
+                config: postActivity.config,
+                result: postActivity.result,
+                api: REAL_POST_ACTIVITY_API,
+              }
+            : null
+        }
+        onClose={() => (finaleOpen ? closeFinale() : closeMission(null))}
+        onComplete={(result) => (finaleOpen ? closeFinale() : closeMission(result))}
       />
     </main>
   );

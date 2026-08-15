@@ -25,6 +25,8 @@ import { elementName } from "@/llm/elements";
 import type {
   AxisName,
   ParentReport,
+  PostActivity,
+  PostActivityWord,
   ReportListItem,
   SkillCard,
 } from "@/report/types";
@@ -62,6 +64,42 @@ export type WordGroup = {
   more?: string;
   /** words 가 비었을 때 대신 낼 한 줄 (계약 2절 ④) */
   empty: string;
+};
+
+/** 말하기 후 활동 카드의 낱말 칩 하나 (후활동 명세 7.3). */
+export type PostActivityChip = {
+  /** 어느 카드의 낱말인가. 칩을 가르는 열쇠다 — 카드가 다르면 같은 낱말도 다른 칩이다 */
+  card_id: string;
+  word: string;
+  status: PostActivityWord["status"];
+  color: string;
+  chipBg: string;
+  /**
+   * 「비슷한 말로 말했다」의 근거 — 아이 원문에서 떼어 온 조각.
+   * 그대로 쓴 낱말·안 나온 낱말은 `null` 이다 (`src/report/types.ts` 의 `evidence`).
+   */
+  evidence: string | null;
+};
+
+/**
+ * 말하기 분석 탭 맨 아래의 후활동 카드 (후활동 명세 7.3 · F16).
+ *
+ * `Report.postActivity` 가 `null` 이면 **카드를 아예 안 그린다** — 활동을 안 한 아이다.
+ */
+export type PostActivityView = {
+  title: string;
+  caption: string;
+  /** 「순서를 두 번 만에 맞췄어요」 */
+  orderLine: string;
+  /** 아이가 들려준 줄거리 원문. 안 들려줬으면 `null` */
+  retelling: string | null;
+  /** 「낱말 12개 중 8개를 담았어요」. 칩이 없으면 `null` */
+  wordsCaption: string | null;
+  chips: PostActivityChip[];
+  /** 칩 대신 낼 한 줄 — 안 들려줬거나 판정을 못 했다. 칩이 있으면 `null` */
+  notice: string | null;
+  /** 칩 색이 무슨 뜻인지. 칩이 없으면 빈 목록 */
+  legend: { label: string; color: string; chipBg: string }[];
 };
 
 /** 이야기 주제 이어가기(탭2 왼쪽)의 질문 한 장. */
@@ -137,6 +175,9 @@ export type Report = {
     feedback: { before: string; accent: string; after: string };
   };
 
+  /** 말하기 후 활동 카드. `null` 이면 **그리지 않는다** — 활동을 안 한 아이다 (F16) */
+  postActivity: PostActivityView | null;
+
   guide: {
     reason: string;
     story: { caption: string; questions: StoryQuestion[] };
@@ -180,6 +221,24 @@ const WORD_STYLE = {
   asked: { title: "질문한 어휘", icon: "help", color: "#a78bfa", chipBg: "#efefef" },
   repeated: { title: "반복해서 쓴 표현", icon: "repeat", color: "#5aa860", chipBg: "#f0f8f1" },
 } as const;
+
+/**
+ * 후활동 낱말 칩 세 갈래의 이름표와 색 (후활동 명세 7.3 — 「색으로 갈린다」).
+ *
+ * 색은 위 `WORD_STYLE` 에서 그대로 가져왔다 — 같은 화면에 색이 더 늘면 어느 색이 무슨
+ * 뜻인지 보호자가 못 따라온다. 「쓴 것」이 초록, 「비슷하게」가 파랑, 「안 나온 것」이 회색이다.
+ *
+ * 🟡 이름표 글자는 명세에 없어 **되돌려도 된다** — 「말했어요/비슷하게 말했어요/안 나왔어요」로
+ *    바꾸려면 여기 세 줄이다.
+ */
+const POST_ACTIVITY_WORD_STYLE: Record<
+  PostActivityWord["status"],
+  { label: string; color: string; chipBg: string }
+> = {
+  used: { label: "그대로 말한 낱말", color: "#5aa860", chipBg: "#f0f8f1" },
+  similar: { label: "비슷한 말로 말한 낱말", color: "#45a9d3", chipBg: "#eaf6fb" },
+  missing: { label: "안 나온 낱말", color: "#8a8a8a", chipBg: "#efefef" },
+};
 
 /**
  * 한 칸에 놓을 칩 수. 넘으면 「외 N개」로 접는다.
@@ -232,6 +291,15 @@ const NOTICE = {
   noAxes: "이번엔 모인 말이 적어 그래프를 그리지 못했어요.",
   /** 점수가 선 축이 하나뿐 — 오각형이 아니라 바늘이 된다 (D1 · 명세 4.2) */
   oneAxis: "이번엔 한 갈래에서만 나타나 그래프로 그리기 어려웠어요.",
+  /** 후활동에서 순서만 맞추고 나갔다 (후활동 7.3 — 그 문장을 그대로 쓴다) */
+  noRetelling: "줄거리는 아직 들려주지 않았어요.",
+  /**
+   * 후활동 줄거리를 **판정하지 못했다** (`analyzed: false`).
+   *
+   * 🔴 「낱말이 하나도 안 나왔다」와 **다른 말이라** 문구도 달라야 한다. 그쪽은 칩 12개가
+   *    전부 회색으로 서고, 이쪽은 잰 것이 없어서 칩이 한 장도 없다.
+   */
+  notAnalyzed: "들려준 줄거리에서 낱말을 담지 못했어요.",
 } as const;
 
 const KST = "Asia/Seoul";
@@ -288,6 +356,100 @@ function toWordGroup(
     words: shown,
     more: rest > 0 ? `외 ${rest}개` : undefined,
     empty,
+  };
+}
+
+/**
+ * 「두 번 만에」의 앞글자. 열까지만 세고 그 위는 숫자로 적는다 — 「열한 번」쯤 가면
+ * 한글 수사가 오히려 안 읽힌다.
+ */
+const 횟수말 = ["", "한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"];
+
+/** 「두 번」 · 「열한 번」이 아니라 「11번」. 숫자에는 사이를 안 띄운다. */
+function 번수(수: number): string {
+  return 횟수말[수] === undefined ? `${수}번` : `${횟수말[수]} 번`;
+}
+
+/**
+ * 순서 맞추기 한 줄 (후활동 명세 7.3 — «순서를 두 번 만에 맞췄어요»).
+ *
+ * 🔴 `correct` 는 **「끝내 맞췄나」**다 (F18). 「한 번에 맞췄나」는 `attempts === 1` 로 안다 —
+ *    이 둘을 섞으면 세 번 만에 맞춘 아이가 「못 맞췄다」로 읽힌다.
+ */
+function orderLine(order: PostActivity["order"]): string {
+  if (order.attempts === 0) return "순서 맞추기는 아직 하지 않았어요.";
+  if (!order.correct) {
+    return `순서를 ${번수(order.attempts)} 놓아 봤지만 아직 완성하지 못했어요.`;
+  }
+  if (order.attempts === 1) return "순서를 한 번에 맞췄어요.";
+  return `순서를 ${번수(order.attempts)} 만에 맞췄어요.`;
+}
+
+/**
+ * 후활동 지표 → 카드 하나 (후활동 명세 7.2 → 7.3).
+ *
+ * **`null` 이 세 겹이고 셋 다 다르게 그린다** (F16 · 킥오프 4절 표):
+ *
+ * | 들어온 값 | 카드 |
+ * |---|---|
+ * | `null`·`undefined` | 카드를 **안 그린다** (돌려주는 값이 `null`) |
+ * | `retelling: null` | 순서 줄만 + 「줄거리는 아직 들려주지 않았어요」 |
+ * | `analyzed: false` | 아이 말은 보여 주고 「담지 못했어요」 |
+ *
+ * ⚠️ `undefined` 도 받는다. 리포트는 한 번 만들면 다시 안 만들어서(`queueReport()`)
+ *    #47 이전에 저장된 리포트의 jsonb 에는 이 칸이 **아예 없다.**
+ *
+ * 🟡 칩을 **카드별로 묶지 않고 한 줄로** 늘어놓는다 — 명세 7.3 이 안 정한 자리라
+ *    **되돌려도 된다.** 그렇게 고른 이유: 카드 제목이 지표에 없고(`card_id` 만 온다)
+ *    제목을 실으려면 `stories.post_activity_config` 를 화면까지 끌고 와야 한다.
+ *    칩 차례가 이미 카드 순서라 넉 장의 묶음은 줄 안에서도 그대로 보인다.
+ */
+function toPostActivity(
+  post: PostActivity | null | undefined,
+): PostActivityView | null {
+  if (post === null || post === undefined) return null;
+
+  const 바탕 = {
+    title: "이야기 순서 맞추기 · 줄거리 말하기",
+    caption: "이야기를 다 보고 한 활동이에요",
+    orderLine: orderLine(post.order),
+  };
+
+  /* 순서만 하고 나갔다 — 줄거리 자리에 안내 한 줄만 둔다 (7.3) */
+  if (post.retelling === null) {
+    return {
+      ...바탕,
+      retelling: null,
+      wordsCaption: null,
+      chips: [],
+      notice: NOTICE.noRetelling,
+      legend: [],
+    };
+  }
+
+  const { text, used, similar, words } = post.retelling;
+  const chips = words.map((word) => ({
+    card_id: word.card_id,
+    word: word.word,
+    status: word.status,
+    color: POST_ACTIVITY_WORD_STYLE[word.status].color,
+    chipBg: POST_ACTIVITY_WORD_STYLE[word.status].chipBg,
+    evidence: word.evidence,
+  }));
+  /* 칩이 없다 = 잰 것이 없다. `analyzed: false` 면 지표가 이미 단어를 안 싣는다
+     (`후활동지표()`), 그러니 화면은 **눈에 보이는 것 하나**만 보면 된다. */
+  const 판정없음 = chips.length === 0;
+
+  return {
+    ...바탕,
+    /* 판정을 못 했어도 **아이 말은 보여 준다.** 잰 것이 없을 뿐 아이는 말을 했다 */
+    retelling: text,
+    wordsCaption: 판정없음
+      ? null
+      : `낱말 ${chips.length}개 중 ${used + similar}개를 이야기에 담았어요`,
+    chips,
+    notice: 판정없음 ? NOTICE.notAnalyzed : null,
+    legend: 판정없음 ? [] : Object.values(POST_ACTIVITY_WORD_STYLE),
   };
 }
 
@@ -449,6 +611,10 @@ export function toReportView(
       ],
       feedback: splitAccent(textOr(narrative?.word_tip)),
     },
+
+    /* 말하기 후 활동 (#47). 서술(LLM)과 상관없이 **숫자만** 보는 칸이라 `narrative` 를
+       안 탄다 — 후활동은 문장에 섞지 않기로 했다 (후활동 명세 7.3 끝줄). */
+    postActivity: toPostActivity(metrics.post_activity),
 
     guide: {
       reason: textOr(narrative?.reason),

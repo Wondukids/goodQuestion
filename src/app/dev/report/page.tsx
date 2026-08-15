@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ReportView } from "@/components/report/report-view";
 import { toReportView } from "@/lib/report";
-import type { ParentReport } from "@/report/types";
+import type { ParentReport, PostActivity } from "@/report/types";
 import { 사본, 짧게_답한_아이, 잘한_아이 } from "./sample-reports";
 
 /**
@@ -17,6 +17,7 @@ import { 사본, 짧게_답한_아이, 잘한_아이 } from "./sample-reports";
  * - 4.1 두 탭이 다 차는 판
  * - 4.2 문장이 없는 판 (`narrative: null` · 첫 활동 · 「다시 만들기」)
  * - 축 0 판 (오각형 대신 안내 문구)
+ * - 후활동 판 셋 (낱말 12개 · 순서만 · 판정 실패 — 이슈 #47)
  *
  * 배포 화면과 무관한 개발 도구라 (main) 레이아웃 밖 /dev 아래 둔다.
  */
@@ -28,10 +29,81 @@ function 축이_전부_0(): ParentReport {
   return report;
 }
 
+/**
+ * 말하기 후 활동 카드를 눈으로 보는 판 셋 (이슈 #47 · 후활동 명세 7.3).
+ *
+ * 계약 4절 샘플 둘에는 후활동이 없다 — 그것 자체가 「카드를 안 그리는 판」이라 그대로 두고,
+ * 여기서 사본에 덩이를 얹는다. 🔴 **`null` 이 세 겹이고 셋이 다 다르게 그려진다** —
+ * 안 했다(카드 없음) · 순서만 했다 · 판정을 못 했다.
+ */
+const 후활동_낱말 = [
+  { card_id: "endure", word: "시집", status: "used", evidence: null },
+  { card_id: "endure", word: "참다", status: "similar", evidence: "꾹 눌렀어요" },
+  { card_id: "endure", word: "걱정", status: "missing", evidence: null },
+  { card_id: "burst", word: "방귀", status: "used", evidence: null },
+  { card_id: "burst", word: "깜짝", status: "missing", evidence: null },
+  { card_id: "burst", word: "기둥", status: "missing", evidence: null },
+  { card_id: "pear", word: "배나무", status: "used", evidence: null },
+  { card_id: "pear", word: "힘껏", status: "missing", evidence: null },
+  { card_id: "pear", word: "우수수", status: "missing", evidence: null },
+  { card_id: "pride", word: "당당하다", status: "similar", evidence: "어깨를 폈어요" },
+  { card_id: "pride", word: "칭찬", status: "missing", evidence: null },
+  { card_id: "pride", word: "고마워", status: "missing", evidence: null },
+] as const;
+
+function 후활동을_얹은(덩이: PostActivity): ParentReport {
+  const report = 사본(잘한_아이);
+  report.metrics.post_activity = 덩이;
+  return report;
+}
+
+const 후활동_순서 = {
+  correct: true,
+  attempts: 2,
+  first_submission: ["burst", "endure", "pear", "pride"],
+};
+
 const 판 = [
   { key: "4.1", label: "4.1 말을 잘한 아이", report: () => 잘한_아이 },
   { key: "4.2", label: "4.2 짧게만 답한 아이 · 첫 활동", report: () => 짧게_답한_아이 },
   { key: "zero", label: "축이 전부 0", report: 축이_전부_0 },
+  {
+    key: "post",
+    label: "후활동 — 낱말 12개",
+    report: () =>
+      후활동을_얹은({
+        order: 후활동_순서,
+        retelling: {
+          analyzed: true,
+          text: "며느리가 시집에서 방귀를 꾹 참다가, 배나무 앞에서 방귀를 뀌었어요.",
+          used: 3,
+          similar: 2,
+          missing: 7,
+          words: [...후활동_낱말],
+        },
+      }),
+  },
+  {
+    key: "post-order",
+    label: "후활동 — 순서만",
+    report: () => 후활동을_얹은({ order: 후활동_순서, retelling: null }),
+  },
+  {
+    key: "post-failed",
+    label: "후활동 — 판정 실패",
+    report: () =>
+      후활동을_얹은({
+        order: { correct: false, attempts: 3, first_submission: [] },
+        retelling: {
+          analyzed: false,
+          text: "음… 며느리가 방귀를 뀌었어요.",
+          used: 0,
+          similar: 0,
+          missing: 0,
+          words: [],
+        },
+      }),
+  },
 ] as const;
 
 export default function DevReportPage() {
