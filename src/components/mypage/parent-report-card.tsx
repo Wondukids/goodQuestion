@@ -87,7 +87,9 @@ export function ParentGateDialog({ onClose }: { onClose: () => void }) {
           <p className="text-[26px] font-extrabold text-ink-strong">
             보호자님 확인이 필요해요
           </p>
-          <p className="text-center text-[17px] leading-[1.5] font-bold text-ink-faint">
+          {/* 아직 비밀번호를 저장하는 곳이 없어 아무 숫자나 통과한다 —
+              시연 중 헤매지 않도록 빨갛게 띄운다 */}
+          <p className="text-center text-[17px] leading-[1.5] font-bold text-red-500">
             아무 숫자 4자리를 입력해주세요
           </p>
         </div>
