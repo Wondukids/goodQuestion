@@ -26,6 +26,7 @@ import {
   beaconPostActivityComplete,
   completePostActivity,
   fetchPostActivity,
+  fetchPostActivityWhenReady,
   SessionApiError,
   submitPostActivityOrder,
   submitPostActivityRetelling,
@@ -297,6 +298,54 @@ describe('API 넷 — 봉투와 경로 (명세 5절 A~D)', () => {
     expect(보낸것[0].url).toBe('/api/sessions/s-1/post-activity/complete')
     expect(JSON.parse(String(보낸것[0].init?.body))).toEqual({ reason: 'finished' })
     expect(JSON.parse(String(보낸것[1].init?.body))).toEqual({ reason: 'left' })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4. 🔴 서버가 세션을 닫을 때까지 기다린다 (2026-08-15 · 실기에서 잡은 버그)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 앱이 말하는 「끝」(화면 조각을 다 넘겼다)과 서버가 말하는 「끝」(세션이 `completed`)이
+// 다르다. 아이가 마지막 대화를 건너뛰면 앱은 건너뛰기를 보내 놓고 답을 안 기다리고
+// 끝 화면으로 간다 — 그 요청이 서버에 닿기 전에 물으면 409 다. 한 번 묻고 마는 코드는
+// 활동을 **영영** 못 열었고, 늦게 닿으면 열렸다. 그래서 「뜰 때도 있고 안 뜰 때도」였다.
+
+describe('fetchPostActivityWhenReady — 아직 안 닫힌 세션을 기다린다', () => {
+  /** 검사는 곁다리로 짧게 준다 — 진짜 상수(10초·600ms)로 돌면 검사가 그만큼 선다. */
+  const 짧게 = { waitMs: 300, pollMs: 5 }
+
+  it('409 를 두 번 내고 세 번째에 열리면 그 값을 돌려준다', async () => {
+    let 회차 = 0
+    const 보낸것 = fetch를_끼운다(() => {
+      회차 += 1
+      return 회차 < 3
+        ? 실패(409, 'POST_ACTIVITY_NOT_ALLOWED', true)
+        : 성공({ config: 서버config(), result: 빈결과 })
+    })
+
+    const 열림 = await fetchPostActivityWhenReady('s-1', 짧게)
+
+    expect(보낸것).toHaveLength(3)
+    expect(열림.config.cards).toHaveLength(4)
+  })
+
+  it('🔴 404(후활동 없음)는 기다리지 않는다 — 한 번만 묻고 바로 실패한다', async () => {
+    const 보낸것 = fetch를_끼운다(() => 실패(404, 'POST_ACTIVITY_NOT_CONFIGURED'))
+
+    await expect(fetchPostActivityWhenReady('s-1', 짧게)).rejects.toMatchObject({
+      code: 'POST_ACTIVITY_NOT_CONFIGURED',
+    })
+    /* 되물으면 후활동 없는 이야기마다 10초씩 헛되이 기다린다 */
+    expect(보낸것).toHaveLength(1)
+  })
+
+  it('끝내 안 닫히면 기다림이 다한 뒤 포기한다 (리포트는 F12 가 받는다)', async () => {
+    const 보낸것 = fetch를_끼운다(() => 실패(409, 'POST_ACTIVITY_NOT_ALLOWED', true))
+
+    await expect(fetchPostActivityWhenReady('s-1', 짧게)).rejects.toMatchObject({
+      code: 'POST_ACTIVITY_NOT_ALLOWED',
+    })
+    expect(보낸것.length).toBeGreaterThan(1)
   })
 })
 

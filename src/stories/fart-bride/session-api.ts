@@ -457,6 +457,55 @@ export async function fetchPostActivity(sessionId: string): Promise<PostActivity
   return unwrap<PostActivityOpen>(res);
 }
 
+/* 서버가 세션을 닫을 때까지 기다리는 한도. 남은 것은 건너뛰기 요청 한 번의 왕복이라
+   회차 잠금(30초)만큼 길 이유가 없다 — 넘기면 조용히 포기한다 (아래 머리말). */
+const POST_ACTIVITY_WAIT_MS = 10_000;
+const POST_ACTIVITY_POLL_MS = 600;
+
+/**
+ * **서버가 이 세션을 닫을 때까지 기다렸다가** 활동을 연다 — 이야기가 끝나는 자리 전용.
+ *
+ * ## 🔴 왜 한 번 물어서는 안 되나
+ *
+ * 앱이 말하는 「끝」과 서버가 말하는 「끝」이 다르다. 앱의 끝은 화면 조각을 다 넘겼다는
+ * 뜻이고(`sequencer.ts` 의 `finished`), 서버의 끝은 자기 장면 차례가 `회차끝` 에 닿아
+ * 세션이 `completed` 로 닫힌 것이다(`llm/service/run.ts` 의 `completeRun()`).
+ * 후활동 API 는 **닫힌 세션에만** 열어 준다 (명세 5.E · F10).
+ *
+ * 아이가 마지막 대화를 건너뛰면 앱은 건너뛰기를 보내 놓고 **답을 안 기다리고** 다음
+ * 화면으로 넘어간다 (`play.tsx` 의 `skip()` — 아이를 기다리게 하지 않으려고 일부러 그렇다).
+ * 그 요청이 서버에 닿기 전에 아이가 끝 화면에 도착하면 409 가 오고, 한 번 묻고 마는
+ * 코드는 **활동을 영영 못 연다.** 늦게 도착하면 열린다 — 그래서 들쭉날쭉했다.
+ *
+ * ⚠️ **404 는 기다리지 않는다.** 「이 이야기엔 후활동이 없다」는 시간이 지나도 안 바뀐다
+ *    (F13). 되물으면 그런 이야기마다 10초씩 헛되이 기다린다.
+ *
+ * ⚠️ 그래도 안 열리는 경우가 남는다 — 앱의 장면 추적이 어긋나 건너뛰기를 **아예 안 보낸**
+ *    판이다. 서버는 그 장면에 그대로 서 있어 세션이 안 닫힌다. 그때는 포기하고, 리포트는
+ *    보호자가 열 때 만들어진다 (F12).
+ *
+ * @param 기다림 검사가 짧게 돌리려고 연 손잡이 — 안 주면 위 상수다.
+ */
+export async function fetchPostActivityWhenReady(
+  sessionId: string,
+  기다림?: { waitMs?: number; pollMs?: number },
+): Promise<PostActivityOpen> {
+  const pollMs = 기다림?.pollMs ?? POST_ACTIVITY_POLL_MS;
+  const deadline = Date.now() + (기다림?.waitMs ?? POST_ACTIVITY_WAIT_MS);
+  for (;;) {
+    try {
+      return await fetchPostActivity(sessionId);
+    } catch (error) {
+      /* 404(후활동 없음)는 기다려도 안 바뀐다. 나머지(409 아직 안 닫힘·네트워크)는 되묻는다 */
+      const 기다릴만한가 =
+        !(error instanceof SessionApiError) ||
+        error.code !== "POST_ACTIVITY_NOT_CONFIGURED";
+      if (!기다릴만한가 || Date.now() >= deadline) throw error;
+      await sleep(pollMs);
+    }
+  }
+}
+
 /**
  * 순서 제출 — 「다 놓았어요!」를 누를 때마다 (명세 5.B).
  *

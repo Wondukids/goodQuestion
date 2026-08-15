@@ -13,6 +13,7 @@ import {
   beaconPostActivityComplete,
   completePostActivity,
   fetchPostActivity,
+  fetchPostActivityWhenReady,
   openSession,
   REAL_MISSION_API,
   REAL_POST_ACTIVITY_API,
@@ -181,10 +182,13 @@ export default function FartBridePlay({
   };
 
   /* ── 말하기 후 활동 (이슈 #46 · `docs/말하기후활동_명세.md` 8절 ①) ──────────
-     이야기가 끝나면 그 세션의 후활동을 열어 본다. 성공하면 끝 화면에 활동 버튼이 서고,
-     404 POST_ACTIVITY_NOT_CONFIGURED 면 **버튼을 아예 안 그린다** — 그 이야기의 리포트는
-     세션이 끝나는 자리에서 이미 만들어졌다 (F13). 카드·핵심 단어는 여기서 받은 config 가
-     정본이라 팝업까지 그대로 흘려보낸다 (F1 · 수용 기준 2). */
+     이야기가 끝나면 그 세션의 후활동을 열어 본다. 열리면 **저절로 뜬다** — 버튼은 없다.
+     404 POST_ACTIVITY_NOT_CONFIGURED 면 아무 일도 안 일어난다: 그 이야기엔 활동이 없고
+     리포트는 세션이 끝나는 자리에서 이미 만들어졌다 (F13). 카드·핵심 단어는 여기서 받은
+     config 가 정본이라 팝업까지 그대로 흘려보낸다 (F1 · 수용 기준 2).
+
+     ⚠️ **묻는 함수가 기다리는 쪽(`…WhenReady`)이다.** 서버가 세션을 닫기 전에 아이가 끝
+        화면에 도착하면 409 가 오는데, 한 번 묻고 말면 활동이 영영 안 열린다 (그 머리말). */
   const [postActivity, setPostActivity] = useState<PostActivityOpen | null>(null);
   const [finaleOpen, setFinaleOpen] = useState(false);
   const sessionId = session?.session_id ?? null;
@@ -192,19 +196,35 @@ export default function FartBridePlay({
   useEffect(() => {
     if (!finished || sessionId === null) return;
     let alive = true;
-    fetchPostActivity(sessionId)
+    fetchPostActivityWhenReady(sessionId)
       .then((opened) => {
         if (alive) setPostActivity(opened);
       })
       .catch((error: unknown) => {
-        /* 404(후활동 없음)·409(서버는 아직 이야기가 안 끝났다고 본다) 둘 다 여기다.
-           어느 쪽이든 아이에게는 「활동이 없다」로 보이면 된다 */
-        console.info("[후활동] 열 수 없다 — 끝 화면에 버튼을 그리지 않는다", error);
+        /* 404(후활동 없음)·끝내 안 닫힌 세션 둘 다 여기다. 어느 쪽이든 아이에게는
+           「활동이 없다」로 보이면 된다 */
+        console.info("[후활동] 열 수 없다 — 활동을 띄우지 않는다", error);
       });
     return () => {
       alive = false;
     };
   }, [finished, sessionId]);
+
+  /**
+   * 🔴 **이 판에서 이미 저절로 열었나.** 없으면 안 된다.
+   *
+   * 아이가 팝업을 닫으면 `closeFinale()` 이 결과를 다시 읽어 `postActivity` 를 갈아 끼우는데,
+   * 그것이 아래 effect 를 다시 깨워 **팝업이 다시 열린다** — 닫을 수 없는 고리가 된다.
+   * 「다시 보기」로 이야기를 또 보면 되돌려서 그 판에서는 다시 저절로 열리게 한다.
+   */
+  const 저절로_열었나 = useRef(false);
+
+  /* 이야기가 끝나고 활동이 열린다는 답이 오면 **저절로 띄운다** (버튼 없음 · 2026-08-15 결정) */
+  useEffect(() => {
+    if (!finished || postActivity === null || 저절로_열었나.current) return;
+    저절로_열었나.current = true;
+    setFinaleOpen(true);
+  }, [finished, postActivity]);
 
   /**
    * 활동 팝업을 닫는다 — 마쳤든 그냥 닫았든 같은 길이다.
@@ -299,16 +319,7 @@ export default function FartBridePlay({
             며느리와 이야기 나눠 줘서 고마워요.
           </p>
           <div className="flex gap-4">
-            {/* 후활동이 있는 이야기에만 선다 (수용 기준 1) */}
-            {postActivity && (
-              <button
-                type="button"
-                onClick={() => setFinaleOpen(true)}
-                className="rounded-2xl bg-brand-900 px-10 py-4 text-[20px] font-extrabold text-white"
-              >
-                이야기 순서 맞추기
-              </button>
-            )}
+            {/* 활동은 저절로 뜬다 — 여는 버튼은 두지 않는다 (2026-08-15 결정 · 수용 기준 1) */}
             <button
               type="button"
               onClick={() => {
@@ -318,6 +329,8 @@ export default function FartBridePlay({
                 setResumeLine(null);
                 setResumeCutStart(null);
                 setPostActivity(null);
+                /* 다음 판에서도 활동이 저절로 떠야 한다 — 이 판의 자물쇠를 푼다 */
+                저절로_열었나.current = false;
                 restart();
               }}
               className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
