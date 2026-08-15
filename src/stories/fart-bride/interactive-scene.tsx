@@ -803,21 +803,26 @@ export function InteractiveScene({
             ),
           )}
           {thinking && (
-            <div className="flex max-w-[85%] items-start gap-2.5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
-                {step.speaker.label.slice(0, 1)}
-              </span>
-              <p
-                aria-label={
-                  phase === "transcribing"
-                    ? "이야기 친구가 생각하는 중"
-                    : "이야기 친구가 말을 걸 준비를 하고 있어요"
-                }
-                className="flex items-center gap-1.5 rounded-2xl rounded-tl-md bg-white px-4 py-4 shadow-panel"
-              >
-                <span className="thinking-dot size-2 rounded-full bg-primary" />
-                <span className="thinking-dot size-2 rounded-full bg-primary" />
-                <span className="thinking-dot size-2 rounded-full bg-primary" />
+            <div className="flex max-w-[85%] flex-col gap-1">
+              <div className="flex items-start gap-2.5">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
+                  {step.speaker.label.slice(0, 1)}
+                </span>
+                <p
+                  aria-hidden
+                  className="flex items-center gap-1.5 rounded-2xl rounded-tl-md bg-white px-4 py-4 shadow-panel"
+                >
+                  <span className="thinking-dot size-2 rounded-full bg-primary" />
+                  <span className="thinking-dot size-2 rounded-full bg-primary" />
+                  <span className="thinking-dot size-2 rounded-full bg-primary" />
+                </p>
+              </div>
+              {/* 점만으로는 무엇을 하는 중인지 안 보인다 — 말풍선 아래 한 줄로 남긴다.
+                  왼쪽 여백은 아바타(40px)+간격(10px)만큼 밀어 말풍선 밑에 맞춘다 */}
+              <p className="pl-[50px] text-[13px] font-bold text-ink-muted">
+                {phase === "transcribing"
+                  ? "대답을 생각하고 있어…"
+                  : "말을 걸 준비를 하고 있어…"}
               </p>
             </div>
           )}
@@ -833,20 +838,23 @@ export function InteractiveScene({
             <>
               <p className="text-[18px] font-extrabold text-ink">네 차례야!</p>
               <p className="text-[13px] font-bold text-ink-muted">
-                생각이 떠오르면 이야기하고, 다 말했으면 아래 마이크를 눌러줘
+                아래 마이크를 누르고, 생각이 떠오르면 이야기해줘
               </p>
               {retriesRef.current > 0 && (
                 <p className="text-[13px] font-bold text-point-strong">
                   잘 안 들렸어요. 한 번 더 크게 말해 볼까?
                 </p>
               )}
+              {/* 듣는 중 파형 아이콘과 같은 두 겹 원 — 눌리는 범위는 바깥 원 전체다 */}
               <button
                 type="button"
                 onClick={stopRecording}
                 aria-label="다 말했어요"
-                className="mt-1 flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-panel"
+                className="mt-1 flex size-24 items-center justify-center rounded-full bg-primary/30"
               >
-                <MicIcon />
+                <span className="flex size-[72px] items-center justify-center rounded-full bg-primary text-white shadow-panel">
+                  <MicIcon />
+                </span>
               </button>
               <p className="flex items-center gap-1.5 text-[13px] font-bold text-ink-muted">
                 <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
@@ -856,7 +864,22 @@ export function InteractiveScene({
           )}
 
           {phase === "transcribing" && (
-            <p className="text-[15px] font-bold text-ink">듣고 생각하는 중…</p>
+            <>
+              <p className="text-[18px] font-extrabold text-ink">듣는 중…</p>
+              <p className="text-[13px] font-bold text-ink-muted">
+                말이 끝나면 글자로 보여줄게
+              </p>
+              {/* 마이크 버튼 자리에 서는 파형 아이콘 — 눌리는 버튼이 아니라 상태 표시다 */}
+              <div className="mt-1 flex size-24 items-center justify-center rounded-full bg-primary/30">
+                <div className="flex size-[72px] items-center justify-center gap-1 rounded-full bg-primary">
+                  <span className="h-2.5 w-1.5 rounded-full bg-white" />
+                  <span className="h-4 w-1.5 rounded-full bg-white" />
+                  <span className="h-6 w-1.5 rounded-full bg-white" />
+                  <span className="h-4 w-1.5 rounded-full bg-white" />
+                  <span className="h-2.5 w-1.5 rounded-full bg-white" />
+                </div>
+              </div>
+            </>
           )}
 
           {phase === "responding" && (
