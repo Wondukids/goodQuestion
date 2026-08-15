@@ -2,9 +2,10 @@
  * 굿퀘스천 스키마 (Drizzle · Postgres 16)
  *
  * 근거: sql/001_schema.sql (엔진) · sql/003_admin.sql (관리 도구) ·
- * sql/005_missions.sql (미션 — 이슈 #17) 를 옮긴 것이다.
+ * sql/005_missions.sql (미션 — 이슈 #17) · sql/006_parent_report.sql (보호자 리포트 — 이슈 #35)
+ * 를 옮긴 것이다.
  * 앞 두 파일의 근거 문서는 docs/기준/db구조.md (원본 PDF 전사본),
- * 005 의 근거 문서는 docs/미션_명세.md 6절이다.
+ * 005 의 근거 문서는 docs/미션_명세.md 6절, 006 은 docs/보호자_리포트_명세.md 6절이다.
  *
  * ⚠️ 원본 SQL 의 주석을 통째로 옮겼다. 원본 문서에서 무엇을 왜 바꿨는지가
  *    그 주석에만 적혀 있기 때문이다 (docs/설계/이식목록.md 3절).
@@ -12,6 +13,9 @@
  * ── 이 레포에서 만들지 않는 테이블 ───────────────────────────────
  *   parents / children / child_consents : 인증·계정 영역이라 범위 밖
  *   reports / analysis_versions / wordbook : 원문이 "추후 확장"으로 분류
+ *   ⛔ 보호자 리포트(이슈 #35)가 저 `reports`·`wordbook` 을 **쓰지 않는다.** 비어 있고 쓰임이
+ *      겹쳐 보여도 계정 영역 표라, 선언에 넣으면 `drizzle-kit push` 가 보는 목록에 들어간다.
+ *      대신 `parent_reports`·`child_words` 를 새로 세웠다 (아래 보호자 리포트 절).
  *
  * ── 원문에 없어서 001 에서 보탠 것 ──────────────────────────────
  *   원본 문서에는 PK/FK/NOT NULL/UNIQUE/DEFAULT/CHECK/인덱스 표기가 전혀 없다.
@@ -64,6 +68,11 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core'
+
+// 리포트 jsonb 두 칸(`metrics`·`narrative`)의 모양은 세 갈래(#35·#36·#37)가 공유하는
+// 계약 파일 하나가 진다. 타입만 가져오므로 런타임 의존은 늘지 않는다.
+// (⛔ 그 파일을 고치기 전에 docs/보호자_리포트_프론트_계약.md 를 먼저 고친다)
+import type { ReportMetrics, ReportNarrative } from '@/report/types'
 
 // ─────────────────────────────────────────────────────────────
 // 4. stories — 이야기
@@ -221,6 +230,15 @@ export const story_scenes = pgTable(
     // 목표 달성으로 끝내려면 아이가 최소 몇 번 말해야 하는지. 2026-08-05 확정 (결정 2)
     preferred_turns: smallint('preferred_turns'),
     max_turns: smallint('max_turns'),
+    // 이 장면에 나오는, 6~9세에게 어려운 낱말과 그 뜻 (R20 · 보호자 리포트 명세 6.3).
+    //   [{ "word": "며느리", "meaning": "아들의 아내" }]
+    // 두 곳에서 쓴다 — ① 「질문한 낱말」은 아이의 QUESTION 발화 원문을 이 목록과 맞춰 센다
+    // (LLM 을 거치지 않는다. R15), ② 「새로 쓴 낱말」의 뜻(`child_words.meaning`)이 여기서 온다.
+    // 값은 db/seed.ts 가 장면 정의 옆에서 넣는다.
+    vocabulary: jsonb('vocabulary')
+      .$type<{ word: string; meaning: string }[]>()
+      .notNull()
+      .default([]),
   },
   (t) => [
     unique('story_scenes_story_id_scene_order_key').on(t.story_id, t.scene_order),
@@ -555,6 +573,98 @@ export const mission_messages = pgTable(
       'mission_messages_line_source_check',
       sql`${t.line_source} IN ('fixed', 'generated', 'summary')`,
     ),
+  ],
+)
+
+// ═════════════════════════════════════════════════════════════
+// 보호자 리포트 두 표 (sql/006_parent_report.sql · 이슈 #35)
+//
+// 정본 문서는 docs/보호자_리포트_명세.md 6절이다. 활동(세션)이 `completed` 가 되는 순간
+// 리포트 한 장이 뒤에서 만들어져 여기 남는다 (확정 결정 R1·R2).
+//
+// ⛔ **저쪽(팀 레포)의 `reports` · `wordbook` 을 선언에 넣지 않는다.** 둘 다 비어 있고 쓰임도
+//    겹쳐 보이지만 계정 영역 표다. 선언에 넣는 순간 `drizzle-kit push` 가 보는 표 목록
+//    (`tablesFilter`, `db/push-guard.ts`)에 들어가고, 그 옆에는 **진짜 아이 계정 8행이 든
+//    `children`** 이 선다. 그래서 `wordbook` 대신 `child_words` 를 새로 세운다 (명세 6.2).
+//    둘을 합칠지는 팀과 따로 정한다.
+// ═════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────
+// parent_reports — 보호자 리포트 한 장 (R1 · R10)
+//
+// 숫자(`metrics`)와 문장(`narrative`)을 한 표 안에서 가른다. 그래야 LLM 이 실패해도 숫자가
+// 담긴 리포트가 남는다 — 그때가 `status = 'metrics_only'` 이고 `narrative` 는 NULL 이다 (R18).
+//
+// ⚠️ child_id 는 uuid NOT NULL 인데 참조할 표가 여기 없다 — `story_sessions.child_id` 와
+//    같은 이유다(저쪽 `children` 은 이 레포 범위 밖이다). FK 를 걸지 말 것.
+// ─────────────────────────────────────────────────────────────
+export const parent_reports = pgTable(
+  'parent_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // 활동 하나에 리포트 하나 (R1). 「다시 만들기」(R19)는 새 행이 아니라 이 열쇠로 덮어쓴다.
+    // 이름을 직접 준다 — 위 `utterance_analyses.message_id` 와 같은 이유다 (`…_unique` 금지).
+    session_id: uuid('session_id')
+      .notNull()
+      .unique('parent_reports_session_id_key')
+      .references(() => story_sessions.id, { onDelete: 'cascade' }),
+    // children 테이블은 이 레포 범위 밖이라 FK 를 걸 대상이 없다. 값만 들고 있는다.
+    child_id: uuid('child_id').notNull(),
+    status: varchar('status').notNull(),
+    // 규칙이 센 숫자·목록 (명세 4절). 같은 활동이면 몇 번을 돌려도 같은 값이다.
+    // 모양의 정본은 `src/report/types.ts` 다 — 세 갈래(#35·#36·#37)가 그 한 파일을 공유한다.
+    metrics: jsonb('metrics').$type<ReportMetrics>().notNull(),
+    // LLM 이 쓴 문장 (명세 5절). 🔴 LLM 이 실패하면 NULL 이다 (R18)
+    narrative: jsonb('narrative').$type<ReportNarrative>(),
+    // 어느 모델이 썼나
+    model: varchar('model'),
+    // {"report_analysis": "sha256…", "report_guide": "…"} — 골든셋이 쓰는 promptDigest() 와
+    // **같은 함수로** 찍는다 (`src/llm/service/goldenset.ts`). 프롬프트를 고친 뒤 어느 리포트가
+    // 옛 판인지 이걸로 가른다.
+    prompt_digest: jsonb('prompt_digest').$type<Record<string, string>>(),
+    generated_at: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+    // 보호자가 처음 연 시각. NULL 이면 탭 옆에 빨간 점이 뜬다 (명세 3.2)
+    read_at: timestamp('read_at', { withTimezone: true }),
+    // 다시 만들기를 몇 번 했나. 남용 방지 한도를 API 가 이 값으로 건다 (R19 · 명세 7절)
+    regenerated: smallint('regenerated').notNull().default(0),
+  },
+  (t) => [
+    check('parent_reports_status_check', sql`${t.status} IN ('metrics_only', 'complete')`),
+    // 드롭다운(「지난 활동 목록」)이 아이 하나의 리포트를 최신 순으로 훑는다 (명세 7절 첫 API)
+    index('idx_parent_reports_child').on(t.child_id, t.generated_at.desc()),
+  ],
+)
+
+// ─────────────────────────────────────────────────────────────
+// child_words — 아이별 누적 낱말 (R6)
+//
+// 「새로 쓴 낱말 7개」의 잣대다. 이번 활동에서 뽑힌 낱말 중 여기 **없던** 것이 새 낱말이다.
+//
+// 🔴 넣는 시점이 중요하다 — 리포트 저장이 성공한 **뒤에** 넣는다 (명세 4.3 · 8절 ⑤).
+//    먼저 넣으면 「다시 만들기」를 눌렀을 때 그 낱말들이 이미 있어 새 낱말이 0개가 된다.
+// ─────────────────────────────────────────────────────────────
+export const child_words = pgTable(
+  'child_words',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // parent_reports.child_id 와 같은 이유로 FK 를 걸지 않는다.
+    child_id: uuid('child_id').notNull(),
+    // 기본형으로 적는다 (「부끄러웠어요」→「부끄럽다」). 쪼개는 일은 LLM 이 한다 (R21)
+    word: varchar('word').notNull(),
+    // 장면 낱말 목록(`story_scenes.vocabulary`)에 있으면 붙는다. 없으면 NULL
+    meaning: text('meaning'),
+    // 세션이 지워져도 낱말은 남는다 — 이 아이가 그 낱말을 썼다는 사실은 그대로이기 때문이다.
+    first_session_id: uuid('first_session_id').references(() => story_sessions.id, {
+      onDelete: 'set null',
+    }),
+    // 「어느 장면에서 배운 말인가」. `story_scenes.code` 값이지만 FK 는 걸지 않는다 —
+    // 시드에서 장면이 갈려도 아이가 그 낱말을 쓴 기록은 남아야 한다.
+    first_scene_code: varchar('first_scene_code'),
+    created_at: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // 같은 아이의 같은 낱말은 한 번만. 두 번째 활동에서 다시 써도 새 낱말이 아니다 (R6)
+    unique('child_words_child_id_word_key').on(t.child_id, t.word),
   ],
 )
 

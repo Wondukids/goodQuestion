@@ -98,6 +98,11 @@ export async function listSeedScenes(conn: Conn): Promise<SeedSceneRow[]> {
       element_criteria: story_scenes.element_criteria,
       preferred_turns: story_scenes.preferred_turns,
       max_turns: story_scenes.max_turns,
+      // ⚠️ 화면에 새 칸이 생기지는 않는다 — 무엇을 그리는지는 `service/characters.ts` 의
+      //    `장면_순서` 가 정하고 거기에는 안 넣었다 (이슈 #35 의 범위 밖이다).
+      //    여기 적는 이유는 `SeedSceneRow` 가 `$inferSelect` 라 **표의 모든 칸**을 요구하기
+      //    때문이다. 빠뜨리면 타입이 곧 빨개진다.
+      vocabulary: story_scenes.vocabulary,
       story_title: stories.title,
       character_code: characters.code,
     })

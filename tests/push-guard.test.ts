@@ -9,7 +9,7 @@
 //
 // ⚠️ 이 검사가 지키는 것이 셋이다. 담이 두 겹이고, 거기에 「눈」이 하나 붙는다.
 //   1. 화이트리스트 — 아는 대상이 아니면 터진다 (`푸시_가드`)
-//   2. `tablesFilter` — 그 담을 지나가도 우리 21표 밖을 안 본다 (`우리_표_이름들`)
+//   2. `tablesFilter` — 그 담을 지나가도 우리 23표 밖을 안 본다 (`우리_표_이름들`)
 //   3. `schemaFilter` — 반대쪽이다. 드리즐킷은 기본으로 `public` 만 보므로,
 //      `gq_admin` 이 목록에서 빠지면 관리 11표가 `generate` 에서 **통째로 빠진다**
 //      (`우리_스키마들`)
@@ -138,6 +138,17 @@ describe('우리_표_이름들 (둘째 담)', () => {
       expect(이름들).not.toContain(저쪽표)
     }
   })
+
+  // 🔴 보호자 리포트(이슈 #35)가 저쪽 `reports`·`wordbook` 과 **쓰임이 겹쳐 보이는** 표 둘을
+  //    새로 세웠다. 겹쳐 보인다는 것이 곧 「그냥 저쪽 걸 쓰자」는 유혹이라, 바꿔치기가
+  //    일어나면 여기가 빨개지게 짝으로 못박는다. 저쪽 표를 선언에 넣는 순간 `tablesFilter` 에
+  //    들어가고, 그 옆에는 진짜 아이 계정 8행이 든 `children` 이 선다 (명세 6.2).
+  it('⛔ 리포트는 저쪽 `reports`·`wordbook` 이 아니라 우리 `parent_reports`·`child_words` 다', () => {
+    expect(이름들).toContain('parent_reports')
+    expect(이름들).toContain('child_words')
+    expect(이름들).not.toContain('reports')
+    expect(이름들).not.toContain('wordbook')
+  })
 })
 
 /**
@@ -172,12 +183,12 @@ const 관리_11표 = [
 ]
 
 /**
- * `public` 에 남는 엔진 10표 (미션 3표는 sql/005 · 이슈 #17 로 들어왔다).
+ * `public` 에 남는 엔진 12표 (미션 3표는 sql/005 · 이슈 #17, 리포트 2표는 sql/006 · 이슈 #35).
  *
  * ⚠️ 표 이름은 `story_characters` 다 — `schema.ts` 의 내보내는 이름(`characters`)과 다르다.
  * 여기서 재는 것은 **DB 에 찍히는 이름**이라 선언 쪽 이름을 쓰면 안 된다.
  */
-const 엔진_10표 = [
+const 엔진_12표 = [
   'stories',
   'story_characters',
   'story_scenes',
@@ -188,6 +199,9 @@ const 엔진_10표 = [
   'story_missions',
   'mission_sessions',
   'mission_messages',
+  // 보호자 리포트는 본 제품이 읽고 쓰는 표라 관리 도구가 아니다 (이슈 #35)
+  'parent_reports',
+  'child_words',
 ]
 
 describe('우리_스키마들 (schemaFilter)', () => {
@@ -222,13 +236,13 @@ describe('표가 어느 스키마에 사는가 (이름만으로는 못 잡는다
     }
   })
 
-  it('엔진 10표는 `public` 에 남는다 — 같이 끌려가지 않았는지', () => {
-    for (const 표 of 엔진_10표) {
+  it('엔진 12표는 `public` 에 남는다 — 같이 끌려가지 않았는지', () => {
+    for (const 표 of 엔진_12표) {
       expect(표별_스키마.get(표), `${표} 가 사는 스키마`).toBe('public')
     }
   })
 
-  it('⚠️ 21표가 이 둘로 다 갈린다 — 어느 쪽에도 안 든 새 표가 있으면 빨개진다', () => {
-    expect([...표별_스키마.keys()].sort()).toEqual([...관리_11표, ...엔진_10표].sort())
+  it('⚠️ 23표가 이 둘로 다 갈린다 — 어느 쪽에도 안 든 새 표가 있으면 빨개진다', () => {
+    expect([...표별_스키마.keys()].sort()).toEqual([...관리_11표, ...엔진_12표].sort())
   })
 })
