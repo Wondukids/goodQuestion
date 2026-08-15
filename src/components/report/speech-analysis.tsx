@@ -47,8 +47,9 @@ export function SpeechAnalysis({
         </div>
       </section>
 
-      {/* ── 역량 그래프 · 역량별 분석 */}
-      <div className="flex h-[432px] gap-5">
+      {/* ── 역량 그래프 · 역량별 분석 — 시안 높이는 최소값이다. 실데이터 글이 더 길면
+          카드가 같이 자라야 한다 (높이를 못 박으면 글이 카드 밖으로 흘러나온다) */}
+      <div className="flex min-h-[432px] gap-5">
         <section className={`${CARD} w-[434px] shrink-0 justify-between`}>
           <div className="flex h-[30px] items-center justify-between whitespace-nowrap">
             <h2 className="text-[20px] leading-[1.3] font-extrabold text-ink-strong">
@@ -109,8 +110,8 @@ export function SpeechAnalysis({
         </section>
       </div>
 
-      {/* ── 대표 발화 · 어휘 자세히 보기 */}
-      <div className="flex h-[304px] gap-5">
+      {/* ── 대표 발화 · 어휘 자세히 보기 — 위와 같은 이유로 최소 높이만 잡는다 */}
+      <div className="flex min-h-[304px] gap-5">
         <section className={`${CARD} w-[434px] shrink-0 gap-3`}>
           <div className="flex h-[30px] items-center gap-2">
             <MaterialSymbol
