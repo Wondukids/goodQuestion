@@ -1199,6 +1199,11 @@ async function 집계재료를_모은다(db: Conn, 콘: 콘텐츠, 일: 일감):
           .select({
             message_id: turn_conditions.message_id,
             response_mode: turn_conditions.response_mode,
+            // 상호작용 축의 셋째 항(`soft_cue_answered`)이 이 둘을 본다 (명세 4.2 · #36).
+            // 안 뽑으면 `--metrics` 가 그 항을 **조용히 0으로** 보여 준다 — 실서비스 읽기
+            // (`src/report/repo/materials.ts`)는 주는데 여기만 안 주면 두 길이 갈린다.
+            guidance_target: turn_conditions.guidance_target,
+            soft_cue: turn_conditions.soft_cue,
           })
           .from(turn_conditions)
           .where(inArray(turn_conditions.message_id, 아이_발화_id))
