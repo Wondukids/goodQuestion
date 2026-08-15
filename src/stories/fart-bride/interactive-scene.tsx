@@ -660,7 +660,8 @@ export function InteractiveScene({
           src={stage.image}
           alt=""
           fill
-          sizes="100vw"
+          /* 11인치 아이패드에서 시안 아래가 잘리지 않게 맞춘 폭 (main 0c50988) */
+          sizes="1366px"
           priority
           unoptimized
           className="object-cover"

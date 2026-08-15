@@ -8,7 +8,7 @@ export default async function MainLayout({ children }: LayoutProps<"/">) {
   const child = await requireSelectedChild();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-full">
       {/* 시안 공통 하늘 배경 — 투명한 상단 네비 뒤까지 비치도록 화면에 고정 */}
       <div className="fixed inset-0 -z-10 bg-app-bg">
         <Image
@@ -16,7 +16,7 @@ export default async function MainLayout({ children }: LayoutProps<"/">) {
           alt=""
           fill
           priority
-          sizes="100vw"
+          sizes="1366px"
           className="object-cover"
         />
       </div>

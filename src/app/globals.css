@@ -230,6 +230,57 @@
 html,
 body {
   height: 100%;
+  /* 스크롤은 캔버스 안에서만 일어난다 — 아래 .canvas 참고 */
+  overflow: hidden;
+}
+
+/* ── 고정 캔버스 ──────────────────────────────────────────────────────────
+   시안이 1366×1024(4:3) 한 장이고 화면마다 좌표를 절대값으로 앉혀 두었다.
+   그런데 11인치 아이패드(에어 M2 1180×820, 프로 11" 1210×834)는 비율이 1.44 라
+   가로를 맞추면 세로가 75~83px 모자라 아래가 잘린다. 동화 시작(7)에서는 하필
+   "이야기 시작하기" 버튼(top 924 + 높이 68 = 992)이 그 잘리는 구간에 걸린다.
+
+   그래서 캔버스는 1366×1024 그대로 두고 min(가로비, 세로비) 로 균일 축소해
+   화면 안에 통째로 담는다. 남는 쪽은 .canvas-stage 의 배경색 여백이 된다.
+   12.9"/13" 아이패드와 구형 에어(1112×834)는 배율이 1 이거나 세로가 딱 맞아
+   여백 없이 시안 그대로 나온다.
+
+   배율(--canvas-scale)은 layout.tsx 의 인라인 스크립트가 채운다. CSS 만으로는
+   뷰포트 단위에서 무단위 비율을 만들 수 없다 — 길이 ÷ 길이 계산은 iPadOS 17
+   사파리가 지원하지 않는다.
+
+   .canvas 에 transform 이 걸려 있으므로 그 안의 position: fixed 는 뷰포트가
+   아니라 캔버스를 기준으로 잡힌다. 하단 네비와 모달이 letterbox 여백이 아니라
+   캔버스 모서리에 붙는 건 이 덕분이다. 같은 이유로 캔버스 안에서 100vh 는
+   1024 가 아니라 실제 화면 높이를 가리키니 쓰지 말고 h-full 을 쓴다. */
+.canvas-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-app-bg);
+}
+
+.canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1366px;
+  height: 1024px;
+  transform: translate(-50%, -50%) scale(var(--canvas-scale, 1));
+}
+
+/* 스크롤은 반드시 .canvas 가 아니라 이 안쪽 요소가 맡는다.
+   transform 과 overflow 를 한 요소에 같이 주면 그 요소가 fixed 의 기준이면서
+   동시에 스크롤 컨테이너가 돼, 안의 position: fixed 가 absolute 처럼 내용을
+   따라 흘러간다 — 하단 네비가 스크롤에 딸려 올라오고 홈 하늘 배경이 벗겨진다.
+   기준(.canvas)과 스크롤(.canvas-scroll)을 갈라 두면 fixed 는 캔버스에 붙박이고
+   내용만 그 아래로 지나간다. */
+.canvas-scroll {
+  position: absolute;
+  inset: 0;
+  /* 1024 보다 긴 화면(홈 · 리포트)은 캔버스 안에서 스크롤한다 */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body {
