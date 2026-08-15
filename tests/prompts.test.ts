@@ -39,10 +39,19 @@ import {
 const 해설 = '해설.md'
 
 /**
- * 재료 JSON 이 들어가는 다섯. 앞의 셋은 열쇠 이름이 `runner.py` 가 넘기던 것 그대로이고,
- * 미션 둘(이슈 #18)은 `docs/미션_명세.md` 9절이 정본이다.
+ * 재료 JSON 이 들어가는 일곱. 앞의 셋은 열쇠 이름이 `runner.py` 가 넘기던 것 그대로이고,
+ * 미션 둘(이슈 #18)은 `docs/미션_명세.md` 9절이, 리포트 둘(이슈 #37)은
+ * `docs/보호자_리포트_명세.md` 5절이 정본이다.
  */
-const 재료를_받는_것 = ['analysis', 'character', 'child', 'mission_reply', 'mission_summary']
+const 재료를_받는_것 = [
+  'analysis',
+  'character',
+  'child',
+  'mission_reply',
+  'mission_summary',
+  'report_analysis',
+  'report_guide',
+]
 
 /** 심판 셋. 나가는 쪽이 **한국어**다 — 한국어 대사를 읽고 판정하기 때문. */
 const 심판 = [
@@ -68,7 +77,7 @@ describe('prompts/ 찾기', () => {
     expect(path.basename(path.dirname(promptsDir()))).not.toBe('web')
   })
 
-  it('정본 여덟이 다 읽힌다', () => {
+  it('정본 열이 다 읽힌다', () => {
     expect(프롬프트들).toEqual([...심판, ...재료를_받는_것].sort())
     for (const 이름 of 프롬프트들) {
       expect(read(이름).length).toBeGreaterThan(0)
@@ -114,11 +123,12 @@ describe('① 태그 짝 — 규칙이 한쪽에만 있으면 잡는다', () => 
     expect(나가는쪽.length).toBeGreaterThan(0)
   })
 
-  it('다섯을 합치면 47쌍이다 (2026-08-14 기준선)', () => {
+  it('일곱을 합치면 78쌍이다 (2026-08-15 기준선)', () => {
     // 규칙을 더하거나 지우면 이 숫자가 바뀐다. 바뀌었으면 **의도한 것인지 확인하고** 고쳐라.
-    // 32(분석 13 · 캐릭터 14 · 아이 5) + 미션 15(`R-…` 8 · `S-…` 7) = 47 (이슈 #18).
+    // 32(분석 13 · 캐릭터 14 · 아이 5) + 미션 15(`R-…` 8 · `S-…` 7) = 47 (이슈 #18)
+    // + 리포트 31(`A-…` 17 · `G-…` 14) = 78 (이슈 #37).
     const 합 = 재료를_받는_것.reduce((센것, 이름) => 센것 + 태그(read(이름)).length, 0)
-    expect(합).toBe(47)
+    expect(합).toBe(78)
   })
 
   it('⚠️ 뜻이 어긋난 것은 못 잡는다', () => {
@@ -147,6 +157,17 @@ describe('② 인용 누출 — 사람용 글이 LLM 쪽으로 새면 잡는다'
     const 나가는것 = read(이름)
     const 걸린것 = 새면_안_되는_것.filter(([글자]) => 나가는것.includes(글자))
     expect(걸린것.map(([글자, 무엇]) => `${글자} (${무엇})`)).toEqual([])
+  })
+
+  // 🔴 채울 자리가 없어진 자리표시자 (2026-08-14 두 파일 분리). `{child_utterance}` 처럼
+  //    괄호 안이 이름 하나뿐인 것을 잡는다 — 안 채워지고 **글자 그대로 모델에게 나간다**
+  //    (`prompts/README.md` 2절·9절). 출력 규격을 적은 JSON 예시(`{"overall": …}`)는
+  //    괄호 안이 이름 하나가 아니므로 안 걸린다.
+  const 자리표시자 = /\{[A-Za-z_][A-Za-z0-9_]*\}/g
+
+  it.each(프롬프트들)('%s/보낼것.md 에 자리표시자가 없다', (이름) => {
+    자리표시자.lastIndex = 0
+    expect(read(이름).match(자리표시자) ?? []).toEqual([])
   })
 
   it('사람 쪽에는 있어도 된다 — 거기가 인용이 사는 자리다', () => {
@@ -218,7 +239,7 @@ describe('재료 JSON', () => {
 })
 
 describe('정본은 검사가 건드리지 않는다', () => {
-  it('열여섯 파일 모두 읽어도 그대로다', () => {
+  it('스무 파일 모두 읽어도 그대로다', () => {
     for (const 이름 of 프롬프트들) {
       for (const 파일 of [보낼것, 해설]) {
         const 경로 = path.join(promptsDir(), 이름, 파일)

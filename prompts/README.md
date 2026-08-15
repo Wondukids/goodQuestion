@@ -44,9 +44,11 @@ prompts/
   judge_invented_setting/        보낼것.md (한국어) · 해설.md
   mission_reply/                 보낼것.md (영어) · 해설.md   ← 이슈 #18
   mission_summary/               보낼것.md (영어) · 해설.md   ← 이슈 #18
+  report_analysis/               보낼것.md (영어) · 해설.md   ← 이슈 #37
+  report_guide/                  보낼것.md (영어) · 해설.md   ← 이슈 #37
 ```
 
-폴더가 여덟이라는 것과 이름 목록, 그리고 **폴더마다 두 파일이 다 있는지**를
+폴더가 열이라는 것과 이름 목록, 그리고 **폴더마다 두 파일이 다 있는지**를
 `tests/prompts.test.ts` 가 검사한다. 늘리거나 지우면 그 검사가 먼저 빨개진다.
 
 🔴 **폴더 이름을 바꾸지 마라.** `'analysis'`·`'character'` 는 실험판 표의 값이기도 해서
@@ -72,7 +74,7 @@ DB CHECK(`src/llm/db/schema.ts`)·리포(`src/llm/repo/prompt-lab.ts`)·폼 검�
 
 | | 어떻게 | 무엇을 잡나 |
 | --- | --- | --- |
-| ① 해시 대조 | 저장·조회 길을 다 지난 뒤 `prompts/` 아래 **모든 md 열셋**(폴더 안까지)의 sha256 + mtime 이 그대로인가 | **실제로** 파일에 손댄 코드 |
+| ① 해시 대조 | 저장·조회 길을 다 지난 뒤 `prompts/` 아래 **모든 md**(폴더 안까지)의 sha256 + mtime 이 그대로인가 | **실제로** 파일에 손댄 코드 |
 | ② 소스 훑기 | 작업대의 네 자리 소스에 파일 쓰기 API 이름이 한 글자라도 들어왔나 | 아직 안 불리는 길 · 앞으로 들어올 길 |
 
 ②가 훑는 네 파일은 `src/app/(admin)/prompt-lab/page.tsx` · `.../actions.ts` ·
@@ -84,9 +86,9 @@ DB CHECK(`src/llm/db/schema.ts`)·리포(`src/llm/repo/prompt-lab.ts`)·폼 검�
 
 ### 정본 md 는 검사도 안 건드린다
 
-`tests/prompts.test.ts` 는 가짜 md 를 만들어 통과시키지 않는다. **정본 여덟을 그대로
+`tests/prompts.test.ts` 는 가짜 md 를 만들어 통과시키지 않는다. **정본 열을 그대로
 읽는다** — 「md 를 고치면 코드가 따라온다」는 성질은 진짜 파일로만 확인되기 때문이다.
-열여섯 파일을 다 읽은 뒤에도 그대로인지까지 본다.
+스무 파일을 다 읽은 뒤에도 그대로인지까지 본다.
 
 ---
 
@@ -143,10 +145,16 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | `[K-…]` | `child` (Kid) | 5 |
 | `[R-…]` | `mission_reply` (Reply / 아이대답요약) | 8 |
 | `[S-…]` | `mission_summary` (Summary / 종료 요약) | 7 |
+| `[A-…]` | `report_analysis` (Analysis / 말하기 분석) | 17 |
+| `[G-…]` | `report_guide` (Guide / 가정 연계) | 14 |
 
-**47쌍이 맞는다.** 예를 들어 `analysis` 는 `E-BARE` · `E-EMOTION` · `E-EMPATHY` ·
+**78쌍이 맞는다.** 예를 들어 `analysis` 는 `E-BARE` · `E-EMOTION` · `E-EMPATHY` ·
 `E-INTENT` · `E-MULTI` · `E-NOCRIT` · `E-REASON` · `E-REQUEST` · `E-RESULT` · `E-SHORT` ·
 `E-SOLUTION` · `E-VERBATIM` · `E-YOUNG` 열셋이 양쪽에 다 있다.
+
+⚠️ 머리글자가 겹치지 않게 고른다. 리포트 둘이 `[R-…]`(이미 `mission_reply` 것)를 피해
+`[A-…]`·`[G-…]` 를 쓰는 이유가 이것이다 — 짝 검사는 **폴더별**로 돌지만 사람이
+두 프롬프트를 나란히 놓고 읽을 때 머리가 같으면 어느 쪽 규칙인지 못 가른다.
 
 ### 검사가 지킨다 (`tests/prompts.test.ts`)
 
@@ -156,8 +164,12 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 | ② 인용 누출 | `보낼것.md` 에 `docs/`·`CLAUDE.md`·`notes/`·`이슈 #`·📄·✏️ 가 없는가 |
 | ③ 경로 봉인 | 해설 파일 이름이 LLM 경로 소스에 한 글자도 없는가 |
 
-①에는 **47쌍 고정 단언**이 있다. 규칙을 더하거나 지우면 빨개진다 — 의도한 것인지
+①에는 **78쌍 고정 단언**이 있다. 규칙을 더하거나 지우면 빨개진다 — 의도한 것인지
 확인하고 숫자를 고쳐라.
+
+②에는 **자리표시자 검사**가 붙어 있다. `보낼것.md` 에 `{child_name}` 처럼 괄호 안이 이름
+하나뿐인 글자가 있으면 잡는다 — 안 채워지고 그대로 나가기 때문이다(2절·9절). 출력 규격을
+적은 JSON 예시는 괄호 안이 이름 하나가 아니라 안 걸린다.
 
 ③ 때문에 `render.ts`·`parse.ts`·`material.ts` 의 **주석에도** 해설 파일 이름이 없다.
 읽을 수 있는 이름이 없으면 실을 길도 없다는 것이 이 봉인의 방식이다.
@@ -269,6 +281,11 @@ user 본문은 언제나 `materialJson(재료)` — **JSON 한 덩이**다. 무�
 `child` 나 `judge_*` 를 저장하려 하면 화면에서도 저장 층에서도 막힌다
 (`tests/prompt-lab.test.ts`).
 
+⛔ **리포트 둘도 실험 대상이 아니다** (이슈 #37 · `docs/보호자_리포트_명세.md` 5.6).
+작업대 목록에는 뜨지만 읽기 전용이다. 얹으려면 위 세 곳을 다 고쳐야 하고, 그건 이번
+범위 밖으로 정해져 있다. 리포트 프롬프트를 고칠 때는 **`보낼것.md` 를 직접 고치고
+`해설.md` 에 이력을 적는다.**
+
 ### ③ 나가는 본문 하나만 대체한다
 
 실험 본문은 **`보낼것.md` 자리를 통째로 갈아끼울 뿐**이다. 재료를 만드는 코드도,
@@ -315,7 +332,7 @@ system 없이 도는데, 그게 실험인지 실수인지 나중에 못 가른�
 
 ---
 
-## 8. 여덟 프롬프트 — 무엇이고, 어디까지 배선됐나
+## 8. 열 프롬프트 — 무엇이고, 어디까지 배선됐나
 
 | 프롬프트 | 무엇 | 엔진에 붙었나 |
 | --- | --- | --- |
@@ -327,6 +344,8 @@ system 없이 도는데, 그게 실험인지 실수인지 나중에 못 가른�
 | `judge_invented_setting` | 캐릭터가 없는 설정을 지어냈나 | ⭕ `src/llm/judge.ts:515` |
 | `mission_reply` | 미션 턴의 아이대답요약·다리 대사 (이슈 #18) | ⭕ `src/llm/engine/mission.ts` — 미션 API(#19)가 아직 안 부른다 |
 | `mission_summary` | 미션 종료 요약 (이슈 #18) | ⭕ `src/llm/engine/mission.ts` — 미션 API(#19)가 아직 안 부른다 |
+| `report_analysis` | 보호자 리포트 · 말하기 분석 탭의 문장 + 낱말 추출 (이슈 #37) | ⭕ `src/report/engine/narrative.ts` — 생성 배선(#38)이 아직 안 부른다 |
+| `report_guide` | 보호자 리포트 · 가정 연계 질문 6개 (이슈 #37) | ⭕ `src/report/engine/narrative.ts` — 생성 배선(#38)이 아직 안 부른다 |
 
 심판 셋은 `boundaryChecks()`(`src/llm/judge.ts:572-590`)가 한 번에 부르고, 턴을 도는 길이
 자동 채점을 켠 회차에서 그것을 부른다(`src/llm/service/turn.ts:609-614`).
