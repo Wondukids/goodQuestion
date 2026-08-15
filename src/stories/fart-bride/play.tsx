@@ -5,14 +5,17 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { type VideoStep } from "./data";
 import { CutsPlayer, type CutsPlayerHandle } from "./cuts-player";
-import { InteractiveScene } from "./interactive-scene";
+import { InteractiveScene, type InteractiveSceneHandle } from "./interactive-scene";
 import { MinigamePopup } from "./minigame-popup";
 import { buildPlanSequence } from "./plan-sequence";
 import { useStorySequencer } from "./sequencer";
 import {
   openSession,
+  REAL_MISSION_API,
   resumeSessionTurn,
   skipSessionSceneWithResume,
+  type MissionCompleteResult,
+  type MissionStart,
   type OpenedSession,
 } from "./session-api";
 import { VIDEO_SUBTITLES } from "./subtitles";
@@ -154,25 +157,32 @@ export default function FartBridePlay({
     next();
   };
 
-  /* 미니게임 팝업 테스트 (개발용) — SPACE 를 누를 때마다 다음 미션으로 넘어간다
-     (닫힘 → 미션1 → 미션2 → 마무리 → 닫힘). 열고 닫는 토글로 두면 미션1 만 계속
-     처음부터 다시 뜬다. 아직 이야기 진행과는 연결하지 않아서, 미션을 끝내도
-     팝업만 닫힌다 (뒤에서 이야기 소리는 계속 난다). */
-  const [minigame, setMinigame] = useState<1 | 2 | 3 | null>(null);
+  /* 미니게임 팝업 (이슈 #20) — 열기 신호는 대화 씬의 턴 응답 next.kind === "미션시작"
+     뿐이다 (다리 대사 재생이 끝난 뒤 — M8). 개발용 SPACE 순환은 /dev/minigame 으로
+     격리했다 — 아이 앱 재생 화면에서 SPACE 는 아무 일도 하지 않는다. */
+  const [mission, setMission] = useState<MissionStart | null>(null);
+  /* 팝업을 연 대화 씬의 핸들 — 닫힌 결과를 넣어 주면 씬이 종료 요약을 재생하고
+     분기한다 (M8·M6). 팝업은 대화 씬 위에서만 열리므로 그 씬이 아직 붙어 있다. */
+  const sceneRef = useRef<InteractiveSceneHandle | null>(null);
+
+  const closeMission = (result: MissionCompleteResult | null) => {
+    setMission(null);
+    sceneRef.current?.missionClosed(result);
+  };
+
+  /* M8 — 팝업이 열린 동안 배경·대화 오디오 일시정지. 재생 중이던 미디어만 멈췄다가
+     닫히면 그 목록만 되살린다 (미션 뒤 이야기 진행은 씬 콜백이 잇는다). */
+  const stageRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!started || finished) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      /* 누르고 있으면 키가 연타로 들어와 미션이 순식간에 지나간다 */
-      if (event.code !== "Space" || event.repeat) return;
-      /* 스크롤·포커스된 버튼의 스페이스 동작을 막고 미션 전환으로만 쓴다 */
-      event.preventDefault();
-      setMinigame((mission) =>
-        mission === null ? 1 : mission === 3 ? null : ((mission + 1) as 2 | 3),
-      );
+    if (mission === null) return;
+    const paused = Array.from(
+      stageRef.current?.querySelectorAll<HTMLMediaElement>("audio, video") ?? [],
+    ).filter((media) => !media.paused);
+    for (const media of paused) media.pause();
+    return () => {
+      for (const media of paused) void media.play().catch(() => {});
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [started, finished]);
+  }, [mission]);
 
   return (
     <main className="relative h-[1024px] w-full overflow-hidden bg-story-bg">
@@ -223,7 +233,7 @@ export default function FartBridePlay({
       )}
 
       {started && step && (
-        <div className="h-full w-full bg-black [perspective:2000px]">
+        <div ref={stageRef} className="h-full w-full bg-black [perspective:2000px]">
           <div
             key={step.id}
             className={`relative h-full w-full ${turning ? "page-turn" : ""}`}
@@ -251,6 +261,8 @@ export default function FartBridePlay({
                 serverScene={serverScene}
                 onServerScene={setServerScene}
                 resumeLine={resumeLine?.stepId === step.id ? resumeLine.text : null}
+                onMissionStart={setMission}
+                ref={sceneRef}
                 onComplete={() => {
                   setResumeLine(null); // 복귀 한 줄은 한 번만 — 다음 진입은 정상 흐름
                   next();
@@ -296,12 +308,17 @@ export default function FartBridePlay({
         </div>
       )}
 
+      {/* 미션 코드 → 화면 번호 (명세 3절 — ms_banggui_pear=미션1 · ms_banggui_friend=미션2) */}
       <MinigamePopup
-        open={minigame !== null}
-        mission={minigame ?? 1}
+        open={mission !== null}
+        mission={mission?.code === "ms_banggui_friend" ? 2 : 1}
         childName={childName}
-        onClose={() => setMinigame(null)}
-        onComplete={() => setMinigame(null)}
+        sessionId={session?.session_id ?? null}
+        missionSessionId={mission?.mission_session_id ?? null}
+        config={mission?.config ?? null}
+        missionApi={REAL_MISSION_API}
+        onClose={() => closeMission(null)}
+        onComplete={closeMission}
       />
     </main>
   );

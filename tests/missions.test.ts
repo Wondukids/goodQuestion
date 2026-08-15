@@ -189,7 +189,8 @@ async function 방귀_미션들(tx: Conn) {
       ])
       expect(친.trigger).toEqual({ any_elements: ['PERSPECTIVE'], min_turns: 2 })
       const 카드들 = 친.cards as Record<string, string>[]
-      expect(카드들.map((카) => 카.id)).toEqual(['scared', 'loud', 'talkative', 'strong'])
+      // 넷째는 녹음 사정으로 힘이 센 친구 대신 장난을 많이 치는 친구다 (프론트 대본과 동일)
+      expect(카드들.map((카) => 카.id)).toEqual(['scared', 'loud', 'talkative', 'playful'])
       for (const 카 of 카드들) {
         expect(Object.keys(카).sort()).toEqual(['id', 'name', 'reask', 'trouble'])
       }
