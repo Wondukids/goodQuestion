@@ -25,6 +25,8 @@
 
 import path from 'node:path'
 
+import { after } from 'next/server'
+
 import type { Settings } from '@/llm/config'
 import { printLine } from '@/llm/log'
 import { promptsDir, 보낼것 } from '@/llm/prompts'
@@ -223,7 +225,7 @@ export interface QueueReportOptions {
  *    되돌려져 저장이 사라진다. 검사는 `generateReport()` 를 직접 부른다.
  */
 export function queueReport(session_id: string, options: QueueReportOptions = {}): void {
-  __testing.마지막작업 = (async () => {
+  const 작업 = (async () => {
     try {
       const conn = getDb()
       const 이미 = await readReport(conn, session_id)
@@ -245,6 +247,42 @@ export function queueReport(session_id: string, options: QueueReportOptions = {}
       실패줄(session_id, '뒤에서', 사유(오류))
     }
   })()
+
+  __testing.마지막작업 = 작업
+  응답뒤에도_살려둔다(작업, session_id)
+}
+
+/**
+ * 🔴 **서버리스에서 이 작업이 잘리지 않게 런타임에 등록한다** (이슈 #49).
+ *
+ * 「기다리지 않는다」(R2)는 서버가 계속 살아 있는 곳에서만 안전하다. Vercel 은 **응답이
+ * 나가면 그 인스턴스를 곧 얼리거나 죽인다.** 그때까지 안 끝난 작업은 오류도 로그도 없이
+ * 그냥 사라진다 — 보호자는 「아직 리포트가 없어요」만 보게 된다.
+ *
+ * `after()` 는 「이 응답 뒤에 이것도 마저 해라」를 런타임에 알리는 자리다. 등록해 두면
+ * 그 작업이 끝날 때까지 인스턴스를 안 접는다.
+ *
+ * ## 왜 라우트가 아니라 여기인가 (2026-08-15 결정 D3)
+ *
+ * 리포트를 띄우는 자리가 하나가 아니다 — 활동 종료(`completeRun()`), 이야기 실행기,
+ * **보호자가 목록을 열 때의 받침**(`service/reports.ts` F12), 그리고 앞으로 후활동(#45)이
+ * 더할 자리. 라우트마다 감싸면 받침이 빠지고(같은 사고가 그대로 남는다) 새 자리를 더할 때
+ * 또 빠뜨린다. **띄우는 문이 이 함수 하나뿐이라** 여기서 한 번 등록하면 전부 덮인다.
+ *
+ * ⚠️ `after()` 는 **요청을 처리하는 중일 때만** 쓸 수 있다. 시드 스크립트·관리자 CLI·검사는
+ *    요청 밖에서 이 함수를 부르고, 거기서는 던진다. 그 자리는 프로세스가 살아 있어서 애초에
+ *    잘리지 않으므로 **삼키고 지금까지처럼 그냥 띄워 둔다.** 실기 확인: 요청 밖에서
+ *    `next/server` 를 import 하는 것 자체는 안전하고(플레인 node 에서 통과), 호출만 던진다.
+ *
+ * ⛔ 여기서 `작업` 을 `await` 하지 마라 — 그 순간 아이 화면이 LLM 2회를 기다리게 된다.
+ *    `after()` 는 기다리게 하는 것이 아니라 **끝날 때까지 서버를 안 끄는 것**이다.
+ */
+function 응답뒤에도_살려둔다(작업: Promise<void>, session_id: string): void {
+  try {
+    after(작업)
+  } catch {
+    printLine(`[리포트] 요청 밖이라 after 등록 없음 session_id=${session_id}`)
+  }
 }
 
 /**
