@@ -16,7 +16,7 @@ import Link from 'next/link'
 import { connection } from 'next/server'
 
 import { 고를_수_있는_강도, loadSettings, 모델_목록 } from '@/llm/config'
-import { listRunsView, listStoriesView } from '@/llm/service/view'
+import { listRunsView, listStoriesView, type RunListItem } from '@/llm/service/view'
 
 import { 값, 단추, 빈자리, 입력칸, 카드, 화면머리말 } from '../ui'
 import { startRunAction } from './actions'
@@ -41,6 +41,35 @@ const 상태_이름: Readonly<Record<string, string>> = {
   abandoned: '중간에 멈춤',
 }
 
+/**
+ * 목록을 어떻게 줄 세울까 (규칙 1-5).
+ *
+ * 🔴 **회차끼리 견주는 것이 이 표의 존재 이유인데 줄 세우는 길이 없었다.** 늘 최근 순
+ *    하나뿐이라 「위반이 많은 회차」를 찾으려면 눈으로 훑어야 했다.
+ *
+ * ⛔ 여기에 규칙이 없다 — 무엇으로 세울 수 있는지만 정하고, 세는 것은 이미 끝난 값을 쓴다.
+ * ⚠️ 주소(`?sort=`)로 나른다. 화면이 상태를 쥐면 새로고침에 사라지고 링크로 나눌 수도 없다.
+ */
+const 줄세우기 = {
+  // ⚠️ **열쇠는 영문이다.** 이 값이 그대로 주소(`?sort=`)에 들어가는데, 한글을 쓰면
+  //    인코딩하지 않은 요청에 서버가 400 을 낸다 (2026-08-14 실측). 보이는 글자만 한글이다.
+  recent: { 이름: '최근 순' },
+  violation: { 이름: '대사 규칙 위반이 많은 순' },
+  turns: { 이름: '아이가 많이 말한 순' },
+} as const
+type 줄세우기키 = keyof typeof 줄세우기
+
+function 줄세운다(회차들: RunListItem[], 기준: 줄세우기키): RunListItem[] {
+  const 벤것 = [...회차들]
+  if (기준 === 'violation') {
+    // ⚠️ 아직 안 잰 회차(`score === null`)는 0 이 아니라 **맨 뒤**다. 0 으로 세면
+    //    「잘 지켰다」와 「안 쟀다」가 같은 자리에 서서 표가 거짓말을 한다 (규칙 3-2 와 같은 원리).
+    return 벤것.sort((가, 나) => (나.score?.violation_rate ?? -1) - (가.score?.violation_rate ?? -1))
+  }
+  if (기준 === 'turns') return 벤것.sort((가, 나) => 나.turn_count - 가.turn_count)
+  return 벤것.sort((가, 나) => 나.started_at.getTime() - 가.started_at.getTime())
+}
+
 export default async function RunsPage({
   searchParams,
 }: {
@@ -50,8 +79,22 @@ export default async function RunsPage({
   // 렌더링이 요청을 기다리게 한다 — 안 그러면 빌드 때 DB 에 붙으려 든다 (`connection.md`).
   await connection()
 
-  const 오류 = 한칸((await searchParams).error)
-  const [이야기들, 회차들] = await Promise.all([listStoriesView(), listRunsView()])
+  const 물음 = await searchParams
+  const 오류 = 한칸(물음.error)
+  const 고른_정렬 = 한칸(물음.sort)
+  const 정렬: 줄세우기키 =
+    고른_정렬 !== null && 고른_정렬 in 줄세우기 ? (고른_정렬 as 줄세우기키) : 'recent'
+
+  const [이야기들, 모든회차] = await Promise.all([listStoriesView(), listRunsView()])
+  const 회차들 = 줄세운다(모든회차, 정렬)
+
+  // 규칙 1-6 — 목록 앞에 숫자 요약. ⛔ 여기서 새로 판정하지 않는다. 이미 난 값을 셀 뿐이다.
+  const 잰것 = 회차들.filter((회차) => (회차.score?.graded_count ?? 0) > 0)
+  const 평균위반 =
+    잰것.length === 0
+      ? null
+      : 잰것.reduce((합, 회차) => 합 + (회차.score?.violation_rate ?? 0), 0) / 잰것.length
+  const 진행중 = 회차들.filter((회차) => 회차.status === 'in_progress').length
 
   // 폼의 바닥값. ⛔ 여기서 고르는 것이 아니라 `.env.local` 이 가리키는 값을 그대로 보여 준다
   // (`lib/config.ts` — `Settings` 를 손으로 짜는 길을 남기지 않는다).
@@ -146,7 +189,49 @@ export default async function RunsPage({
             다음="위 「새 회차 시작」에서 이야기를 골라 시작해 보세요."
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="flex flex-col gap-4">
+            {/* 규칙 1-6 — 요약이 목록보다 먼저다. */}
+            <dl className="flex flex-wrap gap-x-10 gap-y-3 rounded-2xl bg-chip px-5 py-4">
+              {(
+                [
+                  ['모두', `${회차들.length}회`],
+                  ['진행 중', `${진행중}회`],
+                  [
+                    '대사 규칙 위반 평균',
+                    평균위반 === null ? '아직 잰 것 없음' : `${(평균위반 * 100).toFixed(1)}%`,
+                  ],
+                  ['위반을 잰 회차', `${잰것.length}회`],
+                ] as const
+              ).map(([이름, 값]) => (
+                <div key={이름} className="flex flex-col gap-0.5">
+                  <dt className="text-[13px] text-ink-muted">{이름}</dt>
+                  <dd className="text-[20px] font-extrabold text-ink">{값}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {/* 규칙 1-5 — 표는 「찾기·비교」를 받쳐야 한다. */}
+            <nav aria-label="줄 세우기" className="flex flex-wrap items-center gap-3">
+              <span className="text-[14px] font-bold text-ink-soft">줄 세우기</span>
+              {(Object.entries(줄세우기) as [줄세우기키, { 이름: string }][]).map(
+                ([키, { 이름 }]) => (
+                  <Link
+                    key={키}
+                    href={키 === 'recent' ? '/runs' : `/runs?sort=${키}`}
+                    aria-current={정렬 === 키 ? 'true' : undefined}
+                    className={`rounded-xl border px-3 py-1.5 text-[14px] font-bold ${
+                      정렬 === 키
+                        ? 'border-primary bg-primary-soft text-primary-strong'
+                        : 'border-divider bg-surface text-ink hover:border-primary'
+                    }`}
+                  >
+                    {이름}
+                  </Link>
+                ),
+              )}
+            </nav>
+
+            <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[14px]">
               <thead>
                 <tr className="border-b border-divider text-left text-ink-muted">
@@ -193,6 +278,7 @@ export default async function RunsPage({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </카드>

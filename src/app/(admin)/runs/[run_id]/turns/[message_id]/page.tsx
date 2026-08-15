@@ -16,11 +16,11 @@
 //    비용만 단가표를 곱해 낸다 — 그 곱셈도 `lib/config.ts` 가 하고 화면은 받아 쓴다.
 // ⚠️ 화면은 `lib/repo` 를 직접 부르지 못한다 (eslint 층 경계). `service/view.turnAttempts()` 를 거친다.
 
-import Link from 'next/link'
 import { connection } from 'next/server'
 
 import { turnAttempts } from '@/llm/service/view'
 
+import { 개발자용, 곁링크, 카드, 화면머리말 } from '../../../../ui'
 import { 칸들 } from '../../../ui'
 import { 경계채점표, 시도표 } from './ui'
 
@@ -39,38 +39,56 @@ export default async function TurnCallsPage({
 
   return (
     <main className="flex flex-col gap-6">
-      <section className="flex flex-wrap items-baseline gap-3">
-        <h2 className="font-semibold">
-          LLM 시도 <span className="font-mono text-xs text-ink-muted">turn {message_id}</span>
-        </h2>
-        <Link href={`/runs/${run.id}`} className="text-xs underline">
-          ← 진행 화면
-        </Link>
-        <Link href={`/runs/${run.id}/log`} className="text-xs underline">
-          턴 로그 →
-        </Link>
-      </section>
+      <화면머리말
+        제목="이 차례에 AI 를 부른 기록"
+        설명="아이가 말한 이 한 차례를 처리하려고 AI 를 몇 번 불렀는지, 무엇을 보내고 무엇이 돌아왔는지, 얼마나 걸리고 얼마가 들었는지를 봅니다."
+        곁들이기={
+          <span className="flex flex-wrap items-baseline gap-4">
+            <곁링크 href={`/runs/${run.id}`}>← 이 회차로</곁링크>
+            <곁링크 href={`/runs/${run.id}/log`}>차례별 기록 →</곁링크>
+          </span>
+        }
+      />
 
       {/* 「고른 모델」이 무엇이었는지가 옆에 있어야 표의 굵은 줄을 읽을 수 있다. */}
-      <칸들
-        값들={[
-          ['run_id', run.id],
-          ['message_id', message_id],
-          ['analysis_model', run.analysis_model],
-          ['analysis_effort', run.analysis_effort],
-          ['character_model', run.character_model],
-          ['character_effort', run.character_effort],
-        ]}
-      />
+      <카드 제목="이 회차가 쓰기로 한 AI" 설명="아래 표에서 이것과 다른 것이 답했다면 예비 AI 가 대신 답한 것입니다.">
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-[15px]">
+          {(
+            [
+              [
+                '아이 말을 알아듣는 AI',
+                `${run.analysis_model ?? '기록 없음'} · 생각 깊이 ${run.analysis_effort ?? '기록 없음'}`,
+              ],
+              [
+                '캐릭터가 되어 말하는 AI',
+                `${run.character_model ?? '기록 없음'} · 생각 깊이 ${run.character_effort ?? '기록 없음'}`,
+              ],
+            ] as const
+          ).map(([이름, 값]) => (
+            <div key={이름} className="contents">
+              <dt className="whitespace-nowrap font-bold text-ink-soft">{이름}</dt>
+              <dd className="break-all text-ink">{값}</dd>
+            </div>
+          ))}
+        </dl>
+        <개발자용 제목="이 화면이 쥔 아이디">
+          <칸들
+            값들={[
+              ['run_id', run.id],
+              ['message_id', message_id],
+            ]}
+          />
+        </개발자용>
+      </카드>
 
       <시도표 시도들={시도들} />
 
       {/* 🔴 `scores.message_id` 는 **아이 발화 id** 라 이 쪽이 쥔 값과 그대로 맞는다. */}
       <경계채점표 채점들={시도들.auto_scores} />
 
-      <p className="text-xs text-ink-muted">
-        ⚠️ 비용은 기록이 아니라 「볼 때마다 계산한 값」이다. `llm_calls` 에는 토큰만 남고 금액
-        칸이 없다 — 단가는 `web/단가표.toml` 에서 읽고, 표에 없는 모델은 0 이 아니라 「모름」이다.
+      <p className="text-[14px] text-ink-muted">
+        비용은 저장된 값이 아니라 <b>화면을 열 때마다 계산한 값</b>입니다. 기록에는 사용량만 남고
+        금액은 없어서, 단가표를 곱해 냅니다. 단가표에 없는 모델은 0원이 아니라 「모름」으로 나옵니다.
       </p>
     </main>
   )
