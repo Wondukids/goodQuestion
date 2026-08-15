@@ -39,6 +39,14 @@ export interface 세션신원 {
   child_id: string
   /** `'in_progress' | 'post_activity' | 'completed' | 'stopped'` */
   status: string
+  /**
+   * 이 활동의 이야기에 **말하기 후 활동이 붙어 있나** (`stories.post_activity_config`).
+   *
+   * 리포트를 **언제** 만드는가가 이 값으로 갈린다 (후활동 명세 7.1 · F10·F13) —
+   * 있으면 이야기가 끝나도 안 만들고 후활동이 끝나기를 기다리고, 없으면 지금처럼
+   * 세션이 끝나는 자리에서 만든다. 판단은 `queueReport()` 가 하고 여기는 값만 올린다.
+   */
+  has_post_activity: boolean
 }
 
 /** 프롬프트에 실을 아이 (결정 R12). 못 찾으면 둘 다 `null` 이다. */
@@ -56,6 +64,9 @@ export interface 아이행 {
  *
  * ⛔ 여기서 「내 아이인가」를 판단하지 않는다. 그 판정은 저쪽(Supabase `children`)을 봐야
  *    하고 그건 controller 몫이다 (`controller/guard.ts`). repo 는 값만 올린다.
+ *
+ * ⚠️ 이야기를 함께 읽는다 (`has_post_activity`). `story_id` 는 `NOT NULL` + 외래키라
+ *    `innerJoin` 이 행을 떨어뜨리지 않는다 — 세션이 있으면 이야기도 반드시 있다.
  */
 export async function readSessionIdentity(
   conn: Conn,
@@ -66,8 +77,10 @@ export async function readSessionIdentity(
       session_id: story_sessions.id,
       child_id: story_sessions.child_id,
       status: story_sessions.status,
+      has_post_activity: sql<boolean>`${stories.post_activity_config} is not null`,
     })
     .from(story_sessions)
+    .innerJoin(stories, eq(stories.id, story_sessions.story_id))
     .where(eq(story_sessions.id, session_id))
     .limit(1)
   return 행들.length === 0 ? null : 행들[0]
