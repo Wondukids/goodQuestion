@@ -42,7 +42,13 @@ import { useNpcVoice } from "./use-npc-voice";
  * 화면이 좁으면 캔버스째로 축소된다 (useFitScale).
  */
 
+/* 시안 좌표계 — 아래 값들이 사는 자리다 */
 const CANVAS = { w: 1092, h: 820 };
+
+/* 무대 — 미션2·마무리와 같은 크기로 뜬다. 시안이 1092×820 이라 캔버스가 그만큼
+   늘어나서 채운다 (canvas.tsx 의 design). 무대를 안 맞추면 큰 화면에서 미션1 만
+   1092×820 에서 멈춰, 미션2 를 하다 넘어온 아이 눈에 화면이 작아진다. */
+const STAGE = { w: 1366, h: 1024 };
 
 /* 소품 한 칸 — 01_탐색 기준. left/top 은 이미지의 왼쪽 위 모서리다
    (시안은 위아래 14.52 패딩이 붙은 컨테이너라 top 410 + 14.52 = 424.52). */
@@ -365,7 +371,12 @@ export function Mission1({
   const pickedIndex = PROPS.findIndex((p) => p.id === prop?.id);
 
   return (
-    <MissionCanvas width={CANVAS.w} height={CANVAS.h} className="rounded-3xl bg-story-bg">
+    <MissionCanvas
+      width={STAGE.w}
+      height={STAGE.h}
+      design={CANVAS}
+      className="rounded-3xl bg-story-bg"
+    >
       <>
         {/* 배경 — 대화 단계에서는 블러가 살짝 걷히며 이장님에게 눈이 간다 */}
         <div
@@ -376,7 +387,9 @@ export function Mission1({
             src={SCENE.background}
             alt=""
             fill
-            sizes="1092px"
+            /* 무대가 1366 이라 그만큼 늘어나 뜬다 — 원본이 1092 라 더 큰 후보는
+               없지만, 브라우저가 작은 후보를 고르지 않게 무대 폭을 적어 둔다 */
+            sizes="1366px"
             loading="eager"
             className="object-cover"
           />
