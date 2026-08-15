@@ -13,7 +13,6 @@ import {
   beaconPostActivityComplete,
   completePostActivity,
   fetchPostActivity,
-  fetchPostActivityWhenReady,
   openPostActivityClosingStory,
   openSession,
   REAL_MISSION_API,
@@ -197,14 +196,31 @@ export default function FartBridePlay({
   const [활동못열림, set활동못열림] = useState(false);
   const sessionId = session?.session_id ?? null;
 
-  /* 끝 화면에 닿으면 **미리** 받아 둔다 — 버튼을 눌렀을 때 곧바로 열리라고.
-     여기서 실패해도 버튼은 그대로다. 못 받은 사정은 누를 때 다시 푼다 (아래). */
+  /** 이 판에서 이미 닫기를 시도했나 — 끝 화면에 닿을 때 **한 번만** 한다 */
+  const 닫기_시도했나 = useRef(false);
+
+  /**
+   * ⭐ **끝 화면에 닿으면 서버의 이야기를 닫고 활동을 미리 받아 둔다.**
+   *
+   * 🔴 닫는 것이 절반이다. 리포트를 만드는 길 셋(이야기 끝 · 활동 종료 · 보호자 열람 받침)이
+   * **전부 `completed` 인 세션만** 본다. 아이가 마지막 대화에서 말을 안 하고 지나가면 서버는
+   * 그 장면에 그대로 서고, 그 판은 활동을 하든 안 하든 **리포트가 영영 안 만들어진다.**
+   * 활동이 선택이 되면서(2026-08-15) 이 구멍이 커졌다 — 안 누르는 아이가 그대로 빠진다.
+   * 그래서 누를 때가 아니라 **끝 화면에 닿을 때** 닫는다.
+   *
+   * ⛔ 아이를 기다리게 하지 않는다 — 배경에서 돌고, 실패해도 화면은 그대로다.
+   * ⚠️ 미리 받아 두는 덕에 버튼이 기다림 없이 열린다. 여기서 실패해도 버튼은 남고,
+   *    누를 때 같은 함수로 한 번 더 푼다 (`활동을_연다`).
+   */
   useEffect(() => {
-    if (!finished || sessionId === null) return;
+    if (!finished || sessionId === null || 닫기_시도했나.current) return;
+    닫기_시도했나.current = true;
     let alive = true;
-    fetchPostActivityWhenReady(sessionId)
+    openPostActivityClosingStory(sessionId, "fart-bride", serverScene)
       .then((opened) => {
-        if (alive) setPostActivity(opened);
+        if (!alive) return;
+        setServerScene(null);
+        setPostActivity(opened);
       })
       .catch((error: unknown) => {
         if (
@@ -215,12 +231,12 @@ export default function FartBridePlay({
           /* 이 이야기엔 활동이 없다 — 기다린다고 생기지 않는다 (F13) */
           set활동없음(true);
         }
-        console.info("[후활동] 미리 받기 실패 — 버튼을 누를 때 다시 푼다", error);
+        console.info("[후활동] 미리 열기 실패 — 버튼을 누를 때 다시 푼다", error);
       });
     return () => {
       alive = false;
     };
-  }, [finished, sessionId]);
+  }, [finished, sessionId, serverScene]);
 
   /**
    * 「이야기 순서 맞추기」를 눌렀다 — 미리 받아 뒀으면 곧바로, 아니면 풀어서 연다.
@@ -279,7 +295,10 @@ export default function FartBridePlay({
    * 가는데, 서버가 삼킨다 — **「이미 불렀나」를 앱이 관리하지 않는다.**
    */
   const leaveFinish = () => {
-    if (sessionId === null || postActivity === null) return;
+    if (sessionId === null) return;
+    /* 🔴 「활동을 미리 받아 왔을 때만」이라는 문지기가 여기 있었는데 걷어냈다 (2026-08-15).
+       못 받은 판이 바로 서버가 안 닫힌 판이고, **그때야말로 보내야 하는 신호**다.
+       활동이 없는 이야기면 서버가 404 로 삼킨다 — 그 리포트는 이미 만들어져 있다 (F13). */
     completePostActivity(sessionId, "left").catch((error: unknown) => {
       console.info("[후활동] 종료 알림 실패 — 리포트는 보호자 열람 때 만들어진다 (F12)", error);
     });
@@ -288,11 +307,11 @@ export default function FartBridePlay({
   /* 브라우저 뒤로가기·탭 닫기 — 그 순간의 fetch 는 취소돼서 sendBeacon 으로 보낸다.
      🟡 명세에 없는 보탬이라 되돌려도 된다 (F12 가 받아 준다) */
   useEffect(() => {
-    if (!finished || sessionId === null || postActivity === null) return;
+    if (!finished || sessionId === null) return;
     const onHide = () => beaconPostActivityComplete(sessionId, "left");
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
-  }, [finished, sessionId, postActivity]);
+  }, [finished, sessionId]);
 
   /* 미니게임 팝업 (이슈 #20) — 열기 신호는 대화 씬의 턴 응답 next.kind === "미션시작"
      뿐이다 (다리 대사 재생이 끝난 뒤 — M8). 개발용 SPACE 순환은 /dev/minigame 으로
@@ -369,6 +388,8 @@ export default function FartBridePlay({
                 setResumeCutStart(null);
                 setPostActivity(null);
                 set활동못열림(false);
+                /* 다음 판도 끝나면 다시 닫아야 한다 */
+                닫기_시도했나.current = false;
                 restart();
               }}
               className="rounded-2xl bg-white px-10 py-4 text-[20px] font-extrabold text-ink"
