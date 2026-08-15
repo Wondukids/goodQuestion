@@ -664,6 +664,48 @@ export async function runDialogueStage(args: DialogueStageArgs): Promise<Dialogu
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ②½ 미션 트리거 — ③ 을 다리 대사로 갈아 끼우는 자리 (이슈 #19 · 명세 7절 A)
+//
+// 🔴 **이 파일은 미션 규칙을 모른다.** 여기 있는 것은 「② 와 ③ 사이에 한 자리가 있다」는
+//    사실뿐이고, 무엇을 보고 발동하는지·무슨 대사를 만드는지는 `service/mission.ts` 가 안다.
+//    그래서 이 파일은 `story_missions` 도 `decideMissionTrigger()` 도 import 하지 않는다.
+//
+// ⚠️ 손잡이를 **부르는 쪽이 끼운다.** 아이 앱 계약(`src/session`)만 끼우고, 관리자 v1 과
+//    골든셋(`runStory()`)은 안 끼운다 — 미션은 아이 앱의 흐름이고, 안 끼우면 그 길은
+//    **바이트 하나 안 바뀐다** (명세 11절 9).
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 미션 손잡이가 ② 직후에 받아 보는 것 — ③(`runDialogueStage`) 이 받는 것 + 분석 두 칸. */
+export interface MissionStageArgs {
+  conn: Conn
+  run_id: string
+  session_id: string
+  scene: SceneRow
+  precedingNarrations?: readonly NarrationScene[]
+  child_utterance: string
+  child_message_id: string
+  turn_order: number
+  main_point: string | null
+  /** **후처리로 살린** 요소들 (`kept`). 트리거 규칙이 보는 값이다 (결정 26). */
+  detected_elements: readonly string[]
+  /** ② 의 판정 중 닫힘 게이트가 보는 한 칸 (명세 5절). */
+  response_mode: string
+  settings?: Settings
+  prompt?: string | null
+  notify?: Notify
+}
+
+/**
+ * ② 와 ③ 사이에 끼는 손잡이 하나.
+ *
+ * `afterDecision()` 이 대사 단계를 내면 **③ 을 그것으로 대신한다**(미션이 시작된 턴이다).
+ * `null` 이면 아무 일도 없던 것처럼 기존 ③ 이 돈다.
+ */
+export interface MissionHook {
+  afterDecision(args: MissionStageArgs): Promise<DialogueStage | null>
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 한 턴 = ① → ② → ③
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -689,6 +731,8 @@ export interface RunTurnArgs {
   analysis_prompt?: string | null
   character_prompt?: string | null
   notify?: Notify
+  /** ②½ 미션 트리거 (이슈 #19). **안 끼우면 이 함수는 미션을 모른다.** */
+  mission?: MissionHook
 }
 
 /** 한 턴에서 나온 것 전부. 로그에 찍은 것과 같은 값이다 (파이썬 `턴결과`). */
@@ -740,21 +784,42 @@ export async function runTurn(args: RunTurnArgs): Promise<TurnResult> {
     },
   })
 
-  const 뒤 = await runDialogueStage({
-    conn: args.conn,
-    run_id: args.run_id,
-    session_id: args.session_id,
-    scene: args.scene,
-    precedingNarrations: args.precedingNarrations,
-    child_utterance: args.child_utterance,
-    child_message_id: 앞.child_message_id,
-    turn_order: 앞.turn_order,
-    main_point: 앞.analysis.main_point,
-    decision: 가운데.decision,
-    settings: args.character_settings,
-    prompt: args.character_prompt,
-    notify: args.notify,
-  })
+  // ②½ — 미션 손잡이가 끼어 있고 이 턴이 미션을 시작하면, ③ 은 **다리 대사**가 대신한다
+  //      (명세 7절 A). 안 끼웠거나 발동 안 했으면 `null` 이라 아래 ③ 이 그대로 돈다.
+  const 다리 =
+    (await args.mission?.afterDecision({
+      conn: args.conn,
+      run_id: args.run_id,
+      session_id: args.session_id,
+      scene: args.scene,
+      precedingNarrations: args.precedingNarrations,
+      child_utterance: args.child_utterance,
+      child_message_id: 앞.child_message_id,
+      turn_order: 앞.turn_order,
+      main_point: 앞.analysis.main_point,
+      detected_elements: 앞.kept,
+      response_mode: 가운데.decision.response_mode,
+      settings: args.character_settings,
+      notify: args.notify,
+    })) ?? null
+
+  const 뒤 =
+    다리 ??
+    (await runDialogueStage({
+      conn: args.conn,
+      run_id: args.run_id,
+      session_id: args.session_id,
+      scene: args.scene,
+      precedingNarrations: args.precedingNarrations,
+      child_utterance: args.child_utterance,
+      child_message_id: 앞.child_message_id,
+      turn_order: 앞.turn_order,
+      main_point: 앞.analysis.main_point,
+      decision: 가운데.decision,
+      settings: args.character_settings,
+      prompt: args.character_prompt,
+      notify: args.notify,
+    }))
 
   // 고정 마지막 대사가 나갔으면 이 장면은 끝난 것이다 (결정 21 · 36).
   // ⛔ CLOSING 인지 여기서 다시 보지 않는다 — `source === 'fixed'` 가 그 판정의 **결과**다.

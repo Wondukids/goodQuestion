@@ -9,12 +9,27 @@ export interface SceneRef {
   code: string
 }
 
+/**
+ * 미션 팝업을 여는 데 필요한 넷 (`docs/미션_명세.md` 7절 A).
+ *
+ * ⚠️ 모양만 안다 — 무엇이 들어가는지는 `@/llm/service/mission` 이 정한다. 이 층은 아무것도
+ *    import 하지 않으므로(`src/llm/domain` 과 같은 규칙) 같은 모양을 여기 다시 세운다.
+ */
+export interface MissionRef {
+  mission_session_id: string
+  code: string
+  mission_type: string
+  config: Record<string, unknown>
+}
+
 /** 아이 앱 응답의 `next` 한 칸 (`docs/이야기_세션_명세.md` 4.3절 · 대화턴 명세 4.2절). */
 export interface NextForApp {
-  kind: '발화받기' | '장면끝' | '회차끝'
+  kind: '발화받기' | '장면끝' | '회차끝' | '미션시작'
   scene_id: string
   /** `장면끝` 에만 실린다 — 여는 말까지 이미 저장된 다음 대화 장면이다 (명세 4.3절). */
   next_scene?: SceneRef
+  /** `미션시작` 에만 실린다 — 이 턴에 서버가 연 미션 시도다 (미션 명세 7절 A). */
+  mission?: MissionRef
 }
 
 /**
@@ -50,4 +65,17 @@ export function nextAfterTurn(
   if (source !== 'fixed') return { kind: '발화받기', scene_id }
   if (next_scene === null) return { kind: '회차끝', scene_id }
   return { kind: '장면끝', scene_id, next_scene }
+}
+
+/**
+ * 트리거 턴의 `next` — 다리 대사 뒤 앱은 팝업을 연다 (미션 명세 7절 A · M8).
+ *
+ * ⛔ `nextAfterTurn()` 에 갈래를 더하지 않고 함수를 따로 둔 이유: 미션이 발동한 턴의 대사는
+ *    **언제나 `generated`**(다리 대사)라 `source` 로는 갈릴 수 없다. 같은 함수에 넣으면
+ *    「미션이면 source 를 무시한다」는 예외가 하나 생기고, 그 예외는 읽는 사람이 못 본다.
+ *
+ * 이 턴에는 장면 전진이 없다 — 씬은 미션 완료(`complete`)의 산식으로만 닫힌다.
+ */
+export function nextMissionStart(scene_id: string, mission: MissionRef): NextForApp {
+  return { kind: '미션시작', scene_id, mission }
 }

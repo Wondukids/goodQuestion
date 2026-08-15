@@ -14,6 +14,7 @@
 // 회차를 함께 만드는 것은 세션 열기 이슈 #6 몫이다 (명세 6절 전제).
 
 import type { Settings } from '@/llm/config'
+import { missionTrigger } from '@/llm/service/mission'
 import {
   resumeTurn,
   sessionPendingTurn,
@@ -21,7 +22,7 @@ import {
   type Conn,
   type PendingStage,
 } from '@/llm/service/run'
-import { nextAfterDialogue, type NextForApp } from '@/session/domain/progress'
+import { nextAfterDialogue, nextMissionStart, type NextForApp } from '@/session/domain/progress'
 
 export interface ResumeSessionTurnArgs {
   session_id: string
@@ -51,6 +52,16 @@ export interface ResumedSessionTurn {
  * 막고, 실패하면 저장 상태가 안 변해 다시 불러도 같은 자리부터다.
  *
  * `next` 판정(고정 닫는 말 = 장면끝)은 `domain/progress.ts` 의 순수 함수다.
+ *
+ * ## 다리 대사에서 끊긴 턴 (이슈 #19 · 미션 명세 7절 A)
+ *
+ * 미션 손잡이를 여기서도 끼운다. 트리거 턴은 판정 커밋에서 `mission_sessions` 행을 이미
+ * 만들었으므로 손잡이가 **그 행을 그대로 다시 쓰고**(반복 안전) 다리 대사만 새로 만든다.
+ * 그래서 resume 응답에도 `next: 미션시작` 이 실린다 — 앱은 팝업을 그때 연다.
+ *
+ * ⛔ 미션 가드(`MISSION_IN_PROGRESS`)는 여기 **없다.** 그 가드는 새 발화를 막는 것이고,
+ *    이어 돌리기는 이미 저장된 발화의 나머지를 마치는 일이다. 여기서 막으면 다리 대사가
+ *    끊긴 턴이 영영 미완으로 남는다.
  */
 export async function resumeSessionTurn(args: ResumeSessionTurnArgs): Promise<ResumedSessionTurn> {
   const { run, pending } = await sessionPendingTurn({
@@ -61,11 +72,13 @@ export async function resumeSessionTurn(args: ResumeSessionTurnArgs): Promise<Re
     throw new TurnNotAllowed('이어 돌릴 턴이 없다 — 이 세션의 마지막 턴은 이미 끝났다')
   }
 
+  const 손잡이 = missionTrigger()
   const 결과 = await resumeTurn({
     run_id: run.id,
     child_message_id: pending.message_id,
     conn: args.conn,
     base_settings: args.base_settings,
+    mission: 손잡이,
   })
 
   return {
@@ -76,6 +89,9 @@ export async function resumeSessionTurn(args: ResumeSessionTurnArgs): Promise<Re
       text: 결과.dialogue.text,
       source: 결과.dialogue.source,
     },
-    next: nextAfterDialogue(결과.dialogue.source, 결과.scene_id),
+    next:
+      손잡이.started === null
+        ? nextAfterDialogue(결과.dialogue.source, 결과.scene_id)
+        : nextMissionStart(결과.scene_id, 손잡이.started),
   }
 }

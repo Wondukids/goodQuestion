@@ -11,6 +11,7 @@
 // ⛔ 이 도메인은 `@/llm/repo` 를 직접 물지 않는다 (이슈 #4 경계 — eslint 가 막는다).
 //    읽기·실행은 전부 `@/llm/service/*` 의 문으로 받는다 (`../README.md`).
 
+import { missionForOpen } from '@/llm/service/mission'
 import { advanceStep, startRunStep, type Conn, type PendingTurn } from '@/llm/service/run'
 import {
   appSessionState,
@@ -19,6 +20,7 @@ import {
   type AppSessionState,
 } from '@/llm/service/session-open'
 import { LookupError } from '@/llm/service/step'
+import type { MissionRef } from '@/session/domain/progress'
 
 /** 앱이 장면을 찾는 열쇠 한 쌍 — `code` 가 플레이어 스텝 매핑의 조인 키다 (명세 3절). */
 export interface AppSceneRef {
@@ -42,6 +44,13 @@ export interface OpenedSession {
   last_character_line: { message_id: string; text: string } | null
   /** 있으면 앱은 **resume 부터 부른다** (명세 4.1절 · 대화턴 명세 4.3절). */
   pending_turn: PendingTurn | null
+  /**
+   * 현재 씬에 이어서 할 미션 (미션 명세 7절 E · M4).
+   *
+   * 남아 있던 `in_progress` 시도는 접히고 **새 시도**가 실린다 — 앱은 팝업을 처음부터
+   * 연다. 완료된 미션과 아직 발동 전인 미션은 `null` 이다.
+   */
+  mission: MissionRef | null
 }
 
 /** 4.2절 — 4.1 과 같은 모양에서 `resumed` 대신 `progress` 다 (읽기 전용 조회). */
@@ -90,16 +99,17 @@ export async function openSession(args: OpenSessionArgs): Promise<OpenedSession>
       conn: args.conn,
     })
     await advanceStep({ run_id: run.id, conn: args.conn })
-    return 열기_모양(await appSessionState({ session_id, conn: args.conn }), false)
+    // 갓 만든 세션에는 미션 시도가 있을 수 없다 — 그래도 같은 문으로 물어 자리를 하나로 둔다.
+    return 열기_모양(await appSessionState({ session_id, conn: args.conn }), false, args.conn)
   }
 
   const run = 찾은.run ?? (await attachAppRun({ session_id: 찾은.session.id, conn: args.conn }))
   const 상태 = await appSessionState({ session_id: 찾은.session.id, conn: args.conn })
-  if (상태.pending !== null) return 열기_모양(상태, true)
+  if (상태.pending !== null) return 열기_모양(상태, true, args.conn)
 
   await advanceStep({ run_id: run.id, conn: args.conn })
   const 전진_후 = await appSessionState({ session_id: 찾은.session.id, conn: args.conn })
-  return 열기_모양(전진_후, 전진_후.progressed)
+  return 열기_모양(전진_후, 전진_후.progressed, args.conn)
 }
 
 export interface ViewSessionArgs {
@@ -125,15 +135,30 @@ export async function viewSession(args: ViewSessionArgs): Promise<SessionView> {
   }
 }
 
-/** 4.1 응답으로 접는다 — 대기 중이 아니면 `scene: null` + `status` 분기 (명세 4.1절). */
-function 열기_모양(상태: AppSessionState, resumed: boolean): OpenedSession {
+/**
+ * 4.1 응답으로 접는다 — 대기 중이 아니면 `scene: null` + `status` 분기 (명세 4.1절).
+ *
+ * ⚠️ **여기가 유일하게 상태를 바꾸는 「모양 만들기」다** — `missionForOpen()` 이 남은 시도를
+ *    접고 새 시도를 연다 (미션 명세 7절 E · M4). 미완 턴이 있어 전진을 건너뛴 갈래에서도
+ *    부른다: 다리 대사가 끊긴 채 앱을 껐다 켜면 그 시도부터 새로 열어 줘야 하기 때문이다.
+ */
+async function 열기_모양(
+  상태: AppSessionState,
+  resumed: boolean,
+  conn?: Conn,
+): Promise<OpenedSession> {
+  const scene = 장면_모양(상태)
   return {
     session_id: 상태.session.id,
     resumed,
     status: 상태.session.status,
-    scene: 장면_모양(상태),
+    scene,
     last_character_line: 상태.session.status === 'in_progress' ? 상태.last_character_line : null,
     pending_turn: 상태.pending,
+    mission:
+      scene === null
+        ? null
+        : await missionForOpen({ session_id: 상태.session.id, scene_id: scene.scene_id, conn }),
   }
 }
 
