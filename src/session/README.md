@@ -22,6 +22,9 @@
 
 조회가 더 필요해지면 **`llm/service` 에 함수를 늘려라** — 경계를 뚫지 말고.
 `sessionPendingTurn()`(세션 → 회차 → 미완 턴, 404/409 가름)이 그렇게 생긴 첫 문이다.
+말하기 후 활동(이슈 #45)의 표 둘도 같은 길로 간다 — SQL 은 `llm/repo/post-activity.ts`,
+이 도메인이 여는 문은 `llm/service/post-activity.ts` 다. **순서는 여전히 이쪽 service 층**
+(`service/post-activity.ts`)이 안다.
 
 ## 라우트가 `app/` 에 남은 이유
 
