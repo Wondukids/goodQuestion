@@ -507,6 +507,47 @@ export async function fetchPostActivityWhenReady(
 }
 
 /**
+ * **아이가 「할래」를 눌렀다** — 서버가 아직 이야기를 안 닫았으면 밀어 닫고 활동을 연다.
+ *
+ * ## 🔴 왜 밀어 닫나
+ *
+ * 서버는 **마지막 대화 장면이 끝나야** 세션을 닫는다. 아이가 그 장면에서 말을 안 하고
+ * 지나가면 서버는 거기 그대로 선다 — 실측(팀 DB)으로 끝까지 본 판의 셋 중 하나가 그랬다.
+ * 그런 판은 기다려도 **영영** 안 닫혀서, 되묻기만으로는 활동을 못 연다.
+ *
+ * 그래서 아이가 활동을 하겠다고 **직접 누른 그 자리에서** 남은 장면을 건너뛰기로 밀어
+ * 닫는다 (2026-08-15 결정). 이미 있는 건너뛰기 길을 그대로 쓴다 — 새 서버 코드가 없다.
+ *
+ * ⚠️ 그 장면들은 **건너뛴 것으로 기록**되고 리포트의 「끝까지 봤나」가 참이 된다.
+ *    아이가 실제로 이야기를 끝까지 본 것은 맞으므로 그 편이 사실에 가깝다.
+ * ⚠️ `serverScene` 이 `null` 이면 밀 곳을 모른다 — 그때는 되묻기만 하고 만다.
+ *
+ * @param serverScene 서버가 지금 서 있다고 앱이 아는 장면 code (`play.tsx` 의 추적값)
+ * @param 기다림 검사가 짧게 돌리려고 연 손잡이 — `fetchPostActivityWhenReady()` 로 흘린다
+ */
+export async function openPostActivityClosingStory(
+  sessionId: string,
+  story: string,
+  serverScene: string | null,
+  기다림?: { waitMs?: number; pollMs?: number },
+): Promise<PostActivityOpen> {
+  try {
+    return await fetchPostActivity(sessionId);
+  } catch (error) {
+    const 안닫혔다 =
+      error instanceof SessionApiError && error.code === "POST_ACTIVITY_NOT_ALLOWED";
+    if (!안닫혔다) throw error;
+  }
+  /* 서버가 선 장면부터 끝까지. 이야기의 대화 장면은 아홉이라 열두 번이면 넉넉하다 */
+  let 장면 = serverScene;
+  for (let i = 0; 장면 !== null && i < 12; i += 1) {
+    장면 = await skipSessionSceneWithResume(sessionId, 장면, story);
+  }
+  /* 닫히는 것은 건너뛰기 응답 **뒤에** 커밋되므로 여기서도 조금 기다려 준다 */
+  return fetchPostActivityWhenReady(sessionId, 기다림);
+}
+
+/**
  * 순서 제출 — 「다 놓았어요!」를 누를 때마다 (명세 5.B).
  *
  * 🔴 **판정은 앱이 하고, 이 호출은 기록용이다** (명세 8절 ③). 화면은 응답을 기다리지

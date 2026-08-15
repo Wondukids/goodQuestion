@@ -27,6 +27,7 @@ import {
   completePostActivity,
   fetchPostActivity,
   fetchPostActivityWhenReady,
+  openPostActivityClosingStory,
   SessionApiError,
   submitPostActivityOrder,
   submitPostActivityRetelling,
@@ -346,6 +347,59 @@ describe('fetchPostActivityWhenReady — 아직 안 닫힌 세션을 기다린�
       code: 'POST_ACTIVITY_NOT_ALLOWED',
     })
     expect(보낸것.length).toBeGreaterThan(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5. 🔴 아이가 「할래」를 누르면 안 닫힌 이야기를 밀어 닫는다 (2026-08-15 결정)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// 서버는 **마지막 대화 장면이 끝나야** 세션을 닫는다. 아이가 그 장면에서 말을 안 하고
+// 지나가면 서버는 거기 그대로 서고, 그런 판은 기다려도 영영 안 닫힌다 (실측: 끝까지 본
+// 판의 셋 중 하나). 그래서 누른 자리에서 남은 장면을 건너뛰기로 밀어 닫는다.
+
+describe('openPostActivityClosingStory — 안 닫힌 이야기를 밀어 닫고 연다', () => {
+  it('이미 닫혀 있으면 건너뛰기를 **한 번도 안 보낸다**', async () => {
+    const 보낸것 = fetch를_끼운다(() => 성공({ config: 서버config(), result: 빈결과 }))
+
+    await openPostActivityClosingStory('s-1', 'fart-bride', 'sc_banggui_09')
+
+    expect(보낸것).toHaveLength(1)
+    expect(보낸것[0].url).toBe('/api/sessions/s-1/post-activity')
+  })
+
+  it('409 면 서버가 선 장면을 건너뛰어 닫고 그 뒤에 연다', async () => {
+    let 닫혔나 = false
+    const 보낸것 = fetch를_끼운다(() => {
+      const url = 보낸것[보낸것.length - 1].url
+      if (url.endsWith('/skip')) {
+        닫혔나 = true
+        /* 마지막 장면을 건너뛰면 다음 장면이 없다 = 회차끝 */
+        return 성공({ scene: null })
+      }
+      return 닫혔나
+        ? 성공({ config: 서버config(), result: 빈결과 })
+        : 실패(409, 'POST_ACTIVITY_NOT_ALLOWED', true)
+    })
+
+    const 열림 = await openPostActivityClosingStory('s-1', 'fart-bride', 'sc_banggui_09')
+
+    expect(보낸것.map((것) => 것.url)).toEqual([
+      '/api/sessions/s-1/post-activity',
+      '/api/sessions/s-1/scenes/sc_banggui_09/skip',
+      '/api/sessions/s-1/post-activity',
+    ])
+    expect(열림.config.cards).toHaveLength(4)
+  })
+
+  it('밀 곳을 모르면(서버 장면 null) 건너뛰기 없이 되묻다 만다', async () => {
+    const 보낸것 = fetch를_끼운다(() => 실패(409, 'POST_ACTIVITY_NOT_ALLOWED', true))
+
+    await expect(
+      openPostActivityClosingStory('s-1', 'fart-bride', null, { waitMs: 300, pollMs: 5 }),
+    ).rejects.toMatchObject({ code: 'POST_ACTIVITY_NOT_ALLOWED' })
+
+    expect(보낸것.every((것) => !것.url.endsWith('/skip'))).toBe(true)
   })
 })
 
