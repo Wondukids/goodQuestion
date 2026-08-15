@@ -39,10 +39,11 @@ export default async function HomePage() {
     <main className="flex flex-col gap-[60px] pb-16">
       <section className="flex flex-col gap-4 px-12">
         <h2 className="px-4 text-[24px] leading-[1.6] font-extrabold text-ink-strong">
-          읽던 이야기 이어서 볼까?
+          읽었던 이야기 이어서 볼까?
         </h2>
         {continueStories.length > 0 ? (
-          <div className="flex flex-wrap gap-[23px]">
+          /* 카드 넉 장이 한 줄로 서던 자리 — 배너는 폭을 다 쓰므로 세로로 쌓는다 */
+          <div className="flex flex-col gap-4">
             {continueStories.map(({ session, story }) => (
               <ContinueStoryLive
                 key={session.id}
@@ -69,26 +70,33 @@ export default async function HomePage() {
   );
 }
 
-/* 진행 중 이야기가 없을 때(시안 21-828) — 이야기 고르러 가기 CTA 카드 */
+/**
+ * 진행 중 이야기가 없을 때 — 이야기 찾아보기 CTA (시안 「이어하기 빈 상태 배너」 49:850).
+ *
+ * 세로 카드에서 **가로 배너**로 바뀌었다 (1270×116). 아이콘·문구는 왼쪽에 한 줄로 서고
+ * 버튼이 오른쪽 끝에 붙는다 — 위아래 여백 26px 은 1270×116 에서 아이콘 64px 을 뺀 값이다.
+ */
 function EmptyContinueCard() {
   return (
-    <div className="flex w-full flex-col items-center gap-5 rounded-[20px] border-2 border-primary-line bg-story-bg px-10 py-[30px]">
-      <div className="flex size-20 items-center justify-center rounded-full bg-primary-pale text-primary">
-        <MaterialSymbol name="auto_stories" size={34} />
-      </div>
-      <div className="flex flex-col items-center gap-0.5 leading-[1.6]">
-        <p className="text-[20px] font-extrabold text-ink-strong">
-          아직 읽던 이야기가 없어!
-        </p>
-        <p className="text-[18px] font-bold text-[#8a8a8a]">
-          마음에 드는 이야기를 하나 골라서 함께 읽어볼까?
-        </p>
+    <div className="flex w-full items-center justify-between rounded-[20px] border-2 border-primary-line bg-story-bg px-7 py-[26px]">
+      <div className="flex min-w-0 flex-1 items-center gap-[18px]">
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary-pale text-primary">
+          <MaterialSymbol name="auto_stories" size={30} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <p className="text-[22px] leading-[1.4] font-extrabold text-ink-strong">
+            아직 읽었던 이야기가 없어!
+          </p>
+          <p className="text-[16px] leading-[1.5] font-bold text-ink-faint">
+            마음에 드는 이야기를 하나 골라서 함께 읽어볼까?
+          </p>
+        </div>
       </div>
       <Link
         href="/stories"
-        className="flex h-[54px] items-center justify-center rounded-lg bg-primary-strong px-6 text-[20px] leading-[1.6] font-extrabold text-white"
+        className="flex h-[54px] shrink-0 items-center justify-center rounded-lg bg-primary-strong px-6 text-[18px] leading-[1.5] font-extrabold text-white"
       >
-        이야기 고르러 가기
+        이야기 찾아볼래!
       </Link>
     </div>
   );
