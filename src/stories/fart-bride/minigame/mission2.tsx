@@ -21,6 +21,7 @@ import {
   RESULT_LABEL,
   SCENE,
   type Friend,
+  type MissionLine,
 } from "./mission2-script";
 import { useNpcVoice } from "./use-npc-voice";
 
@@ -43,6 +44,11 @@ import { useNpcVoice } from "./use-npc-voice";
  * complete 를 병렬로 부르며 config.closing 을 재생한다. 옛 「6자 미만」 클라이언트
  * 되묻기 규칙은 서버 판정으로 대체돼 지웠다 (M9). 호출이 죽으면 기존 로컬
  * 대본(mission2-script)으로 떨어진다.
+ *
+ * 며느리 목소리는 두 갈래다: 고정 대사는 사전 녹음(mission2-script.ts 의 audio)을
+ * 그대로 틀고, 서버가 만들어 주는 대사(감탄 요약처럼 녹음이 있을 수 없는 문장)와
+ * 되묻기(녹음 없음)는 TTS 로 합성한다. 서버 문구가 녹음과 같은 문장이면
+ * (공백·문장부호 차이 무시) 녹음이 이긴다 — toLine().
  *
  * 좌표·크기는 전부 시안 캔버스(1366×1024) 기준 값을 그대로 쓴다.
  */
@@ -71,6 +77,28 @@ type ChildTurn = "idle" | "listening" | "thinking" | "failed";
 
 /** 아이가 친구 하나를 도와준 기록 — quote 가 비면 목소리를 못 받은 경우다 */
 type Helped = { id: string; quote: string };
+
+/** 화면에 뜨는 대사 한 줄 — audio 가 있으면 사전 녹음, 없으면 TTS 로 합성한다 */
+type SpokenLine = { text: string; audio?: string };
+
+/* 사전 녹음이 있는 고정 대사 전부 — 서버 문구와 대조할 목록 (되묻기는 녹음이 없다) */
+const RECORDED: MissionLine[] = [
+  LINES.intro,
+  LINES.react,
+  LINES.more,
+  LINES.done,
+  ...FRIENDS.map((f) => f.ask),
+];
+
+/** 문장 대조용 — 공백과 문장부호 차이는 같은 문장으로 본다 */
+const norm = (s: string) => s.replace(/\s+/g, "").replace(/[.,!?…~'"“”]/g, "");
+
+/** 서버(또는 폴백) 문구 → 대사 한 줄. 이름(ㅇㅇ)을 채우고, 같은 문장의 녹음이 있으면
+ *  붙인다 — 녹음은 이름 없이 읽힌 판이라 글과 소리가 조금 다를 수 있다 (감수한다). */
+function toLine(raw: string, kid: string): SpokenLine {
+  const rec = RECORDED.find((r) => norm(r.text) === norm(raw));
+  return { text: fillChildName(raw, kid), audio: rec?.audio };
+}
 
 export function Mission2({
   childName,
@@ -102,18 +130,24 @@ export function Mission2({
   const [childTurn, setChildTurn] = useState<ChildTurn>("idle");
   const [micError, setMicError] = useState("");
   const [spokenLine, setSpokenLine] = useState("");
+  /* 녹음 파일을 못 불러온 대사 — spokenLine 과 같은 요령으로 지금 대사와 비교한다 */
+  const [failedLine, setFailedLine] = useState("");
   const [replayCount, setReplayCount] = useState(0);
   /* 미션 API 응답을 기다리는 중 — 그동안 마이크·버튼을 잠근다 */
   const [waiting, setWaiting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   /* 며느리 대사 한 줄 — 도입은 config, 그 뒤는 미션 API 응답이 채운다 */
-  const [line, setLine] = useState<string>(() =>
-    fillChildName(config.intro ?? LINES.intro, kid),
+  const [line, setLine] = useState<SpokenLine>(() =>
+    toLine(config.intro ?? LINES.intro.text, kid),
   );
 
-  const voice = useNpcVoice(line, BRIDE);
-  /* 대사가 끝났거나, 합성이 실패해 기다릴 음성이 아예 없거나 */
-  const npcDone = spokenLine === line || voice.failed;
+  /* 녹음이 없는 대사(서버 생성·되묻기)만 TTS 로 합성한다 — 빈 문장이면 훅이 쉰다 */
+  const voice = useNpcVoice(line.audio ? "" : line.text, BRIDE);
+
+  /* 대사가 끝났거나, 녹음·합성이 실패해 기다릴 음성이 아예 없거나 —
+     어느 쪽이든 아이에게 차례를 넘겨도 되는 상태다 (대사는 글로 남는다) */
+  const npcDone =
+    spokenLine === line.text || failedLine === line.text || (!line.audio && voice.failed);
 
   /* 종료 요약(complete)은 마무리 인사를 재생하는 동안 병렬로 돈다 (명세 7절 D).
      진행 중인 호출을 state 로 들고 있어 마무리 버튼이 결과를 기다린다. */
@@ -139,14 +173,14 @@ export function Mission2({
     return () => recordingRef.current?.dispose();
   }, []);
 
-  /** 이 친구를 도운 것으로 기록하고 결과 화면으로 — lineText 가 다음 대사다 */
+  /** 이 친구를 도운 것으로 기록하고 결과 화면으로 — raw 가 다음 대사(이름 치환 전)다 */
   const remember = useCallback(
-    (quote: string, lineText: string) => {
+    (quote: string, raw: string) => {
       if (friend) setHelped((list) => [...list, { id: friend.id, quote }]);
       setChildTurn("idle");
       setMicError("");
       setPhase("result");
-      setLine(fillChildName(lineText, kid));
+      setLine(toLine(raw, kid));
     },
     [friend, kid],
   );
@@ -158,10 +192,10 @@ export function Mission2({
       const res = await missionApi.submitMissionEvent(sessionId, missionSessionId, {
         type: "skip",
       });
-      remember("", res.line?.text ?? config.more ?? LINES.react);
+      remember("", res.line?.text ?? config.more ?? LINES.react.text);
     } catch (error) {
       console.warn("[미션2] 건너뜀 알림 실패 — 로컬 대본으로 진행한다", error);
-      remember("", LINES.react);
+      remember("", LINES.react.text);
     } finally {
       setWaiting(false);
     }
@@ -190,15 +224,11 @@ export function Mission2({
         }
         retriesRef.current = 0;
         if (result.dialogue === null) {
-          /* 되묻기(M9) — 서버(목) 판정. 친구별 되묻기 문구는 config.cards 가 정본 */
+          /* 되묻기(M9) — 서버(목) 판정. 친구별 되묻기 문구는 config.cards 가 정본.
+             되묻기는 녹음이 없어 toLine 이 자연히 TTS 로 보낸다 */
           setChildTurn("idle");
           setPhase("again");
-          setLine(
-            fillChildName(
-              result.next.fixed_line?.text ?? friend?.reask ?? LINES.ask,
-              kid,
-            ),
-          );
+          setLine(toLine(result.next.fixed_line?.text ?? friend?.reask ?? "", kid));
           return;
         }
         /* 감탄(아이대답요약) 대사 + 반복 질문을 한 줄로 묶어 재생한다 */
@@ -251,15 +281,22 @@ export function Mission2({
     async (picked: Friend) => {
       setFriend(picked);
       setPhase("ask");
-      /* 질문은 고정 대사라 낙관적으로 먼저 채운다 — 응답 문구가 다르면 덮는다 */
-      setLine(fillChildName(config.ask ?? LINES.ask, kid));
+      /* 질문은 낙관적으로 친구별 녹음(ask)부터 튼다 — 서버가 그 문장이나 공용
+         질문(config.ask)과 같은 말을 하면 녹음을 끊지 않고, 정말 새 문장일 때만 덮는다.
+         (seed config 가 아직 옛 공용 질문이라 — 문구 동기화는 후속 과제) */
+      setLine({ text: fillChildName(picked.ask.text, kid), audio: picked.ask.audio });
       setWaiting(true);
       try {
         const res = await missionApi.submitMissionEvent(sessionId, missionSessionId, {
           type: "friend_select",
           value: picked.id,
         });
-        if (res.line) setLine(fillChildName(res.line.text, kid));
+        const known = [picked.ask.text, config.ask].filter(
+          (k): k is string => typeof k === "string",
+        );
+        if (res.line && !known.some((k) => norm(k) === norm(res.line!.text))) {
+          setLine(toLine(res.line.text, kid));
+        }
       } catch (error) {
         console.warn("[미션2] 카드 선택 알림 실패 — 로컬 대본으로 진행한다", error);
       } finally {
@@ -275,7 +312,7 @@ export function Mission2({
     setFriend(null);
     setMicError("");
     setPhase("done");
-    setLine(fillChildName(config.closing || LINES.done, kid));
+    setLine(toLine(config.closing || LINES.done.text, kid));
   }, [startComplete, config, kid]);
 
   /** "다른 친구도 도와줄래요" / "이제 괜찮아요" — 서버가 반복/종료를 정한다 */
@@ -294,7 +331,7 @@ export function Mission2({
         setFriend(null);
         setMicError("");
         setPhase("pick");
-        setLine(fillChildName(res.line?.text ?? config.more_pick ?? LINES.more, kid));
+        setLine(toLine(res.line?.text ?? config.more_pick ?? LINES.more.text, kid));
       } catch (error) {
         console.warn("[미션2] 계속/그만 알림 실패 — 로컬 분기로 진행한다", error);
         if (!yes || helped.length >= FRIENDS.length) {
@@ -304,7 +341,7 @@ export function Mission2({
         setFriend(null);
         setMicError("");
         setPhase("pick");
-        setLine(fillChildName(LINES.more, kid));
+        setLine(toLine(LINES.more.text, kid));
       } finally {
         setWaiting(false);
       }
@@ -351,7 +388,7 @@ export function Mission2({
           {
             label: "다음으로",
             primary: true,
-            onClick: () => remember("", LINES.react),
+            onClick: () => remember("", LINES.react.text),
           },
         ]
       : phase === "result"
@@ -472,19 +509,31 @@ export function Mission2({
           />
         )}
 
-        {voice.url && (
+        {line.audio ? (
           <audio
-            key={`${line}|${replayCount}`}
+            key={`${line.audio}|${replayCount}`}
+            src={line.audio}
+            autoPlay
+            onEnded={() => setSpokenLine(line.text)}
+            onError={() => setFailedLine(line.text)}
+          />
+        ) : voice.url ? (
+          <audio
+            key={`${line.text}|${replayCount}`}
             src={voice.url}
             autoPlay
-            onEnded={() => setSpokenLine(line)}
+            onEnded={() => setSpokenLine(line.text)}
           />
-        )}
+        ) : null}
 
         <Mission2Panel
-          line={line}
+          line={line.text}
           /* 재생 중에는 겹쳐 들리지 않게 잠가 둔다 */
-          onReplay={voice.url && npcDone ? () => setReplayCount((n) => n + 1) : undefined}
+          onReplay={
+            (line.audio || voice.url) && npcDone
+              ? () => setReplayCount((n) => n + 1)
+              : undefined
+          }
           mic={choices ? undefined : { state: micState, label: micLabel, onToggle: toggleMic }}
           choices={choices}
           hint={childTurn === "failed" ? micError : undefined}

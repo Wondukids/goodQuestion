@@ -73,17 +73,18 @@ function mission1Config(): MissionConfig {
 function mission2Config(): MissionConfig {
   return {
     trigger: { any_elements: ["PERSPECTIVE"], min_turns: 2 },
-    intro: M2_LINES.intro,
+    intro: M2_LINES.intro.text,
     cards: FRIENDS.map((f) => ({
       id: f.id,
       name: f.name,
       trouble: f.trouble,
       reask: f.reask,
     })),
-    ask: M2_LINES.ask,
-    more: "다른 친구도 도와줄래?",
-    more_pick: M2_LINES.more,
-    closing: M2_LINES.done,
+    /* 명세 6절의 공용 질문 — 실제 노출은 친구별 질문(카드 선택 응답)이 대신한다 */
+    ask: "이 고민이 있는 친구한테는 내가 어떻게 이야기해 주면 좋을까?",
+    more: M2_LINES.react.text,
+    more_pick: M2_LINES.more.text,
+    closing: M2_LINES.done.text,
   };
 }
 
@@ -156,7 +157,9 @@ async function submitMissionEvent(
   } else {
     if (event.type === "friend_select") {
       s.step = event.value ?? null;
-      return fixedLine(s.config.ask!, s.step, true);
+      /* 친구별 질문(녹음이 따로 있는 문장)을 돌려준다 — 실서버도 카드별 문구가 목표 */
+      const card = FRIENDS.find((f) => f.id === event.value);
+      return fixedLine(card?.ask.text ?? s.config.ask!, s.step, true);
     }
     if (event.type === "skip") {
       if (s.step) {

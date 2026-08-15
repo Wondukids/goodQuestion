@@ -29,7 +29,12 @@ export interface AppSceneRef {
 /** 명세 4.1절의 성공 응답 모양. */
 export interface OpenedSession {
   session_id: string
-  /** 이미 있던 세션이면 `true` — 새로 만든 이번 요청이 처음이면 `false`. */
+  /**
+   * 아이가 실제로 진행한 세션이면 `true` — 미완 턴이 있거나, 발화가 있거나, 첫 대화
+   * 장면을 지났다(스킵 포함). 세션 **행이 있다는 사실만으로는 `false` 다**: 열기 자체가
+   * 첫 대화까지 전진해 여는 말을 남기므로, 행 존재를 기준으로 삼으면 인트로 액션과
+   * 재생 화면이 각각 한 번씩 여는 순간 첫 시작이 이어하기로 둔갑한다 (2026-08-14 실사용).
+   */
   resumed: boolean
   /** `in_progress` 가 아니면(따라잡다 회차가 끝난 경우 등) `scene: null` 과 함께 온다. */
   status: string
@@ -93,7 +98,8 @@ export async function openSession(args: OpenSessionArgs): Promise<OpenedSession>
   if (상태.pending !== null) return 열기_모양(상태, true)
 
   await advanceStep({ run_id: run.id, conn: args.conn })
-  return 열기_모양(await appSessionState({ session_id: 찾은.session.id, conn: args.conn }), true)
+  const 전진_후 = await appSessionState({ session_id: 찾은.session.id, conn: args.conn })
+  return 열기_모양(전진_후, 전진_후.progressed)
 }
 
 export interface ViewSessionArgs {

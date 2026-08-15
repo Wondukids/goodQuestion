@@ -292,7 +292,7 @@ async function 조회(session_id: string): Promise<{ status: number; 본문: 열
     })
   })
 
-  it('2. 같은 요청 반복 → 같은 session_id · resumed=true · 행 수 불변 (반복 안전)', async () => {
+  it('2. 같은 요청 반복 → 같은 session_id · 행 수 불변, 진행이 없으면 resumed=false', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
       아이상자.아이 = { id: randomUUID() }
@@ -302,7 +302,9 @@ async function 조회(session_id: string): Promise<{ status: number; 본문: 열
 
       expect(다시.status).toBe(200)
       expect(다시.본문.data?.session_id).toBe(처음.본문.data?.session_id)
-      expect(다시.본문.data?.resumed).toBe(true)
+      // 아이 발화 0 · 미완 턴 없음 · 첫 대화 그대로 — 행이 있어도 「이어하기」가 아니다.
+      // 인트로 액션과 재생 화면이 잇달아 열 때 첫 시작이 점프하던 버그의 회귀 검사다.
+      expect(다시.본문.data?.resumed).toBe(false)
       expect(다시.본문.data?.scene?.code).toBe('sc_opn_02')
 
       // 행 수 불변 — 세션 하나 · 여는 말 하나 그대로다.
@@ -319,6 +321,27 @@ async function 조회(session_id: string): Promise<{ status: number; 본문: 열
     })
   })
 
+  it('발화가 있는 세션을 다시 열면 resumed=true — 같은 장면이어도 진행이다', async () => {
+    가짜_제미나이({ 요소들: (턴, 목표) => (턴 === 1 ? [목표[0]] : 목표) })
+
+    await 트랜잭션(async (tx) => {
+      const 씨 = await 콘텐츠_넣기(tx)
+      아이상자.아이 = { id: randomUUID() }
+      const 처음 = await 열기(씨.story_code)
+      const session_id = 처음.본문.data!.session_id
+      const run_id = (await runOfSession(tx, session_id))!.id
+
+      // 1턴 완주 — 목표 절반이라 장면은 계속이고, 아이 발화 행이 생겼다.
+      await submitTurn({ run_id, child_utterance: '며느리가 창피했을 것 같아', conn: tx })
+
+      const 다시 = await 열기(씨.story_code)
+      expect(다시.status).toBe(200)
+      expect(다시.본문.data?.session_id).toBe(session_id)
+      expect(다시.본문.data?.resumed).toBe(true)
+      expect(다시.본문.data?.scene?.code).toBe('sc_opn_02')
+    })
+  })
+
   it('5. 회차 없는 legacy in_progress 세션 → 회차가 생기고 정상 진행', async () => {
     await 트랜잭션(async (tx) => {
       const 씨 = await 콘텐츠_넣기(tx)
@@ -332,7 +355,8 @@ async function 조회(session_id: string): Promise<{ status: number; 본문: 열
 
       expect(status).toBe(200)
       expect(본문.data?.session_id).toBe(legacy_id)
-      expect(본문.data?.resumed).toBe(true)
+      // legacy 행에는 기록된 진행이 없다 — 처음부터 보게 resumed=false 가 맞다.
+      expect(본문.data?.resumed).toBe(false)
       expect(본문.data?.scene?.code).toBe('sc_opn_02')
       expect(본문.data?.last_character_line?.text).toBe(여는_말_2)
       const 회차 = await runOfSession(tx, legacy_id)

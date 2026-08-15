@@ -23,7 +23,12 @@ import { useNpcVoice } from "./use-npc-voice";
  *   02·03·04     소품 설명 + "선택하기" — 다른 소품을 눌러 옮겨 볼 수 있다.
  *   06 선택      고른 소품만 빛나고 나머지는 흐려진다. 아이가 이유를 말한다.
  *   07·08 대화   이장님이 한 번 더 묻고, 아이가 답한다.
- *   09 마무리    이장님 마지막 대사 + "다음으로".
+ *   09 마무리    이장님 마지막 대사 — 음성이 끝나고 3초 뒤 저절로 닫힌다.
+ *
+ * 이장님 목소리는 두 갈래다: 고정 대사는 사전 녹음(mission1-script.ts 의 audio)을
+ * 그대로 틀고, 서버가 만들어 주는 대사(아이대답요약처럼 녹음이 있을 수 없는 문장)는
+ * TTS 로 합성한다. 서버 문구가 녹음과 같은 문장이면(공백·문장부호 차이 무시) 녹음이
+ * 이긴다 — withRecording().
  *
  * 대사·판정은 미션 API(주입받은 missionApi — 명세 7절 계약)가 정한다 (이슈 #20):
  * 소품 선택은 events, 아이 발화는 turns(아이대답요약·되묻기 M9), 마지막 스텝 뒤
@@ -53,7 +58,25 @@ const CHIEF_CENTER = { left: 399.876, top: 171.819, width: 292.248, height: 439.
 /** 알아들은 말을 눈으로 확인할 틈 (ms) */
 const HEARD_LINGER_MS = 1600;
 
+/** 결론 음성이 끝나고 팝업이 닫히기까지의 틈 (ms) */
+const FINISH_CLOSE_MS = 3000;
+
 type Phase = "explore" | "inspect" | "reveal" | "talk" | "finish";
+
+/** 화면에 뜨는 대사 한 줄 — audio 가 있으면 사전 녹음, 없으면 TTS 로 합성한다 */
+type SpokenLine = { text: string; audio?: string };
+
+/* 사전 녹음이 있는 고정 대사 전부 — 서버 문구와 대조할 목록 */
+const RECORDED: SpokenLine[] = [LINES.explore, LINES.talk, LINES.finish, ...PROPS.map((p) => p.ask)];
+
+/** 문장 대조용 — 공백과 문장부호 차이는 같은 문장으로 본다 ("되겠구려." = "되겠구려!") */
+const norm = (s: string) => s.replace(/\s+/g, "").replace(/[.,!?…~'"“”]/g, "");
+
+/** 서버(또는 폴백) 문구에 같은 문장의 녹음이 있으면 붙인다 */
+function withRecording(raw: string): SpokenLine {
+  const rec = RECORDED.find((r) => norm(r.text) === norm(raw));
+  return rec ? { text: raw, audio: rec.audio } : { text: raw };
+}
 
 /**
  * 아이 쪽 차례. 이장님이 말하는 중인지는 따로 보지 않고
@@ -79,13 +102,15 @@ export function Mission1({
   const [phase, setPhase] = useState<Phase>("explore");
   /* inspect 에서는 설명을 열어 본 소품, 그 뒤로는 아이가 고른 소품 */
   const [prop, setProp] = useState<MissionProp | null>(null);
-  /* 이장님 대사 한 줄 — 탐색·설명은 로컬 대본, 그 뒤는 미션 API 응답이 채운다.
-     요약+다음 질문처럼 두 마디가 이어질 때는 "\n" 으로 묶어 한 번에 합성·표시한다
-     (패널이 whitespace-pre-line 이라 줄로 갈라진다). */
-  const [line, setLine] = useState<string>(LINES.explore);
+  /* 이장님 대사 한 줄 — 탐색·설명은 로컬 대본(사전 녹음), 그 뒤는 미션 API 응답이
+     채운다. 요약+다음 질문처럼 두 마디가 이어질 때는 "\n" 으로 묶어 한 번에 합성·표시
+     한다 (패널이 whitespace-pre-line 이라 줄로 갈라진다). */
+  const [line, setLine] = useState<SpokenLine>(LINES.explore);
   /* 재생이 끝난 이장님 대사 — 지금 대사와 같아야 아이 차례가 된다.
      단계가 넘어가 대사가 바뀌면 저절로 어긋나므로 따로 되돌릴 필요가 없다. */
   const [spokenLine, setSpokenLine] = useState("");
+  /* 녹음 파일을 못 불러온 대사 — spokenLine 과 같은 요령으로 지금 대사와 비교한다 */
+  const [failedLine, setFailedLine] = useState("");
   const [childTurn, setChildTurn] = useState<ChildTurn>("idle");
   const [heard, setHeard] = useState("");
   const [micError, setMicError] = useState("");
@@ -94,10 +119,13 @@ export function Mission1({
   const [waiting, setWaiting] = useState(false);
   const [finishing, setFinishing] = useState(false);
 
-  const voice = useNpcVoice(line, CHIEF);
-  /* 대사가 끝났거나, 합성이 실패해 기다릴 음성이 아예 없거나 —
+  /* 녹음이 없는 대사(서버 생성)만 TTS 로 합성한다 — 빈 문장이면 훅이 쉰다 */
+  const voice = useNpcVoice(line.audio ? "" : line.text, CHIEF);
+
+  /* 대사가 끝났거나, 녹음·합성이 실패해 기다릴 음성이 아예 없거나 —
      둘 다 아이에게 차례를 넘겨도 되는 상태다 (실패해도 대사는 글로 남는다) */
-  const npcDone = spokenLine === line || voice.failed;
+  const npcDone =
+    spokenLine === line.text || failedLine === line.text || (!line.audio && voice.failed);
 
   /* 종료 요약(complete)은 마지막 대사를 재생하는 동안 병렬로 돈다 (명세 7절 D).
      진행 중인 호출을 state 로 들고 있어 마무리 버튼이 결과를 기다린다. */
@@ -136,17 +164,25 @@ export function Mission1({
       setChildTurn("idle");
       if (result.dialogue === null) {
         /* 되묻기(M9) — 같은 스텝, 같은 화면. 문구만 서버(config.reask)가 준다 */
-        setLine(result.next.fixed_line?.text ?? config.reask ?? LINES.inspect);
+        setLine({
+          text:
+            result.next.fixed_line?.text ??
+            config.reask ??
+            "조금만 더 자세히 말해 줄 수 있겠는가?",
+        });
         return;
       }
       if (result.next.kind === "미션끝") {
         startComplete();
-        setLine(`${result.dialogue.text}\n${config.closing}`);
+        /* 요약(서버 생성)이 섞인 문장이라 녹음이 있을 수 없다 — TTS 로 간다 */
+        setLine({ text: `${result.dialogue.text}\n${config.closing}` });
         setPhase("finish");
         return;
       }
       /* 미션계속 — 요약 + 다음 스텝(부탁) 질문. MVP 스텝은 use→request 뿐이다 */
-      setLine(`${result.dialogue.text}\n${result.next.fixed_line?.text ?? LINES.talk}`);
+      setLine({
+        text: `${result.dialogue.text}\n${result.next.fixed_line?.text ?? LINES.talk.text}`,
+      });
       setPhase("talk");
     },
     [config, startComplete],
@@ -187,10 +223,10 @@ export function Mission1({
       setChildTurn("idle");
       if (res.done) {
         startComplete();
-        setLine(config.closing);
+        setLine(withRecording(config.closing));
         setPhase("finish");
       } else {
-        setLine(res.line?.text ?? LINES.talk);
+        setLine(res.line ? withRecording(res.line.text) : LINES.talk);
         setPhase("talk");
       }
     } catch (error) {
@@ -276,10 +312,13 @@ export function Mission1({
           type: "prop_select",
           value: picked.id,
         });
-        /* 서버가 {item} 을 채운 스텝 질문("소쿠리 말인가? …")을 돌려준다 */
-        if (res.line) setLine(res.line.text);
+        /* 서버가 {item} 을 채운 스텝 질문("소쿠리 말인가? …")을 돌려준다.
+           같은 문장이면 이미 흐르는 소품별 녹음(picked.ask)을 끊지 않는다 (시안 02 = 06) */
+        if (res.line && norm(res.line.text) !== norm(picked.ask.text)) {
+          setLine(withRecording(res.line.text));
+        }
       } catch (error) {
-        /* line 은 LINES.inspect 그대로 — 로컬 폴백 문구가 이미 그 스텝의 질문이다 */
+        /* line 은 picked.ask 그대로 — 소품별 녹음 질문이 이미 그 스텝의 질문이다 */
         console.warn("[미션1] 소품 선택 알림 실패 — 로컬 대본으로 진행한다", error);
       } finally {
         setWaiting(false);
@@ -296,6 +335,13 @@ export function Mission1({
     /* 로컬 폴백으로 끝까지 왔으면 여기서라도 한 번 시도한다 (반복 안전 · 명세 7절 D) */
     onComplete(await (completing ?? startComplete()));
   }, [finishing, completing, startComplete, onComplete]);
+
+  /* 결론 음성이 끝나고 3초 뒤 저절로 마무리한다 — "다음으로" 를 눌러도 같은 길이다 */
+  useEffect(() => {
+    if (phase !== "finish" || !npcDone) return;
+    const timer = setTimeout(() => void finish(), FINISH_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [phase, npcDone, finish]);
 
   /* ── 화면 상태 ───────────────────────────────────────────────── */
 
@@ -379,7 +425,7 @@ export function Mission1({
                     onClick={() => {
                       setProp(item);
                       setPhase("inspect");
-                      setLine(LINES.inspect);
+                      setLine(item.ask);
                     }}
                     disabled={!pickable}
                     aria-label={`${item.name} 살펴보기`}
@@ -433,28 +479,38 @@ export function Mission1({
           />
         )}
 
-        {voice.url && (
+        {line.audio ? (
           <audio
-            key={`${line}|${replayCount}`}
+            key={`${line.audio}|${replayCount}`}
+            src={line.audio}
+            autoPlay
+            onEnded={() => setSpokenLine(line.text)}
+            onError={() => setFailedLine(line.text)}
+          />
+        ) : voice.url ? (
+          <audio
+            key={`${line.text}|${replayCount}`}
             src={voice.url}
             autoPlay
-            onEnded={() => setSpokenLine(line)}
+            onEnded={() => setSpokenLine(line.text)}
           />
-        )}
+        ) : null}
 
         <DialoguePanel
           speaker={{ name: CHIEF.name, avatar: CHIEF.avatar }}
-          line={line}
-          /* 재생 중에는 겹쳐 들리지 않게 잠가 둔다 */
+          line={line.text}
+          /* 재생 중에는 겹쳐 들리지 않게 잠근다. 결론에서는 곧 닫히므로 아예 뺀다 */
           onReplay={
-            voice.url && npcDone ? () => setReplayCount((n) => n + 1) : undefined
+            phase !== "finish" && npcDone && (line.audio || voice.url)
+              ? () => setReplayCount((n) => n + 1)
+              : undefined
           }
           mic={phase === "finish" ? undefined : { state: micState, onToggle: toggleMic }}
           transcript={heard}
           hint={micError}
           next={
             phase === "finish"
-              ? { label: finishing ? "정리하는 중…" : "다음으로", onClick: finish }
+              ? { label: finishing ? "정리하는 중…" : "다음으로", onClick: () => void finish() }
               : childTurn === "failed"
                 ? { label: "다음으로", onClick: advance }
                 : undefined
