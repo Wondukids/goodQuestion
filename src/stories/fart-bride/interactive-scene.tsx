@@ -641,10 +641,14 @@ export function InteractiveScene({
   const canReplay = phase === "listening" || phase === "choice" || phase === "silent";
 
   const bubbleCount = bubbles.length;
+  /* 생각 중 말풍선 — 턴 처리 중(transcribing)과 첫 진입(여는 말 준비 중이라 말풍선이
+     아직 0개)에 띄운다. 오류 화면에서 점이 튀면 「되는 중」으로 읽혀 빼놓는다. */
+  const thinking =
+    phase === "transcribing" || (bubbleCount === 0 && phase !== "error");
   useEffect(() => {
     const el = chatRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [bubbleCount]);
+  }, [bubbleCount, thinking]);
 
   return (
     <div className="relative h-full w-full">
@@ -776,10 +780,24 @@ export function InteractiveScene({
               </p>
             ),
           )}
-          {bubbles.length === 0 && (
-            <p className="py-4 text-center text-[14px] font-bold text-ink-muted">
-              이야기 친구가 말을 걸 준비를 하고 있어요…
-            </p>
+          {thinking && (
+            <div className="flex max-w-[85%] items-start gap-2.5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
+                {step.speaker.label.slice(0, 1)}
+              </span>
+              <p
+                aria-label={
+                  phase === "transcribing"
+                    ? "이야기 친구가 생각하는 중"
+                    : "이야기 친구가 말을 걸 준비를 하고 있어요"
+                }
+                className="flex items-center gap-1.5 rounded-2xl rounded-tl-md bg-white px-4 py-4 shadow-panel"
+              >
+                <span className="thinking-dot size-2 rounded-full bg-primary" />
+                <span className="thinking-dot size-2 rounded-full bg-primary" />
+                <span className="thinking-dot size-2 rounded-full bg-primary" />
+              </p>
+            </div>
           )}
         </div>
 

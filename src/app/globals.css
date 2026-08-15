@@ -227,6 +227,34 @@
   animation: stt-caret 1s step-end infinite;
 }
 
+/* 대화 씬 생각 중 말풍선 (stories/fart-bride/interactive-scene.tsx).
+   턴이 도는 동안 캐릭터 말풍선 자리에서 점 세 개가 차례로 통통 튄다. */
+@keyframes thinking-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.thinking-dot {
+  animation: thinking-dot 1.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
 html,
 body {
   height: 100%;
