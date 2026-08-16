@@ -43,13 +43,14 @@ export function GoogleLogin({ initialError }: GoogleLoginProps) {
         disabled={pending}
         className="flex size-[60px] cursor-pointer items-center justify-center rounded-full border border-[#d6d6d6] bg-story-bg transition hover:bg-surface-muted disabled:opacity-60"
       >
-        {/* 아이콘 원본이 정사각형이 아니다(23.65×24.49) — 시안 그대로 두어야 G 가 찌그러지지 않는다. */}
+        {/* 아이콘 원본이 정사각형이 아니다(23.65×24.49) — 24×25 로 두어야 G 가 찌그러지지 않는다.
+            CSS 로 다시 크기를 주면 next/image 가 가로세로 비율 경고를 낸다. */}
         <Image
           src="/figma/icons/google.svg"
           alt=""
           width={24}
           height={25}
-          className="h-[24.49px] w-[23.65px] shrink-0"
+          className="shrink-0"
         />
       </button>
 
