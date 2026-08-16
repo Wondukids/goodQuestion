@@ -192,6 +192,9 @@ export function InteractiveScene({
   /* 채팅 패널 말풍선 이력 — 턴마다 아이 발화·캐릭터 대사가 쌓인다 (멀티턴) */
   const [history, setHistory] = useState<{ from: "character" | "child"; text: string }[]>([]);
   const [responseUrl, setResponseUrl] = useState<string | null>(null);
+  /* 왼쪽 고정 자막을 질문에서 「마지막 답변」으로 바꾸는 대사 — 장면을 닫는
+     턴(장면끝·회차끝)의 대사나 미션 종료 요약·닫는 말이 채운다 (시안 14) */
+  const [finalLine, setFinalLine] = useState<string | null>(null);
   /* 복귀 한 줄의 TTS — 준비되면 resume 단계에서 재생한다 */
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   /* "다시 듣기" — 마지막 질문 음성 재생. n 을 올려 누를 때마다 처음부터 튼다 */
@@ -429,6 +432,8 @@ export function InteractiveScene({
       return;
     }
     setHistory((h) => [...h, { from: "character", text }]);
+    /* 미션이 장면을 닫는다 — 요약·닫는 말이 나올 때마다 고정 자막도 따라간다 */
+    if (playback.next.kind !== "발화받기") setFinalLine(text);
     speakReaction(text).catch(() => {
       /* TTS 실패 — 대사는 말풍선에 있다. 남은 줄도 글로만 쌓고 분기한다
          (턴 TTS 실패와 같은 결 — 미션 요약이 음성 때문에 멈추지 않는다) */
@@ -440,6 +445,7 @@ export function InteractiveScene({
           ...h,
           ...texts.map((t) => ({ from: "character" as const, text: t })),
         ]);
+        if (rest.next.kind !== "발화받기") setFinalLine(texts[texts.length - 1]);
       }
       runMissionNext(rest.next);
     });
@@ -534,6 +540,10 @@ export function InteractiveScene({
         nextRef.current = result.next;
         fallbackRef.current = false;
         retriesRef.current = 0;
+        /* 장면을 닫는 대사다 — 왼쪽 고정 자막을 질문에서 이 대사로 바꾼다 */
+        if (result.next.kind === "장면끝" || result.next.kind === "회차끝") {
+          setFinalLine(result.dialogue.text);
+        }
         setHistory((h) => [
           ...h,
           { from: "child", text: result.child.text },
@@ -618,6 +628,21 @@ export function InteractiveScene({
     : null;
   const playingLines = phase === "question" || phase === "answer";
   const currentLine = playingLines && activeLines ? activeLines[lineIndex] : null;
+
+  /* ── 왼쪽 이미지 위 고정 자막 (시안 14) ──────────────────────────────
+     질문·답변 재생 중에는 지금 나오는 줄을 따라가고, 그 밖에는 캐릭터의 질문
+     (마지막 질문 줄)이 붙박이로 선다. 장면을 닫는 마지막 대사가 나오면(finalLine)
+     자막이 그걸로 바뀐 채 씬이 끝날 때까지 남는다. */
+  const lastQuestionText =
+    resumeMode && resumeLine !== null
+      ? resumeLine
+      : preparedLines && preparedLines.question.length > 0
+        ? preparedLines.question[preparedLines.question.length - 1].text
+        : null;
+  const subtitle =
+    playingLines && currentLine && currentLine.text !== ""
+      ? currentLine.text
+      : (finalLine ?? lastQuestionText);
 
   function handleLineEnded() {
     if (activeLines && lineIndex + 1 < activeLines.length) {
@@ -735,6 +760,16 @@ export function InteractiveScene({
       )}
       {replay && (
         <audio key={replay.n} src={replay.src} autoPlay onEnded={() => setReplay(null)} />
+      )}
+
+      {/* 고정 자막 — 컷 재생 화면의 자막 바와 같은 결. 오른쪽 채팅 패널(440px)과
+          겹치지 않게 오른쪽을 비워 두고, 상자 폭은 글 길이에 맞춘다 */}
+      {subtitle && (
+        <div className="pointer-events-none absolute bottom-6 left-6 right-[520px]">
+          <p className="inline-block rounded-2xl bg-white/95 px-6 py-4 text-[20px] font-bold leading-[1.5] text-ink shadow-panel">
+            {subtitle}
+          </p>
+        </div>
       )}
 
       {/* 진단 배지 — `?debug=scene` 에서만. 아이 화면에는 뜨지 않는다 */}
