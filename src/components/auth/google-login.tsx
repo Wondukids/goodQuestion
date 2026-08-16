@@ -9,7 +9,8 @@ type GoogleLoginProps = {
   initialError?: string;
 };
 
-/* Supabase 에 연결된 provider 는 구글뿐이라 로그인 수단도 구글 하나만 둔다. */
+/* 시안 0:1090 — 이메일 로그인 아래 "또는" 다음에 서는 원형 구글 버튼.
+   계정은 구글 첫 로그인에서 함께 만들어지므로 가입 경로도 이 하나다. */
 export function GoogleLogin({ initialError }: GoogleLoginProps) {
   const [message, setMessage] = useState(initialError ?? "");
   const [pending, setPending] = useState(false);
@@ -37,22 +38,26 @@ export function GoogleLogin({ initialError }: GoogleLoginProps) {
     <div className="flex w-full flex-col items-center gap-4">
       <button
         type="button"
+        aria-label="구글로 로그인"
         onClick={signInWithGoogle}
         disabled={pending}
-        className="flex w-[400px] max-w-full items-center justify-center gap-3 rounded-2xl border border-[#d9d2ca] bg-surface px-8 py-4 text-[20px] font-extrabold text-ink shadow-card transition hover:bg-[#f7f4f1] disabled:opacity-60"
+        className="flex size-[60px] cursor-pointer items-center justify-center rounded-full border border-[#d6d6d6] bg-story-bg transition hover:bg-surface-muted disabled:opacity-60"
       >
+        {/* 아이콘 원본이 정사각형이 아니다(23.65×24.49) — 시안 그대로 두어야 G 가 찌그러지지 않는다. */}
         <Image
           src="/figma/icons/google.svg"
           alt=""
-          width={28}
-          height={28}
-          className="size-7 shrink-0"
+          width={24}
+          height={25}
+          className="h-[24.49px] w-[23.65px] shrink-0"
         />
-        {pending ? "구글로 이동 중…" : "구글로 로그인"}
       </button>
 
       {message && (
-        <p role="alert" className="text-center text-[14px] font-bold text-[#d94b4b]">
+        <p
+          role="alert"
+          className="text-center text-[14px] font-bold text-[#d94b4b]"
+        >
           {message}
         </p>
       )}
