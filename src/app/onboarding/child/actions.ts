@@ -21,7 +21,9 @@ export async function createChild(
   if (!user) redirect("/login");
 
   const name = String(formData.get("name") ?? "").trim();
-  const birthYear = Number(formData.get("birthYear"));
+  /* 스테퍼가 아니라 직접 적는 칸이라 빈 값으로도 넘어온다(시안 79). */
+  const birthYearRaw = String(formData.get("birthYear") ?? "").trim();
+  const birthYear = Number(birthYearRaw);
   const characterId = String(formData.get("characterId") ?? "");
   const consentVersion = String(formData.get("consentVersion") ?? "");
 
@@ -31,6 +33,7 @@ export async function createChild(
 
   if (!name) return { error: "아이 이름을 입력해 주세요." };
   if (name.length > 100) return { error: "이름은 100자까지 넣을 수 있어요." };
+  if (!birthYearRaw) return { error: "아이 출생연도를 입력해 주세요." };
   if (!Number.isInteger(birthYear) || birthYear < min || birthYear > max) {
     return {
       error: `${MIN_AGE}세부터 ${MAX_AGE}세까지(${min}~${max}년생) 등록할 수 있어요.`,

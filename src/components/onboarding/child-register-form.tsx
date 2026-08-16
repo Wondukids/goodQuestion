@@ -1,22 +1,15 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useState } from "react";
 import { createChild } from "@/app/onboarding/child/actions";
-import { BirthYearStepper } from "@/components/onboarding/birth-year-stepper";
 import { CharacterPicker } from "@/components/onboarding/character-picker";
 import { ConsentCard } from "@/components/onboarding/consent-card";
-import { birthYearRange } from "@/lib/birth-year";
+import { TextField } from "@/components/ui/text-field";
 import { CHARACTERS } from "@/lib/characters";
 import { CONSENT_VERSION } from "@/lib/consent";
 
-/* 범위 한가운데(만 7세 무렵)에서 시작한다. */
-const DEFAULT_BIRTH_YEAR = birthYearRange().max - 3;
-
 export function ChildRegisterForm() {
-  const nameId = useId();
   const [characterId, setCharacterId] = useState(CHARACTERS[0].id);
-  const [name, setName] = useState("");
-  const [birthYear, setBirthYear] = useState(DEFAULT_BIRTH_YEAR);
   const [agreed, setAgreed] = useState(false);
   const [state, formAction, pending] = useActionState(createChild, null);
 
@@ -25,9 +18,8 @@ export function ChildRegisterForm() {
 
   return (
     <form action={formAction} className="flex w-full flex-col items-center">
-      {/* 캐릭터와 출생연도는 버튼으로 고르는 값이라 폼에 실리도록 hidden 으로 함께 보낸다. */}
+      {/* 캐릭터는 버튼으로 고르는 값이라 폼에 실리도록 hidden 으로 함께 보낸다. */}
       <input type="hidden" name="characterId" value={characterId} />
-      <input type="hidden" name="birthYear" value={birthYear} />
       <input type="hidden" name="consentVersion" value={CONSENT_VERSION} />
 
       <div className="flex w-full items-center justify-center gap-[58px]">
@@ -35,31 +27,24 @@ export function ChildRegisterForm() {
 
         <div className="flex flex-col items-center justify-center gap-7">
           <div className="flex w-[520px] max-w-full flex-col gap-9 rounded-[28px] border-2 border-primary-soft bg-surface p-11 drop-shadow-[0_8px_7px_rgb(74_62_49_/_0.1)]">
-            <div className="flex w-full flex-col gap-3">
-              <label
-                htmlFor={nameId}
-                className="text-[16px] font-extrabold text-ink"
-              >
-                아이 이름
-              </label>
-              <div className="flex w-full items-center rounded-2xl border-2 border-ink/20 bg-surface px-[18px] py-3.5">
-                <input
-                  id={nameId}
-                  name="name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="아이 이름을 입력해 주세요"
-                  className="min-w-0 flex-1 bg-transparent text-[17px] text-ink outline-none placeholder:text-ink-soft"
-                />
-              </div>
-            </div>
+            <TextField
+              label="아이 이름"
+              name="name"
+              placeholder="아이 이름을 입력해 주세요"
+              clearable
+            />
 
-            <div className="flex w-full flex-col gap-3">
-              <span className="text-[16px] font-extrabold text-ink">
-                아이 출생연도
-              </span>
-              <BirthYearStepper value={birthYear} onChange={setBirthYear} />
-            </div>
+            {/* 시안 79(56:1336)에서 +/− 스테퍼가 직접 적는 칸으로 바뀌었다.
+                범위(4~13세)를 화면에서 막지 않으므로, 벗어난 해는 등록 버튼을 눌렀을 때
+                서버 액션이 "4세부터 13세까지…" 로 되돌려준다. */}
+            <TextField
+              label="아이 출생연도"
+              name="birthYear"
+              placeholder="아이 출생연도를 입력해 주세요"
+              numeric
+              maxLength={4}
+              clearable
+            />
           </div>
 
           <button
