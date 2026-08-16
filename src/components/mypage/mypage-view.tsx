@@ -1,12 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CharacterAvatar } from "@/components/child/character-avatar";
-import { AttendanceCard } from "@/components/mypage/attendance-card";
 import { CharacterChangeButton } from "@/components/mypage/character-change-dialog";
 import { ParentReportCard } from "@/components/mypage/parent-report-card";
 import { SettingsEntryCard } from "@/components/mypage/settings-entry-card";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
-import { togetherDays, type WeekAttendance } from "@/lib/attendance";
+import { togetherDays } from "@/lib/attendance";
 import type { ChildStats } from "@/lib/child-stats";
 import type { SelectedChild } from "@/lib/selected-child";
 import type { ChildStorySession } from "@/lib/story-sessions";
@@ -28,18 +27,16 @@ const STATUS_LABEL: Record<ChildStorySession["status"], string> = {
   stopped: "잠시 쉬는 중",
 };
 
-/** 마이페이지(시안 41-1700) — 왼쪽에 프로필·출석, 오른쪽에 기록 묶음. */
+/** 마이페이지(시안 20 · 61:1356) — 왼쪽에 프로필·함께한 날짜, 오른쪽에 기록 묶음. */
 export function MyPageView({
   child,
   stories,
   sessions,
-  week,
   stats,
 }: {
   child: SelectedChild;
   stories: Story[];
   sessions: ChildStorySession[];
-  week: WeekAttendance;
   stats: ChildStats;
 }) {
   const recent = sessions
@@ -65,29 +62,35 @@ export function MyPageView({
       </div>
 
       <div className="flex h-[514px] items-start gap-6">
-        {/* ── 왼쪽: 프로필 카드와 이번 주 출석 */}
+        {/* ── 왼쪽: 프로필 카드와 함께한 날짜 (시안 61:1362) */}
         <div className="flex h-full w-[213px] shrink-0 flex-col gap-6">
-          <section className="flex flex-col items-center gap-5 rounded-[20px] bg-primary-pale px-5 pt-3 pb-[23px]">
+          <section className="flex h-[279px] flex-col items-center justify-between rounded-[20px] bg-primary-pale px-5 pt-5 pb-10">
             <div className="flex w-full justify-end">
               <CharacterChangeButton characterId={child.character_id} />
             </div>
-            <CharacterAvatar characterId={child.character_id} size={96} />
-            <div className="flex flex-col items-center gap-3.5 font-gothic">
-              <p className="text-[13px] leading-[1.3] font-extrabold text-ink-strong">
-                {child.name}와 함께한 지
-              </p>
-              <p className="flex items-end gap-[3px] leading-none">
-                <span className="text-[36px] font-extrabold text-primary-strong">
-                  {togetherDays(child.created_at)}
-                </span>
-                <span className="text-[20px] font-extrabold text-ink-strong">
-                  일차
-                </span>
+            {/* 아바타 아래는 「함께한 지」가 아니라 아이 이름이다 — 날짜는 아래 카드로 나갔다. */}
+            <div className="flex flex-col items-center gap-6">
+              <CharacterAvatar characterId={child.character_id} size={110} />
+              <p className="text-[22px] leading-none font-extrabold text-ink-strong">
+                {child.name}
               </p>
             </div>
           </section>
 
-          <AttendanceCard week={week} />
+          {/* 프로필 카드가 279 로 고정이라 남는 높이를 이 카드가 채운다(시안 61:1370) */}
+          <section className="flex w-full flex-1 flex-col items-center justify-center gap-4 rounded-[20px] bg-surface-muted p-5">
+            <h2 className="text-[16px] leading-[1.3] font-extrabold text-ink-strong">
+              우리가 함께한 지
+            </h2>
+            <p className="flex items-end gap-[3px] leading-none">
+              <span className="font-gothic text-[36px] font-extrabold text-primary-strong">
+                {togetherDays(child.created_at)}
+              </span>
+              <span className="text-[20px] font-bold text-ink-strong">
+                일차
+              </span>
+            </p>
+          </section>
         </div>
 
         {/* ── 오른쪽: 통계 · 스티커 · 최근 이야기 */}

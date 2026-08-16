@@ -3,9 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import { updateCharacter } from "@/app/(main)/mypage/actions";
 import { CharacterPicker } from "@/components/onboarding/character-picker";
-import { MaterialSymbol } from "@/components/ui/material-symbol";
 
-/** 프로필 카드 오른쪽 위의 "캐릭터 변경" 알약(시안 41-1709) — 누르면 온보딩의 캐릭터 고르기가 모달로 뜬다. */
+/** 프로필 카드 오른쪽 위의 "캐릭터 변경" 알약(시안 61:1365) — 누르면 온보딩의 캐릭터 고르기가 모달로 뜬다. */
 export function CharacterChangeButton({
   characterId,
 }: {
@@ -18,9 +17,8 @@ export function CharacterChangeButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex cursor-pointer items-center gap-1 rounded-full bg-story-bg/80 p-2.5 text-[12px] font-bold text-ink-strong"
+        className="flex cursor-pointer items-center rounded-full bg-story-bg/80 p-2.5 text-[12px] font-bold text-ink-strong"
       >
-        <MaterialSymbol name="cached" size={14} />
         캐릭터 변경
       </button>
 
