@@ -47,19 +47,14 @@ type Phase =
   | "resume" // 복귀 진입 — 서버의 마지막 캐릭터 대사 재생 중 (결정 ⑦ 꼬리)
   | "question" // 질문 음성 재생 중
   | "listening" // 마이크 녹음 중
-  | "transcribing" // 턴 처리 중 (서버 STT→분석→판단→대사, 폴백이면 STT 만)
+  | "confirm" // 미리보기 STT 글자를 보여 주고 「이대로 보낼까?」 확인 대기
+  | "transcribing" // 미리보기 STT 중 또는 턴 처리 중 (서버 STT→분석→판단→대사)
   | "responding" // TTS 반응 재생 중
   | "mission" // 미션 팝업이 열려 있는 동안 — 결과(missionResult)를 기다린다
   | "choice" // 다시 말하기 / 계속하기 — 폴백·비서버 흐름에서만
   | "silent" // 무음 한도 초과 — 다시 말하기 / 넘어가기 선택 대기 (서버·비서버 공통)
   | "answer" // 정해진 답변 재생 중 — 폴백·비서버 흐름에서만
   | "error";
-
-/* 고정 문구 폴백 — 세션이 없거나 턴 API 가 죽었을 때(502)만 쓴다 (이슈 #8).
-   LLM 대사는 이제 서버 턴 API(POST /api/sessions/{id}/turns)가 만든다. */
-function buildReaction(transcript: string) {
-  return `"${transcript}"라고 말해 주었구나! 이야기해 줘서 정말 고마워.`;
-}
 
 /**
  * `?debug=scene` 일 때만 진단 배지를 켠다.
@@ -90,6 +85,50 @@ async function requestSpeechWithRetry(request: Parameters<typeof requestSpeech>[
     await new Promise((resolve) => setTimeout(resolve, 600));
     return requestSpeech(request);
   }
+}
+
+/* 화자별 아바타 이미지 (시안: 얼굴 그림 + 주황 링) — 없는 화자는 첫 글자 칩으로 */
+const SPEAKER_AVATARS: Record<string, string> = {
+  며느리: "/figma/minigame/friend-mission/bride-avatar.png",
+  이장님: "/figma/minigame/pear-mission/chief-avatar.png",
+};
+
+function SpeakerAvatar({ label }: { label: string }) {
+  const src = SPEAKER_AVATARS[label];
+  if (!src)
+    return (
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
+        {label.slice(0, 1)}
+      </span>
+    );
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={40}
+      height={40}
+      className="size-10 shrink-0 rounded-full border-2 border-brand-700 bg-white object-cover"
+    />
+  );
+}
+
+/* 아이 말풍선 (시안: 「내가 한 말」) — 확인 중이든 보낸 뒤든 같은 모양으로 남는다 */
+function ChildBubble({ text }: { text: string }) {
+  return (
+    <div className="flex max-w-[85%] items-start gap-2.5 self-end">
+      <div className="flex flex-col gap-1 rounded-2xl border-2 border-dashed border-primary/60 bg-primary-pale/60 px-4 py-3">
+        <span className="text-[12px] font-bold text-primary-strong">내가 한 말</span>
+        <p className="text-[16px] font-bold leading-[1.55] text-ink">{text}</p>
+      </div>
+      <Image
+        src="/figma/minigame/friend-mission/child-avatar.png"
+        alt=""
+        width={40}
+        height={40}
+        className="size-10 shrink-0 rounded-full border-2 border-primary-line bg-white"
+      />
+    </div>
+  );
 }
 
 /** 재생 화면(play.tsx)이 미션 팝업이 닫힐 때 부르는 핸들 (cuts-player 와 같은 결) */
@@ -192,6 +231,16 @@ export function InteractiveScene({
   /* 채팅 패널 말풍선 이력 — 턴마다 아이 발화·캐릭터 대사가 쌓인다 (멀티턴) */
   const [history, setHistory] = useState<{ from: "character" | "child"; text: string }[]>([]);
   const [responseUrl, setResponseUrl] = useState<string | null>(null);
+  /* 왼쪽 고정 자막을 질문에서 「마지막 답변」으로 바꾸는 대사 — 장면을 닫는
+     턴(장면끝·회차끝)의 대사나 미션 종료 요약·닫는 말이 채운다 (시안 14) */
+  const [finalLine, setFinalLine] = useState<string | null>(null);
+  /* 보내기 전 확인 대기 중인 발화 — 미리보기 STT 글자와 원본 녹음.
+     보내는 동안에도 들고 있다가 서버 결과가 말풍선(history)에 쌓일 때 비운다 */
+  const [pendingUtterance, setPendingUtterance] = useState<{
+    blob: Blob;
+    channelCount: number;
+    text: string;
+  } | null>(null);
   /* 복귀 한 줄의 TTS — 준비되면 resume 단계에서 재생한다 */
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   /* "다시 듣기" — 마지막 질문 음성 재생. n 을 올려 누를 때마다 처음부터 튼다 */
@@ -429,6 +478,8 @@ export function InteractiveScene({
       return;
     }
     setHistory((h) => [...h, { from: "character", text }]);
+    /* 미션이 장면을 닫는다 — 요약·닫는 말이 나올 때마다 고정 자막도 따라간다 */
+    if (playback.next.kind !== "발화받기") setFinalLine(text);
     speakReaction(text).catch(() => {
       /* TTS 실패 — 대사는 말풍선에 있다. 남은 줄도 글로만 쌓고 분기한다
          (턴 TTS 실패와 같은 결 — 미션 요약이 음성 때문에 멈추지 않는다) */
@@ -440,6 +491,7 @@ export function InteractiveScene({
           ...h,
           ...texts.map((t) => ({ from: "character" as const, text: t })),
         ]);
+        if (rest.next.kind !== "발화받기") setFinalLine(texts[texts.length - 1]);
       }
       runMissionNext(rest.next);
     });
@@ -468,26 +520,21 @@ export function InteractiveScene({
     [playNextMissionLine],
   );
 
-  const handleUtterance = useCallback(
-    async (blob: Blob, channelCount: number) => {
+  /* 확인을 마친 발화를 보낸다 — 서버 턴 또는 폴백 문구.
+     비서버 흐름은 미리보기 STT 글자를 그대로 쓴다(STT 를 두 번 안 부른다).
+     서버 턴은 원본 녹음을 보낸다 — STT 는 서버가 다시 하고, 그 결과가 정본이다. */
+  const sendUtterance = useCallback(
+    async ({ blob, channelCount, text }: { blob: Blob; channelCount: number; text: string }) => {
       setPhase("transcribing");
 
-      /* ── 비서버 흐름 (세션 없음·서버 장면 없음) — 기존 고정 문구 그대로 ── */
+      /* ── 비서버 흐름 (세션 없음·서버 장면 없음) — 고정 반응 문구(“…라고 말해
+         주었구나”)는 틀지 않는다 (2026-08-16). 아이 말만 말풍선에 남기고
+         곧장 정해진 답변으로 잇는다. */
       if (!serverMode) {
-        try {
-          const text = await transcribeAudio(blob, channelCount);
-          if (!text) return handleSilence();
-          const reaction = buildReaction(text);
-          fallbackRef.current = true;
-          setHistory((h) => [
-            ...h,
-            { from: "child", text },
-            { from: "character", text: reaction },
-          ]);
-          await speakReaction(reaction);
-        } catch (error) {
-          fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
-        }
+        setPendingUtterance(null);
+        setHistory((h) => [...h, { from: "child", text }]);
+        setLineIndex(0);
+        setPhase("answer");
         return;
       }
 
@@ -522,7 +569,10 @@ export function InteractiveScene({
           throw error;
         });
 
-        if (result.empty) return handleSilence();
+        if (result.empty) {
+          setPendingUtterance(null);
+          return handleSilence();
+        }
 
         /* 장면 추적 갱신 — 턴 API 의 장면끝은 next_scene 을 항상 싣는다 (없으면 회차끝이다).
            next_scene 없는 장면끝은 위 resume 경로뿐이고, 그쪽은 재열기가 이미 갱신했다. */
@@ -534,6 +584,12 @@ export function InteractiveScene({
         nextRef.current = result.next;
         fallbackRef.current = false;
         retriesRef.current = 0;
+        /* 장면을 닫는 대사다 — 왼쪽 고정 자막을 질문에서 이 대사로 바꾼다 */
+        if (result.next.kind === "장면끝" || result.next.kind === "회차끝") {
+          setFinalLine(result.dialogue.text);
+        }
+        /* 확인 말풍선은 여기까지 — 서버 STT 가 확정한 글자(child.text)로 갈아탄다 */
+        setPendingUtterance(null);
         setHistory((h) => [
           ...h,
           { from: "child", text: result.child.text },
@@ -566,6 +622,27 @@ export function InteractiveScene({
       fail,
       onComplete,
     ],
+  );
+
+  /* 녹음이 끝났다 — 보내기 전에 미리보기 STT 로 글자를 만들어 보여 주고
+     아이의 확인(보내기/다시 말하기)을 받는다 (시안: 「이대로 보낼까?」).
+     무음이면 기존 무음 흐름 그대로. 서버 모드에서 미리보기 STT 만 죽으면
+     확인 없이 바로 보낸다 — 확인 단계 때문에 대화가 막히면 안 된다. */
+  const handleUtterance = useCallback(
+    async (blob: Blob, channelCount: number) => {
+      setPhase("transcribing");
+      let text: string;
+      try {
+        text = await transcribeAudio(blob, channelCount);
+      } catch (error) {
+        if (serverMode) return sendUtterance({ blob, channelCount, text: "" });
+        return fail(error instanceof Error ? error.message : "음성 처리에 실패했습니다.");
+      }
+      if (!text) return handleSilence();
+      setPendingUtterance({ blob, channelCount, text });
+      setPhase("confirm");
+    },
+    [serverMode, sendUtterance, handleSilence, fail],
   );
 
   const stopRecording = useCallback(() => {
@@ -619,6 +696,21 @@ export function InteractiveScene({
   const playingLines = phase === "question" || phase === "answer";
   const currentLine = playingLines && activeLines ? activeLines[lineIndex] : null;
 
+  /* ── 왼쪽 이미지 위 고정 자막 (시안 14) ──────────────────────────────
+     질문·답변 재생 중에는 지금 나오는 줄을 따라가고, 그 밖에는 캐릭터의 질문
+     (마지막 질문 줄)이 붙박이로 선다. 장면을 닫는 마지막 대사가 나오면(finalLine)
+     자막이 그걸로 바뀐 채 씬이 끝날 때까지 남는다. */
+  const lastQuestionText =
+    resumeMode && resumeLine !== null
+      ? resumeLine
+      : preparedLines && preparedLines.question.length > 0
+        ? preparedLines.question[preparedLines.question.length - 1].text
+        : null;
+  const subtitle =
+    playingLines && currentLine && currentLine.text !== ""
+      ? currentLine.text
+      : (finalLine ?? lastQuestionText);
+
   function handleLineEnded() {
     if (activeLines && lineIndex + 1 < activeLines.length) {
       setLineIndex(lineIndex + 1);
@@ -659,8 +751,12 @@ export function InteractiveScene({
     preparedLines?.question[preparedLines.question.length - 1]?.audio ?? null;
   const replaySrc =
     history.length > 0 ? responseUrl : resumeMode ? resumeUrl : lastQuestionAudio;
-  /* 다시 듣기는 아이 차례(듣는 중·선택·무음 안내)일 때만 — 음성이 겹쳐 나오지 않게 */
-  const canReplay = phase === "listening" || phase === "choice" || phase === "silent";
+  /* 다시 듣기는 아이 차례(듣는 중·확인·선택·무음 안내)일 때만 — 음성이 겹쳐 나오지 않게 */
+  const canReplay =
+    phase === "listening" ||
+    phase === "confirm" ||
+    phase === "choice" ||
+    phase === "silent";
 
   const bubbleCount = bubbles.length;
   /* 생각 중 말풍선 — 턴 처리 중(transcribing)과 첫 진입(여는 말 준비 중이라 말풍선이
@@ -737,6 +833,16 @@ export function InteractiveScene({
         <audio key={replay.n} src={replay.src} autoPlay onEnded={() => setReplay(null)} />
       )}
 
+      {/* 고정 자막 — 컷 재생 화면의 자막 바와 같은 결. 오른쪽 채팅 패널(440px)과
+          겹치지 않게 오른쪽을 비워 두고, 상자 폭은 글 길이에 맞춘다 */}
+      {subtitle && (
+        <div className="pointer-events-none absolute bottom-6 left-6 right-[520px]">
+          <p className="inline-block rounded-2xl bg-white/95 px-6 py-4 text-[20px] font-bold leading-[1.5] text-ink shadow-panel">
+            {subtitle}
+          </p>
+        </div>
+      )}
+
       {/* 진단 배지 — `?debug=scene` 에서만. 아이 화면에는 뜨지 않는다 */}
       {debug && (
         <div className="pointer-events-none absolute left-4 top-24 rounded-lg bg-black/70 px-3 py-2 font-mono text-[12px] leading-[1.6] text-emerald-200">
@@ -769,55 +875,57 @@ export function InteractiveScene({
           </Link>
         </div>
 
-        <div ref={chatRef} className="flex flex-1 flex-col gap-3 overflow-y-auto bg-chip/40 px-5 py-5">
+        <div ref={chatRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-5">
           {bubbles.map((bubble, i) =>
             bubble.from === "character" ? (
-              <div key={i} className="flex max-w-[85%] flex-col gap-1">
-                <div className="flex items-start gap-2.5">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
-                    {step.speaker.label.slice(0, 1)}
-                  </span>
-                  <p className="rounded-2xl rounded-tl-md bg-white px-4 py-3 text-[16px] font-bold leading-[1.55] text-ink shadow-panel">
+              <div key={i} className="flex max-w-[85%] items-start gap-2.5">
+                <SpeakerAvatar label={step.speaker.label} />
+                {/* 시안: 회색 말풍선 안에 글 + 오른쪽 아래 파란 「다시 듣기」 */}
+                <div className="flex flex-col gap-1 rounded-2xl rounded-tl-md bg-chip px-4 py-3">
+                  <p className="text-[16px] font-bold leading-[1.55] text-ink">
                     {bubble.text}
                   </p>
+                  {canReplay && replaySrc && i === lastCharacterIndex && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setReplay((r) => ({ src: replaySrc, n: (r?.n ?? 0) + 1 }))
+                      }
+                      className="self-end text-[13px] font-bold text-primary-strong"
+                    >
+                      🔊 다시 듣기
+                    </button>
+                  )}
                 </div>
-                {canReplay && replaySrc && i === lastCharacterIndex && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setReplay((r) => ({ src: replaySrc, n: (r?.n ?? 0) + 1 }))
-                    }
-                    className="self-end text-[13px] font-bold text-ink-muted"
-                  >
-                    🔊 다시 듣기
-                  </button>
-                )}
               </div>
             ) : (
-              <p
-                key={i}
-                className="max-w-[85%] self-end rounded-2xl rounded-tr-md bg-primary px-4 py-3 text-[16px] font-bold leading-[1.55] text-white"
-              >
-                {bubble.text}
-              </p>
+              <ChildBubble key={i} text={bubble.text} />
             ),
           )}
+          {/* 보내기 전 확인 말풍선 (시안: 「내가 한 말」) — 아직 history 가 아니다.
+              보내면 사라지고, 서버가 확정한 글자가 정식 말풍선으로 쌓인다 */}
+          {pendingUtterance && phase === "confirm" && (
+            <ChildBubble text={pendingUtterance.text} />
+          )}
           {thinking && (
-            <div className="flex max-w-[85%] items-start gap-2.5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-line bg-primary-pale text-[15px] font-extrabold text-primary-strong">
-                {step.speaker.label.slice(0, 1)}
-              </span>
-              <p
-                aria-label={
-                  phase === "transcribing"
-                    ? "이야기 친구가 생각하는 중"
-                    : "이야기 친구가 말을 걸 준비를 하고 있어요"
-                }
-                className="flex items-center gap-1.5 rounded-2xl rounded-tl-md bg-white px-4 py-4 shadow-panel"
-              >
-                <span className="thinking-dot size-2 rounded-full bg-primary" />
-                <span className="thinking-dot size-2 rounded-full bg-primary" />
-                <span className="thinking-dot size-2 rounded-full bg-primary" />
+            <div className="flex max-w-[85%] flex-col gap-1">
+              <div className="flex items-start gap-2.5">
+                <SpeakerAvatar label={step.speaker.label} />
+                <p
+                  aria-hidden
+                  className="flex items-center gap-1.5 rounded-2xl rounded-tl-md bg-chip px-4 py-4"
+                >
+                  <span className="thinking-dot size-2 rounded-full bg-primary" />
+                  <span className="thinking-dot size-2 rounded-full bg-primary" />
+                  <span className="thinking-dot size-2 rounded-full bg-primary" />
+                </p>
+              </div>
+              {/* 점만으로는 무엇을 하는 중인지 안 보인다 — 말풍선 아래 한 줄로 남긴다.
+                  왼쪽 여백은 아바타(40px)+간격(10px)만큼 밀어 말풍선 밑에 맞춘다 */}
+              <p className="pl-[50px] text-[13px] font-bold text-ink-muted">
+                {phase === "transcribing"
+                  ? "대답을 생각하고 있어…"
+                  : "말을 걸 준비를 하고 있어…"}
               </p>
             </div>
           )}
@@ -833,20 +941,23 @@ export function InteractiveScene({
             <>
               <p className="text-[18px] font-extrabold text-ink">네 차례야!</p>
               <p className="text-[13px] font-bold text-ink-muted">
-                생각이 떠오르면 이야기하고, 다 말했으면 아래 마이크를 눌러줘
+                아래 마이크를 누르고, 생각이 떠오르면 이야기해줘
               </p>
               {retriesRef.current > 0 && (
                 <p className="text-[13px] font-bold text-point-strong">
                   잘 안 들렸어요. 한 번 더 크게 말해 볼까?
                 </p>
               )}
+              {/* 듣는 중 파형 아이콘과 같은 두 겹 원 — 눌리는 범위는 바깥 원 전체다 */}
               <button
                 type="button"
                 onClick={stopRecording}
                 aria-label="다 말했어요"
-                className="mt-1 flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-panel"
+                className="mt-1 flex size-24 items-center justify-center rounded-full bg-primary/30"
               >
-                <MicIcon />
+                <span className="flex size-[72px] items-center justify-center rounded-full bg-primary text-white shadow-panel">
+                  <MicIcon />
+                </span>
               </button>
               <p className="flex items-center gap-1.5 text-[13px] font-bold text-ink-muted">
                 <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
@@ -856,7 +967,51 @@ export function InteractiveScene({
           )}
 
           {phase === "transcribing" && (
-            <p className="text-[15px] font-bold text-ink">듣고 생각하는 중…</p>
+            <>
+              <p className="text-[18px] font-extrabold text-ink">듣는 중…</p>
+              <p className="text-[13px] font-bold text-ink-muted">
+                말이 끝나면 글자로 보여줄게
+              </p>
+              {/* 마이크 버튼 자리에 서는 파형 아이콘 — 눌리는 버튼이 아니라 상태 표시다 */}
+              <div className="mt-1 flex size-24 items-center justify-center rounded-full bg-primary/30">
+                <div className="flex size-[72px] items-center justify-center gap-1 rounded-full bg-primary">
+                  <span className="h-2.5 w-1.5 rounded-full bg-white" />
+                  <span className="h-4 w-1.5 rounded-full bg-white" />
+                  <span className="h-6 w-1.5 rounded-full bg-white" />
+                  <span className="h-4 w-1.5 rounded-full bg-white" />
+                  <span className="h-2.5 w-1.5 rounded-full bg-white" />
+                </div>
+              </div>
+            </>
+          )}
+
+          {phase === "confirm" && pendingUtterance && (
+            <>
+              <p className="py-1 text-[17px] font-extrabold text-ink">
+                너의 말이 문장으로 완성됐어! 이대로 보낼까?
+              </p>
+              {/* 시안: 패널 폭을 반씩 나눠 갖는 큰 버튼 두 개 */}
+              <div className="flex w-full gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingUtterance(null);
+                    retriesRef.current = 0;
+                    setPhase("listening");
+                  }}
+                  className="flex-1 rounded-xl bg-primary-pale py-4 text-[18px] font-extrabold text-primary-strong"
+                >
+                  다시 말하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void sendUtterance(pendingUtterance)}
+                  className="flex-1 rounded-xl bg-primary py-4 text-[18px] font-extrabold text-white"
+                >
+                  보내기
+                </button>
+              </div>
+            </>
           )}
 
           {phase === "responding" && (

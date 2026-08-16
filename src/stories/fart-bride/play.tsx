@@ -326,6 +326,9 @@ export default function FartBridePlay({
     sceneRef.current?.missionClosed(result);
   };
 
+  /* 지금 컷 묶음 바로 다음 스텝 — 대화 씬이면 컷 재생기가 끝에서 「대화 시작」 버튼을 세운다 */
+  const afterStep = steps[stepIndex + 1] ?? null;
+
   /* M8 — 팝업이 열린 동안 배경·대화 오디오 일시정지. 재생 중이던 미디어만 멈췄다가
      닫히면 그 목록만 되살린다 (미션 뒤 이야기 진행은 씬 콜백이 잇는다). */
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -426,6 +429,13 @@ export default function FartBridePlay({
                 step={step}
                 startCut={
                   resumeCutStart?.stepId === step.id ? resumeCutStart.cutIndex : undefined
+                }
+                /* 다음 스텝이 대화 씬이면 — 컷이 끝나도 자동으로 안 넘어가고,
+                   화자 이름을 단 「대화 시작」 버튼을 아이가 누른다 */
+                nextDialogue={
+                  afterStep?.kind === "interactive"
+                    ? { speaker: afterStep.speaker.label }
+                    : null
                 }
                 onEnded={() => {
                   /* 재개 시작 컷은 한 번만 — 이 스텝을 떠나면 소거해 다음 진입은 처음 컷부터 */

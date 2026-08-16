@@ -255,6 +255,38 @@
   animation-delay: 0.3s;
 }
 
+/* ── 컷 이미지 상시 드리프트 (cuts-player) ─────────────────────────────────
+   카메라 연출이 없는 컷도 화면을 가득 채운 채 천천히 흐르게 한다.
+   홀짝 컷이 서로 반대 방향이라 이어 봐도 단조롭지 않다.
+   이동폭(±0.8%)이 확대 여유(scale 1.06 → 한쪽 3%)보다 작아 가장자리가 안 드러난다 */
+@keyframes cut-drift-a {
+  from {
+    transform: scale(1.06) translate(0.8%, 0.4%);
+  }
+  to {
+    transform: scale(1.14) translate(-0.8%, -0.4%);
+  }
+}
+
+@keyframes cut-drift-b {
+  from {
+    transform: scale(1.14) translate(-0.8%, 0.4%);
+  }
+  to {
+    transform: scale(1.06) translate(0.8%, -0.4%);
+  }
+}
+
+.cut-drift-a {
+  animation: cut-drift-a 25s linear both;
+  will-change: transform;
+}
+
+.cut-drift-b {
+  animation: cut-drift-b 25s linear both;
+  will-change: transform;
+}
+
 html,
 body {
   height: 100%;
