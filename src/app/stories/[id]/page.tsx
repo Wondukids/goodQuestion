@@ -6,8 +6,6 @@ import { requireSelectedChild } from "@/lib/selected-child";
 import { getStory } from "@/lib/stories";
 import { startStory } from "./actions";
 
-const OPENING_LABEL = "이야기의 시작";
-
 /** 아이가 맡을 역할 — 모든 이야기에서 같은 안내라 DB 에 두지 않는다. */
 const ROLE_LINES = [
   "이야기 속 친구가 되어줘! ",
@@ -15,7 +13,10 @@ const ROLE_LINES = [
 ];
 
 /**
- * 시안 7 — 동화 시작. 이야기 데이터는 stories 테이블에서 slug 로 찾는다.
+ * 시안 78(55:1222) — 동화 시작. 이야기 데이터는 stories 테이블에서 slug 로 찾는다.
+ *
+ * 왼쪽 절반은 그림 한 장뿐이다 — 예전 시안(7)이 그림 아래에 깔던 「이야기의 시작」
+ * 도입 텍스트는 없앴다(그 문구는 stories.intro.opening 에 그대로 남아 있다).
  *
  * 전면(히어로)·초상 이미지는 아직 방귀 뀌는 며느리 것만 있어서 일단 쓰지 않는다 —
  * 왼쪽 그림은 목록과 같은 썸네일로 채우고, 상황 카드는 주인공 이름 첫 글자로 대신한다.
@@ -38,7 +39,6 @@ export default async function StoryIntroPage(
     `난이도 ${story.difficulty}`,
   ].filter(Boolean);
 
-  const opening = story.intro?.opening ?? [story.summary];
   const situation = story.intro?.situation ?? null;
 
   /* 역할 카드의 이름과 얼굴 — 아이 선택(32)에서 고른 아이 */
@@ -46,7 +46,7 @@ export default async function StoryIntroPage(
 
   return (
     <main className="relative flex h-[1024px] w-full overflow-hidden bg-story-bg">
-      {/* ── 왼쪽 절반: 장면 그림 위에 뒤로가기와 도입 텍스트가 얹힌다 */}
+      {/* ── 왼쪽 절반: 장면 그림 위에 뒤로가기 단추만 얹힌다 */}
       <section className="relative h-full w-[683px] shrink-0">
         {story.hero ? (
           /* 썸네일을 2:3 으로 아웃페인팅한 전면 컷 — 683×1024 창에 꽉 채운다. */
@@ -94,15 +94,6 @@ export default async function StoryIntroPage(
             className="size-6"
           />
         </Link>
-
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-2.5 bg-gradient-to-b from-story-bg/0 to-story-bg/40 px-12 pt-3 pb-12">
-          <span className="rounded-[14px] bg-ink-faint px-3.5 py-2 font-gothic text-[13px] font-extrabold text-ink-deep">
-            {OPENING_LABEL}
-          </span>
-          <p className="font-gothic text-[19px] leading-[1.65] font-bold whitespace-pre-line text-ink-deep">
-            {opening.join("\n")}
-          </p>
-        </div>
       </section>
 
       {/* ── 오른쪽 절반 */}

@@ -64,7 +64,7 @@ export function StoryBrowser({
               이어서 보면 마지막에 봤던 장면부터 시작해요
             </p>
           </div>
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-4 gap-[23px]">
             {continueVisible.map((story) => (
               <CompactStoryCard key={story.id} story={story} progress={null} />
             ))}
@@ -82,7 +82,7 @@ export function StoryBrowser({
           </p>
         </div>
         {newVisible.length > 0 ? (
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-4 gap-[23px]">
             {newVisible.map((story) => (
               <CompactStoryCard key={story.id} story={story} />
             ))}

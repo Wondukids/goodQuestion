@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { RecommendedStoryCard } from "@/components/story/story-card";
+import {
+  RECOMMEND_BADGE_ORDER,
+  RecommendedStoryCard,
+} from "@/components/story/story-card";
 import { TOPIC_TILES } from "@/components/story/topic-tiles";
 import { MaterialSymbol } from "@/components/ui/material-symbol";
 import { getRecommendations } from "@/lib/recommendations";
@@ -27,12 +30,10 @@ export async function PersonalizedSections({
   child,
   stories,
   sessions,
-  hasContinue,
 }: {
   child: SelectedChild;
   stories: Story[];
   sessions: ChildStorySession[];
-  hasContinue: boolean;
 }) {
   const recommendations = await getRecommendations(child, stories, sessions);
 
@@ -50,12 +51,15 @@ export async function PersonalizedSections({
             </p>
           </div>
 
-          <div className="flex w-full justify-center gap-[19px]">
-            {recommendations.map(({ story, reason }) => (
+          {/* 408 카드 석 장 + 사이 23px = 1270 으로 폭에 꼭 맞는다 */}
+          <div className="flex w-full justify-center gap-[23px]">
+            {recommendations.map(({ story, reason }, index) => (
               <RecommendedStoryCard
                 key={story.id}
                 story={story}
                 reason={reason}
+                badge={RECOMMEND_BADGE_ORDER[index] ?? "match"}
+                childName={child.name}
               />
             ))}
           </div>
@@ -90,11 +94,7 @@ export async function PersonalizedSections({
 
         {/* 첫 주제(다름)를 펼쳐 둔다 — 타일만 보이면 아래가 비어 「아무것도 없는 화면」으로
             읽힌다. 다시 누르면 접히고, 다른 타일을 누르면 그쪽으로 바뀐다. */}
-        <TopicBrowse
-          stories={stories}
-          hasContinue={hasContinue}
-          initialTopic={TOPIC_TILES[0].topic}
-        />
+        <TopicBrowse stories={stories} initialTopic={TOPIC_TILES[0].topic} />
       </section>
     </>
   );
@@ -108,11 +108,11 @@ export function PersonalizedSectionsSkeleton() {
         <div className="h-[42px] w-[340px] animate-pulse rounded-lg bg-chip" />
         <div className="h-[24px] w-[420px] animate-pulse rounded-lg bg-chip" />
       </div>
-      <div className="flex w-full justify-center gap-[19px]">
+      <div className="flex w-full justify-center gap-[23px]">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="h-[341px] w-[411px] animate-pulse rounded-[29px] bg-chip"
+            className="h-[495px] w-[408px] animate-pulse rounded-[20px] bg-chip"
           />
         ))}
       </div>

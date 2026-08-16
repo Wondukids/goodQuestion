@@ -63,7 +63,6 @@ export default async function HomePage() {
           child={child}
           stories={stories}
           sessions={sessions}
-          hasContinue={continueStories.length > 0}
         />
       </Suspense>
     </main>
