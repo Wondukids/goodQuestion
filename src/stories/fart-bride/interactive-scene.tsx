@@ -147,6 +147,7 @@ export function InteractiveScene({
   resumeLine,
   resumeMission,
   onMissionStart,
+  pinnedLine,
   onComplete,
   ref,
 }: {
@@ -169,6 +170,12 @@ export function InteractiveScene({
   resumeMission: MissionStart | null;
   /** 턴 응답 `미션시작` — 다리 대사 재생이 **끝난 뒤** 부른다(M8). 재생 화면이 팝업을 연다 */
   onMissionStart: (mission: MissionStart) => void;
+  /**
+   * 왼쪽에 붙박이로 세울 자막 — 바로 앞 컷 묶음의 마지막 대사(data.ts `pinnedCutLine`).
+   * 있으면 대화가 끝날 때까지 이 줄만 선다. 앞에 컷이 없는 자리면 null 이고, 그때만
+   * 예전처럼 질문 줄·닫는 대사가 자막을 채운다.
+   */
+  pinnedLine: { speaker: string; text: string } | null;
   onComplete: () => void;
   /** 미션 팝업이 닫힐 때 재생 화면이 결과를 넣어 주는 핸들 */
   ref?: Ref<InteractiveSceneHandle>;
@@ -697,19 +704,24 @@ export function InteractiveScene({
   const currentLine = playingLines && activeLines ? activeLines[lineIndex] : null;
 
   /* ── 왼쪽 이미지 위 고정 자막 (시안 14) ──────────────────────────────
-     질문·답변 재생 중에는 지금 나오는 줄을 따라가고, 그 밖에는 캐릭터의 질문
-     (마지막 질문 줄)이 붙박이로 선다. 장면을 닫는 마지막 대사가 나오면(finalLine)
-     자막이 그걸로 바뀐 채 씬이 끝날 때까지 남는다. */
+     바로 앞 컷 묶음의 마지막 대사(pinnedLine)가 대화 내내 그대로 선다 — 컷 재생
+     화면에서 보던 자막이 「대화 시작」 뒤에도 끊기지 않고 이어지고, 질문 TTS·듣는
+     중·생각 중·답변 TTS 어느 단계에서도 바뀌지 않는다. 대화 내용은 오른쪽 채팅
+     패널이 말풍선으로 보여 준다.
+
+     앞에 컷이 없는 자리(pinnedLine 이 null)에서만 예전 규칙을 쓴다 — 재생 중에는
+     지금 나오는 줄, 그 밖에는 질문 줄, 장면을 닫는 대사가 나오면(finalLine) 그것. */
   const lastQuestionText =
     resumeMode && resumeLine !== null
       ? resumeLine
       : preparedLines && preparedLines.question.length > 0
         ? preparedLines.question[preparedLines.question.length - 1].text
         : null;
-  const subtitle =
+  const fallbackSubtitle =
     playingLines && currentLine && currentLine.text !== ""
       ? currentLine.text
       : (finalLine ?? lastQuestionText);
+  const subtitle = pinnedLine ?? (fallbackSubtitle ? { speaker: "", text: fallbackSubtitle } : null);
 
   function handleLineEnded() {
     if (activeLines && lineIndex + 1 < activeLines.length) {
@@ -838,7 +850,13 @@ export function InteractiveScene({
       {subtitle && (
         <div className="pointer-events-none absolute bottom-6 left-6 right-[520px]">
           <p className="inline-block rounded-2xl bg-white/95 px-6 py-4 text-[20px] font-bold leading-[1.5] text-ink shadow-panel">
-            {subtitle}
+            {/* 화자 배지는 컷 재생 화면과 같은 규칙 — 내레이션이면 붙이지 않는다 */}
+            {subtitle.speaker !== "" && subtitle.speaker !== "내레이션" && (
+              <span className="mr-2 text-[17px] font-extrabold text-primary-strong">
+                {subtitle.speaker}
+              </span>
+            )}
+            {subtitle.text}
           </p>
         </div>
       )}

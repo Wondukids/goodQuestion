@@ -63,6 +63,35 @@ export type CutsStep = {
 export type Step = VideoStep | InteractiveStep | CutsStep;
 
 /**
+ * 대화 씬 왼쪽에 붙박이로 세울 자막 — 그 씬 **바로 앞** 컷 묶음의 마지막 대사.
+ * 컷 재생 화면에서 보던 자막이 대화가 끝날 때까지 그대로 남아, 「대화 시작」을
+ * 눌러도 화면 아래가 끊기지 않는다. 질문·아이 말·답변은 오른쪽 채팅 패널이 맡는다.
+ *
+ * 앞 스텝을 거슬러 올라가며 처음 만나는 컷 대사를 집는다 — 대화 씬이 잇달아 오면
+ * (plan-sequence 의 flush 가 빈 묶음을 안 만든다) 그 앞 컷 묶음까지 넘어간다.
+ * 대화로 바로 시작하는 자리처럼 앞에 컷이 없으면 null — 그때는 대화 씬이 예전처럼
+ * 질문 줄을 세운다.
+ */
+export function pinnedCutLine(
+  steps: Step[],
+  index: number,
+): { speaker: string; text: string } | null {
+  for (let i = index - 1; i >= 0; i--) {
+    const step = steps[i];
+    if (step.kind !== "cuts") continue;
+    for (let c = step.cuts.length - 1; c >= 0; c--) {
+      const lines = step.cuts[c].lines;
+      for (let l = lines.length - 1; l >= 0; l--) {
+        if (lines[l].text !== "") {
+          return { speaker: lines[l].speaker, text: lines[l].text };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * 서버 대화 장면 code 4개 — **이야기 진행 순서대로**다 (명세 3절 — 대화 4쌍이 전부다).
  * 플랜의 n번째 질문 컷이 n번째 code 에 잇는다. scene 번호·컷 id 는 컷 편집(재넘버링)에서
  * 바뀔 수 있어 열쇠로 쓰지 않는다 — 2026-08-14 재넘버링에서 실제로 둘 다 바뀌었다.

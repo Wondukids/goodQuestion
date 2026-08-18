@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { type VideoStep } from "./data";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { pinnedCutLine, type VideoStep } from "./data";
 import { CutsPlayer, type CutsPlayerHandle } from "./cuts-player";
 import { InteractiveScene, type InteractiveSceneHandle } from "./interactive-scene";
 import { MinigamePopup } from "./minigame-popup";
@@ -329,6 +329,10 @@ export default function FartBridePlay({
   /* 지금 컷 묶음 바로 다음 스텝 — 대화 씬이면 컷 재생기가 끝에서 「대화 시작」 버튼을 세운다 */
   const afterStep = steps[stepIndex + 1] ?? null;
 
+  /* 대화 씬 왼쪽에 세울 붙박이 자막 — 직전 컷 묶음의 마지막 대사다. 「대화 시작」을
+     눌러도 화면 아래 자막이 그대로 이어지게 한다 (대화 내용은 오른쪽 패널이 맡는다). */
+  const pinnedLine = useMemo(() => pinnedCutLine(steps, stepIndex), [steps, stepIndex]);
+
   /* M8 — 팝업이 열린 동안 배경·대화 오디오 일시정지. 재생 중이던 미디어만 멈췄다가
      닫히면 그 목록만 되살린다 (미션 뒤 이야기 진행은 씬 콜백이 잇는다). */
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -455,6 +459,7 @@ export default function FartBridePlay({
                 resumeMission={
                   resumeMission?.sceneCode === step.sceneCode ? resumeMission.mission : null
                 }
+                pinnedLine={pinnedLine}
                 onMissionStart={(m) => {
                   /* 이어하기로 열렸으면 여기서 소진한다 — 닫고 대화로 돌아온 뒤
                      이 씬이 다시 마운트돼도 팝업이 또 뜨면 안 된다 */
