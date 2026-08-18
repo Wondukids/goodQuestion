@@ -120,12 +120,15 @@ function ChildBubble({ text }: { text: string }) {
         <span className="text-[12px] font-bold text-primary-strong">내가 한 말</span>
         <p className="text-[16px] font-bold leading-[1.55] text-ink">{text}</p>
       </div>
+      {/* 활성 아바타 — child-avatar.png 는 채도를 뺀 비활성 짝이라(미션2 가 말할 차례에만
+          이 활성본으로 바꿔 단다) 대화 패널에서는 늘 활성본을 쓴다. 테두리는 이 그림에
+          분홍 링으로 이미 들어 있어 CSS 로 덧두르지 않는다 */}
       <Image
-        src="/figma/minigame/friend-mission/child-avatar.png"
+        src="/figma/minigame/friend-mission/child-avatar-active.png"
         alt=""
         width={40}
         height={40}
-        className="size-10 shrink-0 rounded-full border-2 border-primary-line bg-white"
+        className="size-10 shrink-0 rounded-full object-cover"
       />
     </div>
   );
