@@ -153,8 +153,18 @@ async function writeCache(
 /* ── LLM 생성 (Gemini) ──────────────────────────────────────────────── */
 
 /* Google AI Studio 무료 티어로 충분한 모델. SDK 없이 REST 로 바로 부른다.
-   버전을 핀으로 박으면 신규 키에서 막히는 일이 있어(2.5-flash 404) 최신 별칭을 쓴다. */
-const GEMINI_MODEL = "gemini-flash-latest";
+   버전을 핀으로 박으면 신규 키에서 막히는 일이 있어(2.5-flash·2.5-flash-lite 둘 다 404)
+   최신 별칭을 쓴다.
+
+   ⚠️ lite 인 이유 — 별칭이 가리키는 모델이 바뀐다.
+   `gemini-flash-latest` 는 지금 gemini-3.7-flash 를 가리키는데, 이 모델은
+   무료 티어가 **하루 20회**(GenerateRequestsPerDayPerProjectPerModel)라 반나절이면
+   429 로 막히고, 그 뒤로는 홈에 들어올 때마다 호출 → 실패 → 폴백을 되풀이한다.
+   게다가 기본으로 사고(thinking)를 켜서 성공해도 응답이 느리다
+   (아래 파싱에서 thought 파트를 걸러내는 게 그 흔적이다).
+   `gemini-flash-lite-latest` 는 같은 프롬프트에서 thought 0 토큰에 1.4~1.8초로 답한다.
+   thinkingConfig 로 사고를 끄는 건 이 모델이 400 을 내므로 넣지 않는다. */
+const GEMINI_MODEL = "gemini-flash-lite-latest";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT =
@@ -201,7 +211,8 @@ async function generateWithGemini(
     "[할 일]",
     `위 목록에서 정확히 ${Math.min(RECOMMEND_COUNT, candidates.length)}개를 골라라. slug 는 목록의 값을 그대로 쓴다.`,
     "reason 은 아이와 보호자가 함께 읽는 추천 이유다:",
-    "- 한 문장, 45자 이내, \"-어요/-해요\"로 끝나는 다정한 말투.",
+    /* 카드 바닥의 좁은 색 바 한 줄에 들어간다(두 줄까지만 보인다) — 30자를 넘기면 잘린다. */
+    "- 한 문장, 30자 이내, \"-어요/-해요\"로 끝나는 다정한 말투.",
     "- 들은 이야기가 있으면 그와 연결하고, 첫 추천이면 나이에 맞는 이유를 쓴다.",
     "",
     '출력은 다른 말 없이 JSON 하나만: {"recommendations":[{"slug":"...","reason":"..."}]}',
@@ -219,7 +230,9 @@ async function generateWithGemini(
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: "application/json" },
       }),
-      signal: AbortSignal.timeout(25_000),
+      /* 홈 추천 줄이 스켈레톤으로 버티는 시간이다. 평소 1.5초 안에 오므로
+         8초를 넘겼으면 기다리는 것보다 규칙 기반으로 채우고 넘어가는 게 낫다. */
+      signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) {
       console.error("Gemini 응답 오류:", res.status, await res.text());

@@ -5,7 +5,8 @@
 
 /** 동화 시작 화면(시안 7)의 문구 묶음 — stories.intro jsonb 와 같은 모양. */
 export type StoryIntro = {
-  /** 전면 이미지 아래 도입 텍스트 */
+  /** 도입 텍스트. 시작 화면이 시안 78(55:1222)로 바뀌며 화면에서는 빠졌고,
+      데이터만 남아 있다 — 다시 쓸 자리가 생기면 여기서 꺼내 쓴다. */
   opening: string[];
   /** 주인공이 지금 처한 상황 — 이름과 대사 */
   situation: { name: string; heading: string; lines: string[] };

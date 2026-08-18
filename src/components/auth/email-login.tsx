@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useState } from "react";
+import { TextField } from "@/components/ui/text-field";
 import { createClient } from "@/lib/supabase/client";
 
-/* 이메일·비밀번호 로그인.
+/* 이메일·비밀번호 로그인 — 시안 0:1079~0:1082 (라벨 칸 두 개 + 로그인 버튼).
    구글은 동의 화면으로 나갔다 `/auth/callback` 으로 돌아오지만, 이쪽은 브라우저에서
    바로 세션 쿠키가 서므로 콜백 라우트를 타지 않는다. 그래서 이동은 여기서 직접 한다.
 
@@ -12,11 +13,7 @@ import { createClient } from "@/lib/supabase/client";
       `router.refresh()` 로 서버 쪽을 한 번 다시 그려야 `/children` 이 로그인된 상태로 뜬다. */
 export function EmailLogin({ next = "/children" }: { next?: string }) {
   const router = useRouter();
-  const emailId = useId();
-  const passwordId = useId();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -25,9 +22,14 @@ export function EmailLogin({ next = "/children" }: { next?: string }) {
     setPending(true);
     setMessage("");
 
+    /* 값은 TextField 가 제 안에서 들고 있으므로 폼에서 한 번에 꺼낸다. */
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email,
       password,
     });
 
@@ -47,62 +49,47 @@ export function EmailLogin({ next = "/children" }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={signIn} className="flex w-[400px] max-w-full flex-col gap-4">
-      <div className="flex w-full flex-col gap-2">
-        <label htmlFor={emailId} className="text-[15px] font-extrabold text-ink">
-          이메일
-        </label>
-        <div className="flex w-full items-center rounded-2xl border-2 border-ink/20 bg-surface px-[18px] py-3.5">
-          <input
-            id={emailId}
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="이메일을 입력해 주세요"
-            className="min-w-0 flex-1 bg-transparent text-[17px] text-ink outline-none placeholder:text-ink-soft"
-          />
-        </div>
+    <form onSubmit={signIn} className="flex w-full flex-col gap-10">
+      <div className="flex w-full flex-col gap-[30px]">
+        <TextField
+          label="이메일"
+          name="email"
+          type="email"
+          placeholder="이메일을 입력해주세요"
+          autoComplete="username"
+          clearable
+          required
+        />
+
+        <TextField
+          label="비밀번호"
+          name="password"
+          type="password"
+          placeholder="비밀번호를 입력해주세요"
+          autoComplete="current-password"
+          clearable
+          required
+        />
       </div>
 
-      <div className="flex w-full flex-col gap-2">
-        <label
-          htmlFor={passwordId}
-          className="text-[15px] font-extrabold text-ink"
+      <div className="flex w-full flex-col gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex h-[61px] w-full cursor-pointer items-center justify-center rounded-lg bg-primary-strong px-6 text-[22px] leading-[1.5] font-extrabold text-[#fcfcfc] transition disabled:opacity-60"
         >
-          비밀번호
-        </label>
-        <div className="flex w-full items-center rounded-2xl border-2 border-ink/20 bg-surface px-[18px] py-3.5">
-          <input
-            id={passwordId}
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="비밀번호를 입력해 주세요"
-            className="min-w-0 flex-1 bg-transparent text-[17px] text-ink outline-none placeholder:text-ink-soft"
-          />
-        </div>
+          {pending ? "로그인 중…" : "로그인"}
+        </button>
+
+        {message && (
+          <p
+            role="alert"
+            className="text-center text-[14px] font-bold text-[#d94b4b]"
+          >
+            {message}
+          </p>
+        )}
       </div>
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-2 flex w-full items-center justify-center rounded-2xl bg-primary px-8 py-4 text-[20px] font-extrabold text-white transition disabled:opacity-60"
-      >
-        {pending ? "로그인 중…" : "이메일로 로그인"}
-      </button>
-
-      {message && (
-        <p
-          role="alert"
-          className="text-center text-[14px] font-bold text-[#d94b4b]"
-        >
-          {message}
-        </p>
-      )}
     </form>
   );
 }
