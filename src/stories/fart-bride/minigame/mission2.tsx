@@ -436,7 +436,7 @@ export function Mission2({
   const quote = friend ? (helped.find((h) => h.id === friend.id)?.quote ?? "") : "";
 
   return (
-    <MissionCanvas width={CANVAS.w} height={CANVAS.h} className="rounded-3xl bg-[#f8f1e4]">
+    <MissionCanvas design={CANVAS} className="rounded-3xl bg-[#f8f1e4]">
       <>
         <Image
           src={SCENE.background}

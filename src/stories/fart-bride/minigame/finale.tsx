@@ -129,7 +129,7 @@ export function Finale({
   };
 
   return (
-    <MissionCanvas width={CANVAS.w} height={CANVAS.h} className="rounded-3xl bg-story-bg">
+    <MissionCanvas design={CANVAS} className="rounded-3xl bg-story-bg">
       <>
         <Header step={step} onQuit={onQuit} />
 

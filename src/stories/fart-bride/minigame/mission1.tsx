@@ -45,11 +45,6 @@ import { useNpcVoice } from "./use-npc-voice";
 /* 시안 좌표계 — 아래 값들이 사는 자리다 */
 const CANVAS = { w: 1092, h: 820 };
 
-/* 무대 — 미션2·마무리와 같은 크기로 뜬다. 시안이 1092×820 이라 캔버스가 그만큼
-   늘어나서 채운다 (canvas.tsx 의 design). 무대를 안 맞추면 큰 화면에서 미션1 만
-   1092×820 에서 멈춰, 미션2 를 하다 넘어온 아이 눈에 화면이 작아진다. */
-const STAGE = { w: 1366, h: 1024 };
-
 /* 소품 한 칸 — 01_탐색 기준. left/top 은 이미지의 왼쪽 위 모서리다
    (시안은 위아래 14.52 패딩이 붙은 컨테이너라 top 410 + 14.52 = 424.52). */
 const PROP = { w: 214.613, h: 143.075, gap: 8.8, left: 321, top: 424.52 };
@@ -371,12 +366,7 @@ export function Mission1({
   const pickedIndex = PROPS.findIndex((p) => p.id === prop?.id);
 
   return (
-    <MissionCanvas
-      width={STAGE.w}
-      height={STAGE.h}
-      design={CANVAS}
-      className="rounded-3xl bg-story-bg"
-    >
+    <MissionCanvas design={CANVAS} className="rounded-3xl bg-story-bg">
       <>
         {/* 배경 — 대화 단계에서는 블러가 살짝 걷히며 이장님에게 눈이 간다 */}
         <div
