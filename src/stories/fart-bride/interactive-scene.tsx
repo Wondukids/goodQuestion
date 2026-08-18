@@ -1027,11 +1027,11 @@ export function InteractiveScene({
           )}
 
           {phase === "choice" && (
-            <div className="flex gap-3">
+            <div className="flex w-full gap-4">
               <button
                 type="button"
                 onClick={() => setPhase("listening")}
-                className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
+                className="flex-1 rounded-xl bg-chip py-4 text-[18px] font-extrabold text-ink"
               >
                 다시 말하기
               </button>
@@ -1042,7 +1042,7 @@ export function InteractiveScene({
                   setLineIndex(0);
                   setPhase("answer");
                 }}
-                className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
+                className="flex-1 rounded-xl bg-primary py-4 text-[18px] font-extrabold text-white"
               >
                 계속하기
               </button>
@@ -1054,14 +1054,14 @@ export function InteractiveScene({
               <p className="text-center text-[14px] font-bold text-point-strong">
                 목소리가 잘 안 들렸어요. 한 번 더 말해 볼까?
               </p>
-              <div className="flex gap-3">
+              <div className="flex w-full gap-4">
                 <button
                   type="button"
                   onClick={() => {
                     retriesRef.current = 0;
                     setPhase("listening");
                   }}
-                  className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
+                  className="flex-1 rounded-xl bg-chip py-4 text-[18px] font-extrabold text-ink"
                 >
                   다시 말하기
                 </button>
@@ -1072,7 +1072,7 @@ export function InteractiveScene({
                     setLineIndex(0);
                     setPhase("answer");
                   }}
-                  className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
+                  className="flex-1 rounded-xl bg-primary py-4 text-[18px] font-extrabold text-white"
                 >
                   넘어가기
                 </button>
@@ -1089,11 +1089,11 @@ export function InteractiveScene({
               <p className="text-center text-[14px] font-bold text-point-strong">
                 {errorMessage}
               </p>
-              <div className="flex gap-3">
+              <div className="flex w-full gap-4">
                 <button
                   type="button"
                   onClick={() => setPhase("listening")}
-                  className="rounded-xl bg-chip px-6 py-3 text-[16px] font-extrabold text-ink"
+                  className="flex-1 rounded-xl bg-chip py-4 text-[18px] font-extrabold text-ink"
                 >
                   다시 시도
                 </button>
@@ -1106,7 +1106,7 @@ export function InteractiveScene({
                     setLineIndex(0);
                     setPhase("answer");
                   }}
-                  className="rounded-xl bg-primary px-6 py-3 text-[16px] font-extrabold text-white"
+                  className="flex-1 rounded-xl bg-primary py-4 text-[18px] font-extrabold text-white"
                 >
                   건너뛰고 계속
                 </button>
