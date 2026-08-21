@@ -71,6 +71,11 @@
   --color-primary-pale: #daedf6; /* 역할 카드 바탕 */
   --color-point-strong: #fd6735; /* "지금 며느리는…" */
 
+  /* 대화 씬 채팅 패널 — 아이가 보낸 말풍선. --color-primary 계열보다 채도가 낮아
+     캐릭터 쪽 회색 말풍선(--color-chip) 옆에서 「내 말」로 먼저 읽힌다. */
+  --color-child-bubble: #8abbd9; /* 보낸 말풍선 바탕 (글자는 흰색) */
+  --color-child-bubble-note: #436e8d; /* 그 아래 「✓ ○○가 확인했어!」 한 줄 */
+
   /* 상태 — 되고/안 되고/조심 (관리자 규칙 3-2·3-4·3-6에서 쓴다).
      ⚠️ 아이가 쓰는 화면에는 안 쓴다. 관리자 화면이 Tailwind 기본 red-600·amber-500 을
      직접 쓰던 것을 걷어내려고 세운다 (`docs/관리자_디자인_규칙.md` 규칙 1-7).

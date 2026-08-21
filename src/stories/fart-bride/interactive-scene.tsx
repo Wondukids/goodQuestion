@@ -15,7 +15,7 @@ import { transcribeAudio } from "@/stt/client";
 import { startRecording, type Recording } from "@/stt/record";
 import { requestSpeech } from "@/tts/client";
 import { STT_DEFAULTS, type InteractiveStep, type SpeechLine } from "./data";
-import { fillChildName, vocative } from "./name";
+import { fillChildName, subjective, vocative } from "./name";
 import {
   openSession,
   resumeSessionTurn,
@@ -112,24 +112,56 @@ function SpeakerAvatar({ label }: { label: string }) {
   );
 }
 
-/* 아이 말풍선 (시안: 「내가 한 말」) — 확인 중이든 보낸 뒤든 같은 모양으로 남는다 */
-function ChildBubble({ text }: { text: string }) {
+/* 아이 말풍선 (시안: 「내가 한 말」) — 보내기 전후로 모양이 갈린다.
+   confirmedBy 가 있으면 보내기가 끝난 말이다: 파란 말풍선을 꽉 채우고 아래에
+   「✓ ○○가 확인했어!」 한 줄을 붙여 상대에게 닿았다는 걸 남긴다.
+   없으면 아직 안 보낸 미리보기 — 점선 테두리로 「보내기 전」임을 남긴다. */
+function ChildBubble({ text, confirmedBy }: { text: string; confirmedBy?: string }) {
+  const sent = confirmedBy !== undefined;
   return (
-    <div className="flex max-w-[85%] items-start gap-2.5 self-end">
-      <div className="flex flex-col gap-1 rounded-2xl border-2 border-dashed border-primary/60 bg-primary-pale/60 px-4 py-3">
-        <span className="text-[12px] font-bold text-primary-strong">내가 한 말</span>
-        <p className="text-[16px] font-bold leading-[1.55] text-ink">{text}</p>
+    <div className="flex max-w-[85%] flex-col gap-2 self-end">
+      {/* 아바타는 말풍선 아래끝에 맞춘다 (시안) — 여러 줄이 되어도 밑변이 같이 간다 */}
+      <div className="flex items-end gap-2.5">
+        <div
+          className={`flex flex-col gap-1 rounded-2xl px-4 py-3 ${
+            sent
+              ? "bg-child-bubble"
+              : "border-2 border-dashed border-primary/60 bg-primary-pale/60"
+          }`}
+        >
+          <span
+            className={`text-[12px] font-bold ${
+              sent ? "text-white/85" : "text-primary-strong"
+            }`}
+          >
+            내가 한 말
+          </span>
+          <p
+            className={`text-[16px] font-bold leading-[1.55] ${
+              sent ? "text-white" : "text-ink"
+            }`}
+          >
+            {text}
+          </p>
+        </div>
+        {/* 활성 아바타 — child-avatar.png 는 채도를 뺀 비활성 짝이라(미션2 가 말할 차례에만
+            이 활성본으로 바꿔 단다) 대화 패널에서는 늘 활성본을 쓴다. 테두리는 이 그림에
+            분홍 링으로 이미 들어 있어 CSS 로 덧두르지 않는다 */}
+        <Image
+          src="/figma/minigame/friend-mission/child-avatar-active.png"
+          alt=""
+          width={40}
+          height={40}
+          className="size-10 shrink-0 rounded-full object-cover"
+        />
       </div>
-      {/* 활성 아바타 — child-avatar.png 는 채도를 뺀 비활성 짝이라(미션2 가 말할 차례에만
-          이 활성본으로 바꿔 단다) 대화 패널에서는 늘 활성본을 쓴다. 테두리는 이 그림에
-          분홍 링으로 이미 들어 있어 CSS 로 덧두르지 않는다 */}
-      <Image
-        src="/figma/minigame/friend-mission/child-avatar-active.png"
-        alt=""
-        width={40}
-        height={40}
-        className="size-10 shrink-0 rounded-full object-cover"
-      />
+      {/* 확인 한 줄 — 오른쪽 여백은 아바타(40px)+간격(10px)만큼 밀어 말풍선 오른끝에 맞춘다 */}
+      {sent && (
+        <p className="pr-[50px] text-right text-[13px] font-bold text-child-bubble-note">
+          ✓ {confirmedBy}
+          {subjective(confirmedBy)} 확인했어!
+        </p>
+      )}
     </div>
   );
 }
@@ -914,13 +946,14 @@ export function InteractiveScene({
                       }
                       className="self-end text-[13px] font-bold text-primary-strong"
                     >
-                      🔊 다시 듣기
+                      다시 듣기
                     </button>
                   )}
                 </div>
               </div>
             ) : (
-              <ChildBubble key={i} text={bubble.text} />
+              /* history 에 쌓인 말 = 서버까지 갔다 온 말 — 상대가 확인한 모양으로 남긴다 */
+              <ChildBubble key={i} text={bubble.text} confirmedBy={step.speaker.label} />
             ),
           )}
           {/* 보내기 전 확인 말풍선 (시안: 「내가 한 말」) — 아직 history 가 아니다.

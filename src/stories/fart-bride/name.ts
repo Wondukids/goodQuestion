@@ -22,6 +22,11 @@ export function comitative(name: string) {
   return hasBatchim(name) ? "과" : "와";
 }
 
+/** 주격 조사 — "며느리" → "가", "이장님" → "이" */
+export function subjective(name: string) {
+  return hasBatchim(name) ? "이" : "가";
+}
+
 /** 대사 속 "ㅇㅇ" 자리에 이름을 넣는다. */
 export function fillChildName(text: string, name: string) {
   return text
